@@ -1,0 +1,362 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  name               String
+  email              String              @unique
+  password           String
+  companyId          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  role               String
+  uploadedFiles      File[]
+  projectAssignments ProjectAssignment[]
+  company            Company?            @relation(fields: [companyId], references: [id])
+}
+
+model Project {
+  id                 Int                    @id @default(autoincrement())
+  name               String
+  description        String?
+  companyId          String
+  startDate          DateTime?
+  endDate            DateTime?
+  dueDate            DateTime?
+  status             ProjectStatus          @default(ONGOING)
+  createdAt          DateTime               @default(now())
+  budget             Float?
+  quotationAmount    Float?
+  clientName         String
+  projectId          String                 @unique
+  projectType        String
+  location           String?
+  assignedEngineerId Int?
+  actualProgress     Int                    @default(0) // ✅ NEW: Actual progress percentage (0-100)
+  contracts          Contract[]
+  files              File[]
+  expenses           ProjectExpense[]
+  finances           FinancialTransaction[]
+  materialUsages     MaterialUsage[]
+  projectMaterials   ProjectMaterial[]
+  materialRequests   MaterialRequest[]
+  labours            Labour[]
+  company            Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assignments        ProjectAssignment[]
+  assignedEngineer   Engineer?              @relation(fields: [assignedEngineerId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([projectId])
+  @@index([status])
+  @@index([assignedEngineerId])
+}
+
+model ProjectExpense {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  category  String
+  amount    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([category])
+}
+
+model ProjectAssignment {
+  id         Int      @id @default(autoincrement())
+  projectId  Int
+  userId     String
+  assignedAt DateTime @default(now())
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model Material {
+  id               Int               @id @default(autoincrement())
+  materialId       String            @unique
+  name             String
+  category         String
+  type             String?
+  unit             String
+  defaultRate      Float?
+  vendor           String?
+  description      String?
+  companyId        String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  usages           MaterialUsage[]
+  projectMaterials ProjectMaterial[]
+  requests         MaterialRequest[]
+
+  @@index([companyId])
+  @@index([materialId])
+  @@index([category])
+}
+
+model ProjectMaterial {
+  id         Int                   @id @default(autoincrement())
+  projectId  Int
+  materialId Int
+  assigned   Float
+  used       Float                 @default(0)
+  status     ProjectMaterialStatus @default(ACTIVE)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  project    Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material   Material              @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, materialId])
+  @@index([projectId])
+  @@index([materialId])
+  @@index([status])
+}
+
+model MaterialUsage {
+  id         Int      @id @default(autoincrement())
+  materialId Int
+  projectId  Int
+  engineerId Int
+  quantity   Float
+  remarks    String?
+  date       DateTime @default(now())
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  engineer   Engineer @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([materialId])
+  @@index([engineerId])
+  @@index([date])
+}
+
+model MaterialRequest {
+  id              Int                 @id @default(autoincrement())
+  requestId       String              @unique
+  employeeId      Int
+  name            String
+  category        String
+  unit            String
+  defaultRate     Float
+  vendor          String?
+  description     String?
+  type            MaterialRequestType
+  projectId       Int?
+  materialId      Int?
+  quantity        Float?
+  status          RequestStatus       @default(PENDING)
+  requestDate     DateTime            @default(now())
+  reviewDate      DateTime?
+  approvalNotes   String?
+  rejectionReason String?
+  reviewedBy      Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  employee        Engineer            @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewer        Engineer?           @relation("ReviewedRequests", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  project         Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  material        Material?           @relation(fields: [materialId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([status])
+  @@index([type])
+  @@index([projectId])
+  @@index([requestDate])
+}
+
+model Notification {
+  id         Int              @id @default(autoincrement())
+  engineerId Int
+  message    String
+  type       NotificationType
+  read       Boolean          @default(false)
+  date       DateTime         @default(now())
+  engineer   Engineer         @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+
+  @@index([engineerId])
+  @@index([read])
+  @@index([date])
+}
+
+model Contract {
+  id             Int      @id @default(autoincrement())
+  projectId      Int
+  contractorName String
+  contactNumber  String
+  contractAmount Float
+  paidAmount     Float    @default(0)  // ✅ ADD THIS
+  workStatus     String
+  details        String?
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt 
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId])
+}
+
+model FinancialTransaction {
+  id          Int             @id @default(autoincrement())
+  projectId   Int
+  type        TransactionType
+  category    String?
+  amount      Float
+  description String?
+  date        DateTime        @default(now())
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([type])
+  @@index([category])
+  @@index([date])
+}
+
+model File {
+  id                   Int      @id @default(autoincrement())
+  projectId            Int
+  uploadedBy           String?  
+  uploadedByEngineerId Int?     
+  fileUrl              String
+  fileName             String?
+  documentType         String?
+  fileSize             Int?
+  uploadedAt           DateTime @default(now())
+  project              Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user                 User?     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  engineer             Engineer? @relation(fields: [uploadedByEngineerId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([uploadedBy])
+  @@index([uploadedByEngineerId])
+}
+
+model Company {
+  id        String     @id @default(uuid())
+  name      String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  materials Material[]
+  projects  Project[]
+  users     User[]
+  engineers Engineer[]
+  labours   Labour[]   // ✅ ADDED
+
+  @@map("companies")
+}
+
+model Engineer {
+  id               Int               @id @default(autoincrement())
+  name             String
+  empId            String
+  phone            String
+  alternatePhone   String?
+  address          String
+  profileImage     String?
+  username         String?
+  password         String?
+  companyId        String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  projects         Project[]
+  materialRequests MaterialRequest[] @relation("EmployeeRequests")
+  reviewedRequests MaterialRequest[] @relation("ReviewedRequests")
+  notifications    Notification[]
+  materialUsages   MaterialUsage[]
+  uploadedFiles    File[]
+
+  @@unique([empId, companyId])
+  @@unique([username, companyId])
+  @@index([companyId])
+  @@index([username])
+  @@map("engineers")
+}
+
+// ✅ NEW: Labour Management Models
+model Labour {
+  id        Int              @id @default(autoincrement())
+  name      String
+  phone     String
+  address   String?
+  companyId String
+  projectId Int?             // Optional: link to specific project
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  company   Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  project   Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  payments  LabourPayment[]
+  
+  @@index([companyId])
+  @@index([projectId])
+  @@index([phone])
+}
+
+model LabourPayment {
+  id        Int      @id @default(autoincrement())
+  labourId  Int
+  amount    Float
+  date      DateTime
+  remarks   String?  // Optional: add notes about the payment
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  labour    Labour   @relation(fields: [labourId], references: [id], onDelete: Cascade)
+  
+  @@index([labourId])
+  @@index([date])
+}
+
+enum ProjectMaterialStatus {
+  ACTIVE
+  COMPLETED
+  NOT_USED
+}
+
+enum MaterialRequestType {
+  GLOBAL
+  PROJECT
+  PROJECT_MATERIAL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationType {
+  SUCCESS
+  ERROR
+  INFO
+  WARNING
+}
+
+enum Role {
+  Admin
+  Site_Engineer
+}
+
+enum ProjectStatus {
+  PENDING
+  ONGOING
+  COMPLETED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  BUDGET
+}

@@ -311,7 +311,7 @@ const EmployeeFileManagement = () => {
               E-Vault
             </h1>
             <p className="text-xs sm:text-sm md:text-base text-gray-700">
-              {viewMode === 'projects' ? 'My Assigned Projects - Manage documents securely' : `Files for ${selectedProject?.name}`}
+              {viewMode === 'projects' ? 'My Assigned Projects - Manage documents securely' : `Files for ${selectedProject?.name}`} 
             </p>
           </div>
 
@@ -433,49 +433,59 @@ const EmployeeFileManagement = () => {
               ) : projects.length > 0 ? (
                 projects.map(project => (
                   <div
-                    key={project.id}
-                    className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                    onClick={() => handleOpenProject(project)}
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 md:gap-4 flex-1">
-                        <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0">
-                          <FolderOpen size={24} className="md:w-8 md:h-8 text-black" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-black text-sm md:text-lg mb-1 break-words">
-                            {project.name}
-                          </h4>
-                          {project.description && (
-                            <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">
-                              {project.description}
-                            </p>
-                          )}
-                          <div className="flex flex-wrap gap-2 items-center mb-2">
-                            <span className={`text-xs md:text-sm px-3 py-1.5 rounded-lg border-2 font-medium ${getStatusBadgeColor(project.status)}`}>
-                              {project.status}
-                            </span>
-                            {project.projectType && (
-                              <span className="text-xs md:text-sm bg-gray-200 px-3 py-1.5 rounded-lg border-2 border-gray-400 font-medium">
-                                {project.projectType}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-600 space-y-1">
-                            {project.clientName && (
-                              <p><span className="font-medium">Client:</span> {project.clientName}</p>
-                            )}
-                            {(project.startDate || project.endDate) && (
-                              <p>
-                                <span className="font-medium">Timeline:</span> {formatDate(project.startDate)} - {formatDate(project.endDate)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <ChevronRight size={24} className="text-gray-400 flex-shrink-0" />
-                    </div>
-                  </div>
+  key={project.id}
+  className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+  onClick={() => handleOpenProject(project)}
+>
+  <div className="flex items-start justify-between gap-4">
+    <div className="flex items-start gap-3 md:gap-4 flex-1">
+      <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0">
+        <FolderOpen size={24} className="md:w-8 md:h-8 text-black" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-bold text-black text-sm md:text-lg mb-1 break-words">
+          {project.name}
+        </h4>
+        {project.description && (
+          <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">
+            {project.description}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2 items-center mb-2">
+         <span className={`text-xs md:text-sm px-2 py-1 rounded-md font-medium ${getStatusBadgeColor(project.status)}`}>
+    {project.status.charAt(0).toUpperCase() + project.status.slice(1).toLowerCase()}
+</span>
+          {project.projectType && (
+            <span className="text-xs md:text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-md font-medium">
+              {project.projectType}
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-gray-600 space-y-1">
+          {project.clientName && (
+            <p><span className="font-medium">Client:</span> {project.clientName}</p>
+          )}
+          {(project.startDate || project.endDate) && (
+            <p>
+              <span className="font-medium">Timeline:</span> {formatDate(project.startDate)} - {formatDate(project.endDate)}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleOpenProject(project);
+      }}
+      className="flex items-center gap-2 bg-amber-400 hover:bg-amber-500 text-black font-medium px-3 py-2 rounded-lg border-2 border-black transition-colors flex-shrink-0 text-xs md:text-sm cursor-pointer"
+    >
+      <Plus size={18} className="md:w-5 md:h-5" />
+      <span className="hidden md:inline">Upload Files</span>
+      <span className="md:hidden">Upload</span>
+    </button>
+  </div>
+</div>
                 ))
               ) : (
                 <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">

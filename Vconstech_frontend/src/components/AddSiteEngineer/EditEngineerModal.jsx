@@ -18,15 +18,28 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
   useEffect(() => {
     if (engineer) {
-      console.log('Engineer data received in modal:', engineer); // Debug log
+      // ✅ EXTENSIVE DEBUGGING
+      console.log('=== EDIT ENGINEER MODAL DEBUG ===');
+      console.log('Full engineer object:', engineer);
+      console.log('plainPassword field:', engineer.plainPassword);
+      console.log('password field:', engineer.password);
+      console.log('username field:', engineer.username);
+      console.log('All engineer keys:', Object.keys(engineer));
+      console.log('================================');
+      
+      // Try multiple possible password field names
+      const passwordValue = engineer.plainPassword || engineer.password_plain || engineer.originalPassword || '';
+      
+      console.log('Password value being set:', passwordValue ? '***EXISTS***' : 'EMPTY/NULL');
+      
       setFormData({
         name: engineer.name || '',
         phone: engineer.phone || '',
         alternatePhone: engineer.alternatePhone || '',
         empId: engineer.empId || '',
         address: engineer.address || '',
-        username: engineer.username || '', // Check if this is coming from backend
-        password: '', // Leave empty - only fill if admin wants to change it
+        username: engineer.username || '',
+        password: passwordValue, // ✅ Use the password we found
         profileImage: null
       });
       setImagePreview(engineer.profileImage || null);
@@ -113,8 +126,10 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
       newErrors.username = 'Username can only contain letters, numbers, and underscores';
     }
 
-    // Password validation (only if provided)
-    if (formData.password && formData.password.length < 6) {
+    // Password validation
+    if (!formData.password || !formData.password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
     }
 
@@ -132,7 +147,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
     // Log what we're sending
     console.log('Submitting updated engineer data:', {
       ...formData,
-      password: formData.password ? '***HIDDEN***' : 'NOT CHANGED'
+      password: formData.password ? '***HIDDEN***' : 'NOT PROVIDED'
     });
 
     const success = await onSubmit(engineer.id, formData);
@@ -349,7 +364,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
               {/* Password */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  Password *
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -364,7 +379,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     className={`w-full pl-10 pr-20 py-2 border ${
                       errors.password ? 'border-red-500' : 'border-gray-300'
                     } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
-                    placeholder="Leave blank to keep current password"
+                    placeholder="Enter password"
                     disabled={isSubmitting}
                   />
                   <button
@@ -376,7 +391,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                   </button>
                 </div>
                 {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-                <p className="text-xs text-gray-500 mt-1">Leave empty if you don't want to change the password</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.password ? 'Current password is shown. Modify to change it.' : 'No password set - please enter one'}
+                </p>
               </div>
             </div>
           </div>

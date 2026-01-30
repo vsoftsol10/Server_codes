@@ -1,7 +1,7 @@
 import { Bell, LogOut, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../../assets/vsFinallogo.avif'
+import logo from '../../assets/constech-logo.png'
 
 const SuperNav = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);

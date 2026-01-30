@@ -21,18 +21,25 @@ const Dashboard = () => {
 
   const getAuthToken = () => localStorage.getItem('authToken') || localStorage.getItem('token');
 
-  const fetchData = async (endpoint) => {
-    const token = getAuthToken();
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'An error occurred');
-    return data;
-  };
+const fetchData = async (endpoint) => {
+  const token = getAuthToken();
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  // ✅ Check if response is actually JSON
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error(`Expected JSON but got ${contentType || 'unknown'} from ${endpoint}`);
+  }
+  
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'An error occurred');
+  return data;
+};
 
   useEffect(() => {
     const fetchAllData = async () => {

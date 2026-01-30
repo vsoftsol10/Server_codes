@@ -503,7 +503,7 @@ const ProjectManagement = () => {
                           "all",
                           "Residential",
                           "Commercial",
-                          "Office",
+                          "Industrial",
                           "Renovation",
                         ].map((type) => (
                           <button

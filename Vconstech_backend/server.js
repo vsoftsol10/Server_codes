@@ -56,7 +56,7 @@ app.use('/api/projects',projectRoutes);
 
 // ========== EXISTING ROUTES ==========
 app.use('/api/auth', authRoutes);
-app.use('/api/projects', projectRoutes);
+// app.use('/api/projects', projectRoutes);
 app.use('/api/engineers', engineerRoutes);
 app.use('/api/users', userRoute);
 

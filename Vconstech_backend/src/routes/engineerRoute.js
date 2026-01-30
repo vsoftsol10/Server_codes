@@ -329,7 +329,7 @@ router.get('/', authenticateToken, async (req, res) => {
         address: true,
         profileImage: true,
         username: true,
-        // Don't send password hash to frontend
+        plainPassword: true,// Don't send password hash to frontend
         createdAt: true,
         updatedAt: true,
         _count: {
@@ -372,6 +372,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         address: true,
         profileImage: true,
         username: true,
+        plainPassword: true,  // ✅ EXPLICITLY SELECT THIS
         createdAt: true,
         updatedAt: true,
         projects: {
@@ -391,6 +392,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
         error: 'Engineer not found' 
       });
     }
+
+    // ✅ DEBUG: Log what we're returning
+    console.log('=== GET ENGINEER DEBUG ===');
+    console.log('Engineer ID:', engineer.id);
+    console.log('Engineer Name:', engineer.name);
+    console.log('Has plainPassword:', !!engineer.plainPassword);
+    console.log('plainPassword value:', engineer.plainPassword ? '***EXISTS***' : 'NULL/UNDEFINED');
+    console.log('========================');
 
     res.json({ 
       success: true,
@@ -429,7 +438,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     console.log('================================');
 
 
-        const missingFields = [];
+    const missingFields = [];
     if (!name || !name.trim()) missingFields.push('name');
     if (!phone || !phone.trim()) missingFields.push('phone');
     if (!empId || !empId.trim()) missingFields.push('empId');
@@ -438,7 +447,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     if (!password) missingFields.push('password');
 
     if (missingFields.length > 0) {
-      console.log('Missing fields:', missingFields); // ✅ LOG MISSING FIELDS
+      console.log('Missing fields:', missingFields);
       return res.status(400).json({ 
         success: false,
         error: `Missing required fields: ${missingFields.join(', ')}`,
@@ -447,7 +456,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     }
 
     // Validation
-   if (!name || !phone || !empId || !address || !username || !password) {
+    if (!name || !phone || !empId || !address || !username || !password) {
       return res.status(400).json({ 
         success: false,
         error: 'Name, phone, employee ID, address, username, and password are required' 
@@ -489,34 +498,34 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     // Validate username if provided
     if (username) {
       // Validate username
-    if (username.length < 4) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Username must be at least 4 characters' 
-      });
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Username can only contain letters, numbers, and underscores' 
-      });
-    }
-
-       // Check if username already exists in company
-    const existingUsername = await prisma.engineer.findFirst({
-      where: {
-        username: username,
-        companyId: req.user.companyId
+      if (username.length < 4) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username must be at least 4 characters' 
+        });
       }
-    });
 
-    if (existingUsername) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Username already exists in your company' 
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username can only contain letters, numbers, and underscores' 
+        });
+      }
+
+      // Check if username already exists in company
+      const existingUsername = await prisma.engineer.findFirst({
+        where: {
+          username: username,
+          companyId: req.user.companyId
+        }
       });
-    }
+
+      if (existingUsername) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username already exists in your company' 
+        });
+      }
 
       // If username is provided, password must be provided
       if (!password) {
@@ -527,12 +536,11 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
       }
 
       if (password.length < 6) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Password must be at least 6 characters' 
-      });
-    }
-    
+        return res.status(400).json({ 
+          success: false,
+          error: 'Password must be at least 6 characters' 
+        });
+      }
     }
 
     // Hash password if provided
@@ -545,7 +553,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     const profileImagePath = req.file ? `/uploads/engineers/${req.file.filename}` : null;
 
     // Create engineer
-   const engineer = await prisma.engineer.create({
+    const engineer = await prisma.engineer.create({
       data: {
         name,
         empId,
@@ -555,6 +563,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
         profileImage: profileImagePath,
         username: username,
         password: hashedPassword,
+        plainPassword: password,  // ✅ STORE PLAIN PASSWORD
         companyId: req.user.companyId
       },
       select: {
@@ -694,6 +703,8 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
 
     // Hash password if new password provided
     let hashedPassword = existingEngineer.password; // Keep existing password
+    let plainPasswordToStore = existingEngineer.plainPassword; // Keep existing plain password
+    
     if (password) {
       if (password.length < 6) {
         return res.status(400).json({ 
@@ -702,6 +713,7 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
         });
       }
       hashedPassword = await bcrypt.hash(password, 10);
+      plainPasswordToStore = password;  // ✅ UPDATE PLAIN PASSWORD
     }
 
     // Get profile image path if uploaded
@@ -728,7 +740,8 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
         address,
         profileImage: profileImagePath,
         username: username || null,
-        password: hashedPassword
+        password: hashedPassword,
+        plainPassword: plainPasswordToStore  // ✅ UPDATE PLAIN PASSWORD
       },
       select: {
         id: true,
@@ -739,6 +752,7 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
         address: true,
         profileImage: true,
         username: true,
+        plainPassword: true,  // ✅ RETURN PLAIN PASSWORD
         createdAt: true,
         updatedAt: true
       }

@@ -346,6 +346,7 @@ const ProjectFormModal = ({
                 <option value="Residential">Residential</option>
                 <option value="Commercial">Commercial</option>
                 <option value="Renovation">Renovation</option>
+                <option value="Industrial">Industrial</option>
               </select>
             </div>
 

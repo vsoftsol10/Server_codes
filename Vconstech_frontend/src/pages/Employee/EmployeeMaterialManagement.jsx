@@ -261,15 +261,41 @@ const EmployeeMaterialManagement = () => {
     }
   };
 
-  // Add usage log
+  // Add usage log - WITH VALIDATION
   const handleAddUsageLog = async () => {
     try {
       setLoading(true);
       
+      // ✅ VALIDATION: Check if quantity exceeds remaining
+      const selectedMaterialId = parseInt(newUsageLog.materialId);
+      const quantityToLog = parseFloat(newUsageLog.quantity);
+      
+      const projectMaterial = projectMaterials.find(
+        pm => pm.materialId === selectedMaterialId
+      );
+      
+      if (!projectMaterial) {
+        alert('Selected material not found in project!');
+        setLoading(false);
+        return;
+      }
+      
+      const remaining = projectMaterial.assigned - projectMaterial.used;
+      
+      // ✅ PREVENT logging if it exceeds remaining quantity
+      if (quantityToLog > remaining) {
+        alert(
+          `You are trying to log ${quantityToLog - remaining} ${projectMaterial.material?.unit} more than available.\n` +
+          `Please reduce the quantity or request more materials.`
+        );
+        setLoading(false);
+        return;
+      }
+      
       const logData = {
         projectId: parseInt(selectedProject),
-        materialId: parseInt(newUsageLog.materialId),
-        quantity: parseFloat(newUsageLog.quantity),
+        materialId: selectedMaterialId,
+        quantity: quantityToLog,
         remarks: newUsageLog.remarks || null,
         date: newUsageLog.date
       };
@@ -302,6 +328,61 @@ const EmployeeMaterialManagement = () => {
     }
   };
 
+  const handleEditUsageLog = async (originalLog, index, updatedData) => {
+  try {
+    setLoading(true);
+    
+    // Calculate the difference in quantity
+    const quantityDifference = updatedData.quantity - originalLog.quantity;
+    
+    // ✅ VALIDATION: Check if new quantity is valid
+    const projectMaterial = projectMaterials.find(
+      pm => pm.materialId === originalLog.materialId
+    );
+    
+    if (!projectMaterial) {
+      alert('Material not found in project!');
+      setLoading(false);
+      return;
+    }
+    
+    // Calculate what the new remaining would be
+    const currentRemaining = projectMaterial.assigned - projectMaterial.used;
+    const newRemaining = currentRemaining + originalLog.quantity - updatedData.quantity;
+    
+    // ✅ PREVENT editing if it would exceed assigned quantity
+    if (newRemaining < 0) {
+      alert(
+        `Cannot update to ${updatedData.quantity} ${projectMaterial.material?.unit}!\n\n` +
+        `Current used: ${projectMaterial.used} ${projectMaterial.material?.unit}\n` +
+        `Assigned: ${projectMaterial.assigned} ${projectMaterial.material?.unit}\n` +
+        `This change would exceed available quantity by ${Math.abs(newRemaining)} ${projectMaterial.material?.unit}\n\n` +
+        `Please use a smaller quantity.`
+      );
+      setLoading(false);
+      return;
+    }
+    
+    const updateData = {
+      quantity: parseFloat(updatedData.quantity),
+      remarks: updatedData.remarks || null
+    };
+
+    await usageLogAPI.update(originalLog.id, updateData);
+    
+    // Refresh data
+    await fetchProjectMaterials(selectedProject);
+    await fetchUsageLogs(selectedProject);
+    
+    alert('Usage log updated successfully!');
+  } catch (err) {
+    console.error('Failed to update usage log:', err);
+    alert(err.response?.data?.error || 'Failed to update usage log');
+  } finally {
+    setLoading(false);
+  }
+};
+
   // Mark notification as read
   const markNotificationAsRead = async (id) => {
     try {
@@ -329,6 +410,22 @@ const EmployeeMaterialManagement = () => {
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // ✅ NEW: Get remaining quantity for selected material
+  const getSelectedMaterialRemaining = () => {
+    if (!newUsageLog.materialId) return null;
+    
+    const projectMaterial = projectMaterials.find(
+      pm => pm.materialId === parseInt(newUsageLog.materialId)
+    );
+    
+    if (!projectMaterial) return null;
+    
+    return {
+      remaining: projectMaterial.assigned - projectMaterial.used,
+      unit: projectMaterial.material?.unit
+    };
+  };
 
   // ============ RENDER ============
 
@@ -457,6 +554,7 @@ const EmployeeMaterialManagement = () => {
             usageLogs={usageLogs}
             onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
             onLogUsage={() => setShowUsageLog(true)}
+            onEditUsage={handleEditUsageLog}  // ✅ ADD THIS LINE
           />
         )}
 
@@ -643,6 +741,26 @@ const EmployeeMaterialManagement = () => {
         }
       >
         <div className="space-y-4">
+          {/* ✅ WARNING MESSAGE if quantity exceeds remaining */}
+          {newUsageLog.materialId && newUsageLog.quantity && (() => {
+            const materialInfo = getSelectedMaterialRemaining();
+            if (materialInfo && parseFloat(newUsageLog.quantity) > materialInfo.remaining) {
+              return (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-800 font-semibold">
+                    ⚠️ Warning: Quantity exceeds available stock!
+                  </p>
+                  <p className="text-xs text-red-700 mt-1">
+                    Available: {materialInfo.remaining} {materialInfo.unit} | 
+                    You entered: {newUsageLog.quantity} {materialInfo.unit} | 
+                    Excess: {(parseFloat(newUsageLog.quantity) - materialInfo.remaining).toFixed(2)} {materialInfo.unit}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
             <input
@@ -668,13 +786,28 @@ const EmployeeMaterialManagement = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quantity Used</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Quantity Used
+              {newUsageLog.materialId && (() => {
+                const materialInfo = getSelectedMaterialRemaining();
+                if (materialInfo) {
+                  return (
+                    <span className="text-xs text-gray-500 ml-2">
+                      (Max: {materialInfo.remaining} {materialInfo.unit})
+                    </span>
+                  );
+                }
+                return null;
+              })()}
+            </label>
             <input
               type="number"
               value={newUsageLog.quantity}
               onChange={(e) => setNewUsageLog({...newUsageLog, quantity: e.target.value})}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="20"
+              step="0.01"
+              min="0"
             />
           </div>
           <div>

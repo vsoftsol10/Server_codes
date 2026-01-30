@@ -223,10 +223,10 @@ export const getProjectById = async (req, res) => {
             address: true
           }
         },
-        materialUsed: {
+        materialUsages: {
           include: {
             material: true,
-            user: {
+            engineer: {
               select: {
                 id: true,
                 name: true

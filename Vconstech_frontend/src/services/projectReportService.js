@@ -64,6 +64,23 @@ const projectReportService = {
 
       console.log('📍 Using project ID:', projectId);
 
+      // Fetch full project details to get engineer info
+      const projectDetailsRaw = await fetchWithFallback(
+        `${API_BASE_URL}/projects/${projectId}`,
+        { success: false, project: null }
+      );
+
+      // Merge fetched project details with passed project data
+      const fullProject = {
+        ...project,
+        ...(projectDetailsRaw.project || {}),
+        // Preserve the original values if they exist
+        name: project.name || projectDetailsRaw.project?.name,
+        id: project.id || projectDetailsRaw.project?.id
+      };
+
+      console.log('📋 Full project data with engineer:', fullProject);
+
       const [materialsRaw, labourRaw, contractsRaw, financialRaw] = await Promise.all([
         fetchWithFallback(
           `${API_BASE_URL}/usage-logs?projectId=${projectId}`,
@@ -190,7 +207,7 @@ const projectReportService = {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Report - ${project.name}</title>
+  <title>Project Report - ${fullProject.name}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -352,9 +369,9 @@ const projectReportService = {
 <body>
   <div class="container">
     <div class="header">
-      <h1>${project.name}</h1>
+      <h1>${fullProject.name}</h1>
       <div class="header-meta">
-        Project ID: ${project.id} | Generated: ${new Date().toLocaleString('en-IN', { 
+        Project ID: ${fullProject.id} | Generated: ${new Date().toLocaleString('en-IN', { 
           dateStyle: 'medium', 
           timeStyle: 'short' 
         })}
@@ -366,36 +383,44 @@ const projectReportService = {
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label">Client</div>
-          <div class="info-value">${project.clientName || project.client || 'N/A'}</div>
+          <div class="info-value">${fullProject.clientName || fullProject.client || 'N/A'}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Type</div>
-          <div class="info-value">${project.projectType || project.type || 'N/A'}</div>
+          <div class="info-value">${fullProject.projectType || fullProject.type || 'N/A'}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Location</div>
-          <div class="info-value">${project.location || 'N/A'}</div>
+          <div class="info-value">${fullProject.location || 'N/A'}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Status</div>
           <div class="info-value">
-            <span class="status-badge">${project.status || 'N/A'}</span>
+            <span class="status-badge">${fullProject.status || 'N/A'}</span>
           </div>
         </div>
         <div class="info-item">
           <div class="info-label">Site Engineer</div>
-          <div class="info-value">${project.assignedEngineerName || 'Not Assigned'}</div>
+          <div class="info-value">${fullProject.assignedEngineer?.name || fullProject.engineerName || fullProject.engineer?.name || 'Not Assigned'}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Timeline</div>
-          <div class="info-value">${project.startDate || 'N/A'} to ${project.endDate || 'N/A'}</div>
+          <div class="info-value">${
+            fullProject.startDate 
+              ? new Date(fullProject.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
+              : 'N/A'
+          } to ${
+            fullProject.endDate 
+              ? new Date(fullProject.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
+              : 'N/A'
+          }</div>
         </div>
       </div>
       <div style="margin-top: 20px;">
         <div class="info-label">Project Progress</div>
         <div class="progress-bar">
-          <div class="progress-fill" style="width: ${project.progress || 0}%">
-            ${project.progress || 0}%
+          <div class="progress-fill" style="width: ${fullProject.progress || 0}%">
+            ${fullProject.progress || 0}%
           </div>
         </div>
       </div>
@@ -406,19 +431,19 @@ const projectReportService = {
       <div class="info-grid">
         <div class="info-item">
           <div class="info-label">Total Budget</div>
-          <div class="info-value">${formatCurrency(project.budget || 0)}</div>
+          <div class="info-value">${formatCurrency(fullProject.budget || 0)}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Total Spent</div>
-          <div class="info-value">${formatCurrency(project.spent || totalCalculated)}</div>
+          <div class="info-value">${formatCurrency(fullProject.spent || totalCalculated)}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Remaining Budget</div>
-          <div class="info-value">${formatCurrency((project.budget || 0) - (project.spent || totalCalculated))}</div>
+          <div class="info-value">${formatCurrency((fullProject.budget || 0) - (fullProject.spent || totalCalculated))}</div>
         </div>
         <div class="info-item">
           <div class="info-label">Budget Utilization</div>
-          <div class="info-value">${project.budget > 0 ? (((project.spent || totalCalculated) / project.budget) * 100).toFixed(1) : 0}%</div>
+          <div class="info-value">${fullProject.budget > 0 ? (((fullProject.spent || totalCalculated) / fullProject.budget) * 100).toFixed(1) : 0}%</div>
         </div>
       </div>
       
@@ -635,6 +660,243 @@ const projectReportService = {
       return html;
     } catch (error) {
       console.error('❌ Error generating report:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Generate consolidated report for all projects
+   * @param {Array} projects - Array of project data
+   * @returns {Promise<string>} HTML report
+   */
+  downloadAllProjectsReport: async (projects) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      if (!Array.isArray(projects) || projects.length === 0) {
+        throw new Error('No projects available to generate report');
+      }
+
+      console.log('📊 Generating consolidated report for', projects.length, 'projects');
+
+      const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          maximumFractionDigits: 0
+        }).format(amount || 0);
+      };
+
+      // Calculate totals across all projects
+      const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
+      const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
+      const totalRemaining = totalBudget - totalSpent;
+
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Projects Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      padding: 40px;
+      background: #f5f5f5;
+      color: #1f2937;
+    }
+    .container { 
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .header { 
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .header h1 { 
+      color: #1f2937;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    .header-meta {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .summary-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #bae6fd;
+    }
+    .summary-label {
+      color: #6b7280;
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .summary-value {
+      color: #1e40af;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    table { 
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td { 
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th { 
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      position: sticky;
+      top: 0;
+    }
+    tr:hover { background: #f9fafb; }
+    .status-badge { 
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e5e7eb;
+    }
+    .progress-bar { 
+      width: 100%;
+      height: 20px;
+      background: #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill { 
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #2563eb);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .footer { 
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e5e7eb;
+      text-align: center;
+      color: #6b7280;
+      font-size: 12px;
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>All Projects Report</h1>
+      <div class="header-meta">
+        Total Projects: ${projects.length} | Generated: ${new Date().toLocaleString('en-IN', { 
+          dateStyle: 'medium', 
+          timeStyle: 'short' 
+        })}
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="summary-label">Total Budget</div>
+        <div class="summary-value">${formatCurrency(totalBudget)}</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Total Spent</div>
+        <div class="summary-value">${formatCurrency(totalSpent)}</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Total Remaining</div>
+        <div class="summary-value">${formatCurrency(totalRemaining)}</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Project ID</th>
+          <th>Project Name</th>
+          <th>Client</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th>Budget</th>
+          <th>Spent</th>
+          <th>Remaining</th>
+          <th>Engineer</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${projects.map(project => {
+          const budget = parseFloat(project.budget) || 0;
+          const spent = parseFloat(project.spent) || 0;
+          const remaining = budget - spent;
+          const progress = project.progress || 0;
+          
+          return `
+          <tr>
+            <td>${project.id || 'N/A'}</td>
+            <td><strong>${project.name || 'Unnamed Project'}</strong></td>
+            <td>${project.clientName || project.client || 'N/A'}</td>
+            <td><span class="status-badge">${project.status || 'N/A'}</span></td>
+            <td>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%">${progress}%</div>
+              </div>
+            </td>
+            <td>${formatCurrency(budget)}</td>
+            <td>${formatCurrency(spent)}</td>
+            <td style="color: ${remaining < 0 ? '#dc2626' : '#059669'}">${formatCurrency(remaining)}</td>
+            <td>${project.assignedEngineer?.name || project.engineerName || project.engineer?.name || 'Not Assigned'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <p>This consolidated report was automatically generated on ${new Date().toLocaleString('en-IN', { 
+        dateStyle: 'full', 
+        timeStyle: 'short' 
+      })}</p>
+      <p style="margin-top: 8px;">Project Management System</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      return html;
+    } catch (error) {
+      console.error('❌ Error generating all projects report:', error);
       throw error;
     }
   },

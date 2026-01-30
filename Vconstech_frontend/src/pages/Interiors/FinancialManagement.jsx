@@ -140,8 +140,8 @@ const FinancialManagement = () => {
           </style>
         </head>
         <body>
-          <h1>Project Financial Report</h1>
-          <h2>${project.name}</h2>
+          <h1>Project Financial Report</h1> 
+          <p><strong>Project Name: </strong>${project.name}</p>
           <p><strong>Due Date:</strong> ${new Date(project.dueDate).toLocaleDateString()}</p>
           
           <div class="summary">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, X, Check } from 'lucide-react';
+import { Plus, Edit2, X, Check, Download } from 'lucide-react';
 
 // Projects Tab Component
 const EmployeeProjectsTab = ({ 
@@ -10,7 +10,8 @@ const EmployeeProjectsTab = ({
   usageLogs, 
   onAddProjectMaterial, 
   onLogUsage,
-  onEditUsage 
+  onEditUsage,
+  onDownloadReport
 }) => {
   const [editingLog, setEditingLog] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -34,6 +35,15 @@ const EmployeeProjectsTab = ({
     }
     setEditingLog(null);
     setEditForm({});
+  };
+
+  // Calculate total cost for all usage logs
+  const calculateTotalCost = () => {
+    return usageLogs.reduce((total, log) => {
+      const quantity = log.quantity || 0;
+      const rate = log.material?.defaultRate || 0;
+      return total + (quantity * rate);
+    }, 0);
   };
 
   return (
@@ -113,8 +123,22 @@ const EmployeeProjectsTab = ({
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Usage History</h3>
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Usage History</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              Total Cost: <span className="font-semibold text-gray-900">₹{calculateTotalCost().toFixed(2)}</span>
+            </p>
+          </div>
+          <button
+            onClick={onDownloadReport}
+            disabled={usageLogs.length === 0}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Download usage report with cost breakdown"
+          >
+            <Download className="w-4 h-4" />
+            Download Report
+          </button>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -123,75 +147,97 @@ const EmployeeProjectsTab = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Material</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cost</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {usageLogs.map((log, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(log.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {log.material?.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {editingLog === idx ? (
-                      <input
-                        type="number"
-                        value={editForm.quantity}
-                        onChange={(e) => setEditForm({ ...editForm, quantity: parseFloat(e.target.value) })}
-                        className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        step="0.01"
-                        min="0"
-                      />
-                    ) : (
-                      `${log.quantity} ${log.material?.unit}`
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {editingLog === idx ? (
-                      <input
-                        type="text"
-                        value={editForm.remarks}
-                        onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
-                        className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    ) : (
-                      log.remarks || '-'
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {editingLog === idx ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSaveEdit(log, idx)}
-                          className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
-                          title="Save"
-                        >
-                          <Check className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                          title="Cancel"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleEditClick(log, idx)}
-                        className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                        title="Edit"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    )}
+              {usageLogs.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    No usage logs found for this project
                   </td>
                 </tr>
-              ))}
+              ) : (
+                usageLogs.map((log, idx) => {
+                  const quantity = log.quantity || 0;
+                  const rate = log.material?.defaultRate || 0;
+                  const cost = quantity * rate;
+                  
+                  return (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(log.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {log.material?.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {editingLog === idx ? (
+                          <input
+                            type="number"
+                            value={editForm.quantity}
+                            onChange={(e) => setEditForm({ ...editForm, quantity: parseFloat(e.target.value) })}
+                            className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                            step="0.01"
+                            min="0"
+                          />
+                        ) : (
+                          `${quantity} ${log.material?.unit}`
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        ₹{rate.toFixed(2)}/{log.material?.unit}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ₹{cost.toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                        {editingLog === idx ? (
+                          <input
+                            type="text"
+                            value={editForm.remarks}
+                            onChange={(e) => setEditForm({ ...editForm, remarks: e.target.value })}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          />
+                        ) : (
+                          log.remarks || '-'
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {editingLog === idx ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleSaveEdit(log, idx)}
+                              className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
+                              title="Save"
+                            >
+                              <Check className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                              title="Cancel"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleEditClick(log, idx)}
+                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
+                            title="Edit"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Download } from 'lucide-react';
 import EmployeeMaterialsTab from '../../components/Employee/EmployeeMaterial/EmployeeMaterialsTab';
 import EmployeeProjectsTab from '../../components/Employee/EmployeeMaterial/EmployeeProjectsTab';
 import EmployeeRequestTab from '../../components/Employee/EmployeeMaterial/EmployeeRequestTab';
@@ -166,6 +166,92 @@ const EmployeeMaterialManagement = () => {
       fetchUsageLogs(selectedProject);
     }
   }, [selectedProject]);
+
+  // ============ DOWNLOAD FUNCTIONALITY ============
+
+  const handleDownloadReport = async () => {
+  try {
+    const selectedProjectData = projects.find(p => p.id === selectedProject);
+    
+    // Debug: Check if we have usage logs
+    console.log('Usage logs:', usageLogs);
+    console.log('Selected project:', selectedProjectData);
+    
+    if (usageLogs.length === 0) {
+      alert('No usage logs found for this project. Please log some usage first.');
+      return;
+    }
+
+    // Prepare the data for the PDF
+    const reportData = {
+      projectName: selectedProjectData?.name || 'Unknown Project',
+      generatedDate: new Date().toLocaleDateString('en-IN'),
+      generatedTime: new Date().toLocaleTimeString('en-IN'),
+      usageLogs: usageLogs.map(log => {
+        const quantity = parseFloat(log.quantity) || 0;
+        const rate = parseFloat(log.material?.defaultRate) || 0;
+        const cost = quantity * rate;
+        
+        return {
+          date: new Date(log.date).toLocaleDateString('en-IN'),
+          materialName: log.material?.name || 'N/A',
+          category: log.material?.category || 'N/A',
+          quantity: quantity,
+          unit: log.material?.unit || 'unit',
+          rate: rate,
+          cost: cost,
+          remarks: log.remarks || '-'
+        };
+      }),
+      totalEntries: usageLogs.length,
+      grandTotal: usageLogs.reduce((total, log) => {
+        const quantity = parseFloat(log.quantity) || 0;
+        const rate = parseFloat(log.material?.defaultRate) || 0;
+        return total + (quantity * rate);
+      }, 0)
+    };
+
+    // Debug: Check the prepared data
+    console.log('Report data being sent:', reportData);
+
+    // Call the PDF API endpoint
+    const response = await fetch('http://localhost:5000/api/reports/usage-pdf', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization header if needed
+        // 'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(reportData)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server error:', errorText);
+      throw new Error('Failed to generate PDF report');
+    }
+
+    // Get the PDF as a blob
+    const blob = await response.blob();
+    
+    // Create a download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${reportData.projectName.replace(/\s+/g, '_')}_Usage_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Cleanup
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    console.log('PDF report downloaded successfully');
+  } catch (error) {
+    console.error('Error downloading PDF report:', error);
+    alert('Failed to download PDF report. Please try again.');
+  }
+};
 
   // ============ HANDLERS ============
 
@@ -554,7 +640,8 @@ const EmployeeMaterialManagement = () => {
             usageLogs={usageLogs}
             onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
             onLogUsage={() => setShowUsageLog(true)}
-            onEditUsage={handleEditUsageLog}  // ✅ ADD THIS LINE
+            onEditUsage={handleEditUsageLog}
+            onDownloadReport={handleDownloadReport}
           />
         )}
 

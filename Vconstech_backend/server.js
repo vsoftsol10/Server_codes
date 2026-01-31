@@ -22,12 +22,15 @@ import usageLogRoutes from './src/routes/usageLogRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
 import testRoutes from './src/routes/test.js';
 
+import reportRoute from './src/routes/reportRoutes.js';
+
 // ✅ Financial Management Routes
 import financialRoutes from './src/routes/financialRoutes.js';
 
 // ✅ Contract Management Routes
 import contractRoutes from './src/routes/contractRoutes.js';
 
+import dailyprogressRoutes from './src/routes/dailyProgressRoutes.js';
 // ✅ Labour Management Routes
 import labourRoutes from './src/routes/labourRoutes.js';
 
@@ -56,6 +59,8 @@ app.use('/api/projects',projectRoutes);
 
 // ========== EXISTING ROUTES ==========
 app.use('/api/auth', authRoutes);
+app.use('/api/reports', reportRoute);
+app.use('/api/daily-progress', dailyprogressRoutes);
 // app.use('/api/projects', projectRoutes);
 app.use('/api/engineers', engineerRoutes);
 app.use('/api/users', userRoute);

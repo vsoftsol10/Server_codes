@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
+import { useEffect } from "react";
 
 const CreateUser = () => {
   const [userData, setUserData] = useState({
@@ -33,10 +34,34 @@ const CreateUser = () => {
   const [showPhone, setShowPhone] = useState(false);
   const [showCity, setShowCity] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
+  const [users, setUsers] = useState([]);
+const [loadingUsers, setLoadingUsers] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+
+
+  const fetchUsers = async () => {
+  setLoadingUsers(true);
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+    const response = await fetch(`${API_URL}/superadmin/users`);
+    const data = await response.json();
+    
+    if (data.success) {
+      setUsers(data.users);
+    }
+  } catch (err) {
+    console.error("Error fetching users:", err);
+  } finally {
+    setLoadingUsers(false);
+  }
+};
+
+useEffect(() => {
+  fetchUsers();
+}, []);
 
   const handleSubmit = async () => {
     setError("");
@@ -82,11 +107,11 @@ const CreateUser = () => {
     setLoading(true);
 
     try {
-      // UPDATED: Real API call instead of setTimeout
       const API_URL =
         import.meta.env.VITE_API_URL || "https://test.vconstech.in";
 
-      const response = await fetch(`${API_URL}/api/superadmin/create-user`, {
+      // ✅ FIXED: Use /superadmin/create-user since VITE_API_URL already includes /api
+      const response = await fetch(`${API_URL}/superadmin/create-user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -121,7 +146,7 @@ const CreateUser = () => {
         city: "",
         address: "",
       });
-
+        fetchUsers();
       // Optional: Redirect after success
       // setTimeout(() => navigate('/superadmin/users'), 2000);
     } catch (err) {
@@ -635,60 +660,91 @@ const CreateUser = () => {
               </div>
 
               {/* Table Section */}
-              <div className="bg-white rounded-lg shadow-md  mt-8">
-                <div className="overflow-x-auto">
-                  <table className="border w-full ">
-                    <thead className="bg-gray-100 ">
-                      <tr>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Name
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Email
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Phone
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Role
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Company
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          City
-                        </th>
-                        <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-                          Address
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          Sample Name
-                        </td>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          sample@email.com
-                        </td>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          123-456-7890
-                        </td>
-                        <td className="border-2 border-[#ffbe2a] p-3">Admin</td>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          ABC Corp
-                        </td>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          New York
-                        </td>
-                        <td className="border-2 border-[#ffbe2a] p-3">
-                          123 Main St
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+              {/* Table Section */}
+<div className="bg-white rounded-lg shadow-md mt-8">
+  <div className="overflow-x-auto">
+    <table className="border w-full">
+      <thead className="bg-gray-100">
+        <tr>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Name
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Email
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Phone
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Role
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Company
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            City
+          </th>
+          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+            Address
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {loadingUsers ? (
+          <tr>
+            <td colSpan="7" className="border-2 border-[#ffbe2a] p-8 text-center">
+              <div className="flex items-center justify-center">
+                <svg
+                  className="animate-spin h-8 w-8 text-[#ffbe2a]"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span className="ml-3 text-gray-600">Loading users...</span>
               </div>
+            </td>
+          </tr>
+        ) : users.length === 0 ? (
+          <tr>
+            <td colSpan="7" className="border-2 border-[#ffbe2a] p-8 text-center text-gray-500">
+              No users found
+            </td>
+          </tr>
+        ) : (
+          users.map((user) => (
+            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+              <td className="border-2 border-[#ffbe2a] p-3">{user.name}</td>
+              <td className="border-2 border-[#ffbe2a] p-3">{user.email}</td>
+              <td className="border-2 border-[#ffbe2a] p-3">{user.phoneNumber}</td>
+              <td className="border-2 border-[#ffbe2a] p-3">
+                {user.role.replace("_", " ")}
+              </td>
+              <td className="border-2 border-[#ffbe2a] p-3">
+                {user.company?.name || "N/A"}
+              </td>
+              <td className="border-2 border-[#ffbe2a] p-3">{user.city}</td>
+              <td className="border-2 border-[#ffbe2a] p-3">{user.address}</td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
             </div>
           </div>
         </div>

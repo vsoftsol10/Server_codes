@@ -1,73 +1,199 @@
-import React from 'react'
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Calendar, MapPin, User, IndianRupee, Clock, MessageSquare, FileText } from 'lucide-react';
 
-// Project Details Modal Component
-const ProjectDetailsModal = ({ project, onClose, getStatusColor, getStatusIcon, onQuickAction }) => {
+const ProjectDetailsModal = ({ project, onClose, getStatusColor, getStatusIcon }) => {
   if (!project) return null;
 
+  const formatDate = (date) => {
+    if (!date) return 'Not set';
+    return new Date(date).toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return '₹0';
+    return `₹${parseFloat(amount).toLocaleString('en-IN')}`;
+  };
+
+  const calculateBudgetUsage = () => {
+    if (!project.budget || project.budget === 0) return 0;
+    return Math.min(((project.spent || 0) / project.budget) * 100, 100);
+  };
+
+  const budgetUsagePercent = calculateBudgetUsage();
+  const remainingBudget = (project.budget || 0) - (project.spent || 0);
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-          <div className="min-w-0 flex-1">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 truncate">{project.name}</h2>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">Project ID: {project.id}</p>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold text-gray-900">{project.name}</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Project ID: {project.id} • Client: {project.client}
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-4">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors ml-4"
+          >
+            <X className="w-6 h-6" />
           </button>
         </div>
-        <div className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6">
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Client</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">{project.client}</p>
+
+        {/* Content */}
+        <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
+          <div className="p-6 space-y-6">
+            {/* Status and Progress */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Status</span>
+                  <span className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                    {getStatusIcon(project.status)}
+                    {project.status}
+                  </span>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Progress</span>
+                  <span className="text-lg font-bold text-blue-600">{project.progress || 0}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${project.progress || 0}%` }}
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* Project Details */}
             <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Type</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">{project.type}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Project Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <FileText className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Type</p>
+                    <p className="font-medium text-gray-900">{project.type || 'Not specified'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <MapPin className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Location</p>
+                    <p className="font-medium text-gray-900">{project.location || 'Not specified'}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Calendar className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">Start Date</p>
+                    <p className="font-medium text-gray-900">{formatDate(project.startDate)}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Clock className="w-5 h-5 text-gray-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-gray-600">End Date</p>
+                    <p className="font-medium text-gray-900">{formatDate(project.endDate)}</p>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Budget Information */}
             <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Status</p>
-              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                {getStatusIcon(project.status)}
-                {project.status}
-              </span>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Budget Overview</h3>
+              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Total Budget</p>
+                    <p className="text-xl font-bold text-gray-900">{formatCurrency(project.budget)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Amount Spent</p>
+                    <p className="text-xl font-bold text-blue-600">{formatCurrency(project.spent)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Remaining</p>
+                    <p className={`text-xl font-bold ${remainingBudget < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {formatCurrency(remainingBudget)}
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-600">Budget Utilization</span>
+                    <span className={`font-medium ${budgetUsagePercent > 100 ? 'text-red-600' : budgetUsagePercent > 80 ? 'text-orange-600' : 'text-green-600'}`}>
+                      {budgetUsagePercent.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                    <div
+                      className={`h-3 rounded-full transition-all ${
+                        budgetUsagePercent > 100 ? 'bg-red-500' :
+                        budgetUsagePercent > 80 ? 'bg-orange-500' : 'bg-green-500'
+                      }`}
+                      style={{ width: `${Math.min(budgetUsagePercent, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Progress</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">{project.progress}%</p>
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Timeline</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">{project.startDate} to {project.endDate}</p>
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Budget</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">₹{project.budget.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Spent</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">₹{project.spent.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-600 mb-1">Team Members</p>
-              <p className="text-sm sm:text-base font-medium text-gray-900">
-                {project.team.length > 0 ? project.team.join(', ') : 'No team assigned'}
-              </p>
-            </div>
+
+            {/* Team Information */}
+            {project.assignedEngineerName && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Assigned Team</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                      {project.assignedEngineerName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{project.assignedEngineerName}</p>
+                      <p className="text-sm text-gray-600">
+                        Site Engineer
+                        {project.assignedEngineerEmpId && ` • ID: ${project.assignedEngineerEmpId}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
             {project.description && (
-              <div className="sm:col-span-2">
-                <p className="text-xs sm:text-sm text-gray-600 mb-1">Description</p>
-                <p className="text-sm sm:text-base text-gray-900">{project.description}</p>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-gray-700 whitespace-pre-wrap">{project.description}</p>
+                </div>
               </div>
             )}
           </div>
-          
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors font-medium"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default ProjectDetailsModal 
+export default ProjectDetailsModal;

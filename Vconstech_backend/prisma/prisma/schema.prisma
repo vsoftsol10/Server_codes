@@ -16,10 +16,13 @@ model User {
   city               String              // ✅ ADD THIS LINE
   address            String              // ✅ ADD THIS LINE
   companyId          String?
+  package            String?             // ✅ ADD THIS LINE - "Classic", "Pro", or "Premium"
+  customMembers      Int? 
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   role               String
   uploadedFiles      File[]
+  createdBills Bill[]
   projectAssignments ProjectAssignment[]
   company            Company?            @relation(fields: [companyId], references: [id])
 
@@ -73,6 +76,7 @@ model Project {
   projectMaterials   ProjectMaterial[]
   materialRequests   MaterialRequest[]
   labours            Labour[]
+  bills     Bill[] 
   company            Company                @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments        ProjectAssignment[]
   dailyUpdates       daily_progress_updates[]
@@ -280,6 +284,7 @@ model Company {
   users     User[]
   engineers Engineer[]
   labours   Labour[]   // ✅ ADDED
+bills     Bill[] 
 
   @@map("companies")
 }
@@ -330,6 +335,116 @@ model Labour {
   @@index([companyId])
   @@index([projectId])
   @@index([phone])
+}
+
+model Bill {
+  id        Int      @id @default(autoincrement())
+  billId    String   @unique // Bill Number like "INV-001"
+  
+  // Bill Information
+  billDate  DateTime
+  dueDate   DateTime?
+  
+  // Company Information (Billing From)
+  companyName    String?
+  companyAddress String?
+  companyGST     String?
+  companyPhone   String?
+  companyEmail   String?
+  
+  // Client Information (Billing To)
+  clientName    String
+  clientAddress String?
+  clientGST     String?
+  clientPhone   String?
+  clientEmail   String?
+  
+  // Project Information
+  projectId      Int?
+  projectName    String
+  projectLocation String?
+  workOrderNo    String?
+  
+  // Additional Charges
+  labourCharges            Float @default(0)
+  transportCharges         Float @default(0)
+  otherCharges             Float @default(0)
+  otherChargesDescription  String?
+  
+  // Tax Percentages
+  cgstPercent      Float @default(9)
+  sgstPercent      Float @default(9)
+  igstPercent      Float @default(0)
+  tdsPercent       Float @default(2)
+  retentionPercent Float @default(0)
+  
+  // Calculated Tax Amounts
+  cgstAmount      Float @default(0)
+  sgstAmount      Float @default(0)
+  igstAmount      Float @default(0)
+  tdsAmount       Float @default(0)
+  retentionAmount Float @default(0)
+  
+  // Payment Information
+  advancePaid   Float @default(0)
+  previousBills Float @default(0)
+  
+  // Totals
+  subtotal       Float // Sum of all items
+  grossAmount    Float // Subtotal + additional charges
+  totalWithTax   Float // Gross + taxes
+  netPayable     Float // Final amount after deductions
+  
+  // Additional Information
+  remarks            String?
+  termsAndConditions String?
+  
+  // Status & Metadata
+  status     BillStatus @default(DRAFT)
+  companyId  String
+  createdBy  String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  
+  // Relations
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  project   Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  creator   User?      @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  items     BillItem[]
+  
+  @@index([companyId])
+  @@index([projectId])
+  @@index([billId])
+  @@index([billDate])
+  @@index([status])
+}
+
+model BillItem {
+  id          Int      @id @default(autoincrement())
+  billId      Int
+  sno         Int      // Serial number for ordering
+  description String
+  unit        String   // Nos, Sqft, Sqm, etc.
+  quantity    Float
+  rate        Float
+  amount      Float    // quantity * rate
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  
+  @@index([billId])
+  @@index([sno])
+}
+
+enum BillStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
 }
 
 model LabourPayment {

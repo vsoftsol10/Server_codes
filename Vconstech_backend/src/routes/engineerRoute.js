@@ -308,7 +308,46 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
 // ============================================
 // ADMIN ROUTES (Protected)
 // ============================================
+// Add this to auth.routes.js
 
+router.get('/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        city: true,
+        address: true,
+        package: true,
+        customMembers: true,
+        role: true,
+        companyId: true,
+        company: { select: { name: true } }
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: true,
+        error: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user data'
+    });
+  }
+});
 
 // Get all engineers for the authenticated user's company
 router.get('/', authenticateToken, async (req, res) => {
@@ -542,6 +581,48 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
         });
       }
     }
+
+     const admin = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: {
+        companyId: true,
+        package: true,
+        customMembers: true
+      }
+    });
+
+    // Determine the member limit based on package
+    let memberLimit;
+    if (admin.package === 'Classic') {
+      memberLimit = 5;
+    } else if (admin.package === 'Pro') {
+      memberLimit = 10;
+    } else if (admin.package === 'Premium') {
+      memberLimit = admin.customMembers;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid package configuration. Please contact support.'
+      });
+    }
+
+    // Count existing engineers in the company
+    const existingEngineersCount = await prisma.engineer.count({
+      where: {
+        companyId: req.user.companyId
+      }
+    });
+
+    // Check if limit is reached
+    if (existingEngineersCount >= memberLimit) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot add more engineers. Your ${admin.package} package allows maximum ${memberLimit} site engineers. You currently have ${existingEngineersCount} engineers. Please upgrade your package to add more.`
+      });
+    }
+
+    console.log(`✅ Package check passed: ${existingEngineersCount}/${memberLimit} engineers`);
+    // ✅ END OF NEW SECTION
 
     // Hash password if provided
     let hashedPassword = null;

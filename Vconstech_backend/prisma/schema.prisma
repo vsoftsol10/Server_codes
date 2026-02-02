@@ -19,6 +19,9 @@ model User {
   phoneNumber        String              @default("")
   city               String              @default("")
   address            String              @default("")
+  package            String?
+  customMembers      Int?
+  Bill               Bill[]
   uploadedFiles      File[]
   projectAssignments ProjectAssignment[]
   company            Company?            @relation(fields: [companyId], references: [id])
@@ -44,6 +47,7 @@ model Project {
   dueDate                DateTime?
   quotationAmount        Float?
   actualProgress         Int                      @default(0)
+  Bill                   Bill[]
   contracts              Contract[]
   files                  File[]
   finances               FinancialTransaction[]
@@ -254,6 +258,7 @@ model Company {
   name      String
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  Bill      Bill[]
   labours   Labour[]
   materials Material[]
   projects  Project[]
@@ -343,6 +348,81 @@ model daily_progress_updates {
   @@index([projectId])
 }
 
+model Bill {
+  id                      Int        @id @default(autoincrement())
+  billId                  String     @unique
+  billDate                DateTime
+  dueDate                 DateTime?
+  companyName             String?
+  companyAddress          String?
+  companyGST              String?
+  companyPhone            String?
+  companyEmail            String?
+  clientName              String
+  clientAddress           String?
+  clientGST               String?
+  clientPhone             String?
+  clientEmail             String?
+  projectId               Int?
+  projectName             String
+  projectLocation         String?
+  workOrderNo             String?
+  labourCharges           Float      @default(0)
+  transportCharges        Float      @default(0)
+  otherCharges            Float      @default(0)
+  otherChargesDescription String?
+  cgstPercent             Float      @default(9)
+  sgstPercent             Float      @default(9)
+  igstPercent             Float      @default(0)
+  tdsPercent              Float      @default(2)
+  retentionPercent        Float      @default(0)
+  cgstAmount              Float      @default(0)
+  sgstAmount              Float      @default(0)
+  igstAmount              Float      @default(0)
+  tdsAmount               Float      @default(0)
+  retentionAmount         Float      @default(0)
+  advancePaid             Float      @default(0)
+  previousBills           Float      @default(0)
+  subtotal                Float
+  grossAmount             Float
+  totalWithTax            Float
+  netPayable              Float
+  remarks                 String?
+  termsAndConditions      String?
+  status                  BillStatus @default(DRAFT)
+  companyId               String
+  createdBy               String?
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime
+  companies               Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  User                    User?      @relation(fields: [createdBy], references: [id])
+  Project                 Project?   @relation(fields: [projectId], references: [id])
+  BillItem                BillItem[]
+
+  @@index([billDate])
+  @@index([billId])
+  @@index([companyId])
+  @@index([projectId])
+  @@index([status])
+}
+
+model BillItem {
+  id          Int      @id @default(autoincrement())
+  billId      Int
+  sno         Int
+  description String
+  unit        String
+  quantity    Float
+  rate        Float
+  amount      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  Bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@index([billId])
+  @@index([sno])
+}
+
 enum ProjectMaterialStatus {
   ACTIVE
   COMPLETED
@@ -383,4 +463,13 @@ enum TransactionType {
   INCOME
   EXPENSE
   BUDGET
+}
+
+enum BillStatus {
+  DRAFT
+  SENT
+  PAID
+  PARTIALLY_PAID
+  OVERDUE
+  CANCELLED
 }

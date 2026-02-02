@@ -6,14 +6,16 @@ import financial from "../../assets/Icon/FinancialManagement.png";
 import contract from "../../assets/Icon/ContractManagement.png";
 import file from "../../assets/Icon/FileManagement.png";
 import labourManage from "../../assets/Icon/LabourManagement.png";
+import billing1 from "../../assets/Icon/bill.png";
 import AddEngg from "../../assets/Icon/AddEngg.png";
-import { LogOut, X } from "lucide-react";
+import { LogOut, X, ChevronDown, ChevronRight } from "lucide-react";
 
 const SidePannel = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeIndex, setActiveIndex] = useState(0);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({});
 
   // Icons
   const dashboardicon = (
@@ -49,6 +51,9 @@ const SidePannel = () => {
   const laborManagementIcon = (
     <img src={labourManage} alt="Settings" className="w-6 h-6 object-contain" />
   );
+  const billing = (
+    <img src={billing1} alt="Billing" className="w-6 h-6 object-contain" />
+  );
 
   const logout = (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -63,7 +68,14 @@ const SidePannel = () => {
     { name: "Project Management", path: "/project", icon: projectIcon },
     { name: "Add Engineer", path: "/add-engineers", icon: addEngineerIcon },
     { name: "Material Management", path: "/material", icon: materialIcon },
-    { name: "Financial Management", path: "/financial-management", icon: financialIcon },
+    { 
+      name: "Financial Management", 
+      icon: financialIcon,
+      submenu: [
+        { name: "Financial Management", path: "/financial-management",icon: financialIcon, },
+        { name: "Billing", path: "/financial-management/billing",icon: billing, }
+      ]
+    },
     { name: "Contract Management", path: "/contract", icon: contractIcon },
     { name: "File Management", path: "/file-managememt", icon: fileIcon },
     { name: "Labour Management", path: "/labor-managememt", icon: laborManagementIcon },
@@ -72,20 +84,43 @@ const SidePannel = () => {
 
   // Sync active link with URL path
   useEffect(() => {
-    const currentIndex = sidebarLinks.findIndex(item => location.pathname === item.path);
+    const currentIndex = sidebarLinks.findIndex(item => {
+      if (item.submenu) {
+        return item.submenu.some(sub => location.pathname === sub.path) || location.pathname === item.path;
+      }
+      return location.pathname === item.path;
+    });
+    
     if (currentIndex !== -1) {
       setActiveIndex(currentIndex);
+      // Auto-expand submenu if we're on a submenu page
+      const currentLink = sidebarLinks[currentIndex];
+      if (currentLink.submenu) {
+        const isSubmenuActive = currentLink.submenu.some(sub => location.pathname === sub.path);
+        if (isSubmenuActive) {
+          setExpandedMenus(prev => ({ ...prev, [currentIndex]: true }));
+        }
+      }
     }
   }, [location.pathname]);
 
-  const handleItemClick = (index, path) => {
+  const handleItemClick = (index, path, hasSubmenu) => {
     if (path === "/") {
       // Show confirmation popup for logout
       setShowLogoutModal(true);
+    } else if (hasSubmenu) {
+      // Toggle submenu
+      setExpandedMenus(prev => ({ ...prev, [index]: !prev[index] }));
+      setActiveIndex(index);
     } else {
       setActiveIndex(index);
       navigate(path);
     }
+  };
+
+  const handleSubmenuClick = (parentIndex, path) => {
+    setActiveIndex(parentIndex);
+    navigate(path);
   };
 
   const confirmLogout = () => {
@@ -100,24 +135,56 @@ const SidePannel = () => {
   return (
     <>
       {/* Sidebar */}
-      <div className="fixed top-20 md:w-64 w-16 border-r border-gray-300 min-h-screen bg-white">      
+      <div className="fixed top-20 md:w-64 w-16 border-r border-gray-300 min-h-screen bg-white overflow-y-auto">      
         <div className="pt-6 flex flex-col">
           {sidebarLinks.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => handleItemClick(index, item.path)}
-              className={`flex items-center py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer
-                ${activeIndex === index
-                  ? "border-l-4 bg-[#ffbe2a]/60 border-black text-black font-semibold"
-                  : "hover:bg-black/5 text-black"
-                }
-                ${item.name === "Logout" ? "mt-4" : ""}`}
-            >
-              <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                {item.icon}
-              </div>
-              <p className="md:block hidden text-base whitespace-nowrap">{item.name}</p>
-            </button>
+            <div key={index}>
+              <button
+                onClick={() => handleItemClick(index, item.path, item.submenu)}
+                className={`flex items-center py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
+                  ${activeIndex === index
+                    ? "border-l-4 bg-[#ffbe2a]/60 border-black text-black font-semibold"
+                    : "hover:bg-black/5 text-black"
+                  }
+                  ${item.name === "Logout" ? "mt-4" : ""}`}
+              >
+                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  {item.icon}
+                </div>
+                <p className="md:block hidden text-base whitespace-nowrap flex-1">{item.name}</p>
+                {item.submenu && (
+                  <div className="md:block hidden">
+                    {expandedMenus[index] ? (
+                      <ChevronDown size={18} />
+                    ) : (
+                      <ChevronRight size={18} />
+                    )}
+                  </div>
+                )}
+              </button>
+
+              {/* Submenu */}
+              {item.submenu && expandedMenus[index] && (
+                <div className="md:block hidden bg-gray-50">
+                  {item.submenu.map((subItem, subIndex) => (
+                    <button
+                      key={subIndex}
+                      onClick={() => handleSubmenuClick(index, subItem.path)}
+                      className={`flex items-center py-3 pl-16 pr-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
+                        ${location.pathname === subItem.path
+                          ? "bg-[#ffbe2a]/40 text-black font-semibold border-l-4 border-black"
+                          : "hover:bg-black/5 text-gray-700"
+                        }`}
+                    >
+                      <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+                  {subItem.icon}
+                </div>
+                      <p className="text-sm">{subItem.name}</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>

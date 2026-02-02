@@ -100,6 +100,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // Login endpoint
+// Login endpoint
 router.post('/login', async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -160,19 +161,23 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
         companyId: user.companyId,
-        company: user.company
+        company: user.company,
+        package: user.package,              // ✅ ADD THIS
+        customMembers: user.customMembers   // ✅ ADD THIS
       }
     });
     
   } catch (error) {
     console.error('❌ Login error:', error);
-    console.error('❌ Error stack:', error.stack); // Add this
+    console.error('❌ Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Internal server error',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
+
+
 
 // Get companies list (for signup dropdown if needed)
 router.get('/companies', async (req, res) => {

@@ -34,6 +34,9 @@ import dailyprogressRoutes from './src/routes/dailyProgressRoutes.js';
 // ✅ Labour Management Routes
 import labourRoutes from './src/routes/labourRoutes.js';
 
+// ✅ Billing Management Routes
+import billingRoutes from './src/routes/billingRoutes.js';
+
 import { authenticateToken, authorizeRole } from './src/middlewares/authMiddlewares.js';
 import { PrismaClient } from '@prisma/client';
 
@@ -83,6 +86,9 @@ app.use('/api/contracts', contractRoutes);
 
 // ========== LABOUR MANAGEMENT ROUTES ==========
 app.use('/api/labours', labourRoutes);
+
+// ========== BILLING MANAGEMENT ROUTES ==========
+app.use('/api/bills', billingRoutes);
 
 //===========Test API=================
 app.use('/api/test', testRoutes);

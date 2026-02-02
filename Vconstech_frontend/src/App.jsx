@@ -17,6 +17,8 @@ import LabourManagement from "./pages/Employee/LabourManagement";
 import AdminLabourManagemet from "./pages/Interiors/AdminLabourManagemet";
 import CreateUser from "./pages/SuperAdmin/CreateUser";
 import SuperLogin from "./pages/SuperAdmin/Superlogin";
+import Billing from '/src/pages/Interiors/Billing.jsx';
+
 function App() {
 
   return (
@@ -28,6 +30,7 @@ function App() {
       <Route path="/contract" element={<ContractManagement/>} />
       <Route path="/financial" element={<FinancialManagement/>} />
       <Route path="/file-managememt" element={<FileManagement/>} />
+      <Route path="/financial-management/billing" element={<Billing />} />
       <Route path="/financial-management" element={<FinancialManagement/>} />
       <Route path="/labor-managememt" element={<AdminLabourManagemet/>} />
       <Route path="/add-engineers" element={<AddEngineers/>} />

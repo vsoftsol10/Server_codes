@@ -7,10 +7,12 @@ import {
   UserCog,
   AlertCircle,
   CheckCircle,
-  LogOut,
-  UserPlus,
   Eye,
   EyeOff,
+  UserPlus,
+  Edit,
+  Trash2,
+  X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
@@ -27,41 +29,43 @@ const CreateUser = () => {
     phoneNumber: "",
     city: "",
     address: "",
+    package: "",
+    customMembers: "",
   });
   const [isFocused, setIsFocused] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showPhone, setShowPhone] = useState(false);
-  const [showCity, setShowCity] = useState(false);
-  const [showAddress, setShowAddress] = useState(false);
   const [users, setUsers] = useState([]);
-const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [editingUser, setEditingUser] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const navigate = useNavigate();
 
-
   const fetchUsers = async () => {
-  setLoadingUsers(true);
-  try {
-    const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
-    const response = await fetch(`${API_URL}/superadmin/users`);
-    const data = await response.json();
-    
-    if (data.success) {
-      setUsers(data.users);
-    }
-  } catch (err) {
-    console.error("Error fetching users:", err);
-  } finally {
-    setLoadingUsers(false);
-  }
-};
+    setLoadingUsers(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+      const response = await fetch(`${API_URL}/superadmin/users`);
+      const data = await response.json();
 
-useEffect(() => {
-  fetchUsers();
-}, []);
+      if (data.success) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   const handleSubmit = async () => {
     setError("");
@@ -77,9 +81,20 @@ useEffect(() => {
       !userData.confirmPassword ||
       !userData.phoneNumber ||
       !userData.city ||
-      !userData.address
+      !userData.address ||
+      !userData.package
     ) {
       setError("All fields are required");
+      return;
+    }
+
+    if (userData.package === "Premium" && !userData.customMembers) {
+      setError("Please enter the number of site engineers for Premium package");
+      return;
+    }
+
+    if (userData.package === "Premium" && userData.customMembers < 1) {
+      setError("Number of site engineers must be at least 1");
       return;
     }
 
@@ -99,7 +114,7 @@ useEffect(() => {
       return;
     }
 
-    if (userData.phoneNumber.length < 10 || userData.phoneNumber.length > 10) {
+    if (userData.phoneNumber.length !== 10) {
       setError("Enter correct Phone Number");
       return;
     }
@@ -107,10 +122,8 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+      const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
 
-      // ✅ FIXED: Use /superadmin/create-user since VITE_API_URL already includes /api
       const response = await fetch(`${API_URL}/superadmin/create-user`, {
         method: "POST",
         headers: {
@@ -125,13 +138,15 @@ useEffect(() => {
           city: userData.city,
           phoneNumber: userData.phoneNumber,
           address: userData.address,
+          package: userData.package,
+          customMembers: userData.package === "Premium" ? userData.customMembers : null,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to create user");
+        throw new Error(data.error || "Failed to create user");
       }
 
       setSuccess(data.message || "User created successfully!");
@@ -145,13 +160,150 @@ useEffect(() => {
         phoneNumber: "",
         city: "",
         address: "",
+        package: "",
+        customMembers: "",
       });
-        fetchUsers();
-      // Optional: Redirect after success
-      // setTimeout(() => navigate('/superadmin/users'), 2000);
+      fetchUsers();
     } catch (err) {
       console.error("Create user error:", err);
       setError(err.message || "An error occurred while creating the user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (user) => {
+    setEditingUser({
+      ...user,
+      companyName: user.company?.name || "",
+      password: "",
+      confirmPassword: "",
+    });
+    setShowEditModal(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const handleUpdate = async () => {
+    setError("");
+    setSuccess("");
+
+    if (
+      !editingUser.name ||
+      !editingUser.email ||
+      !editingUser.role ||
+      !editingUser.companyName ||
+      !editingUser.phoneNumber ||
+      !editingUser.city ||
+      !editingUser.address ||
+      !editingUser.package
+    ) {
+      setError("All fields are required");
+      return;
+    }
+
+    if (editingUser.package === "Premium" && !editingUser.customMembers) {
+      setError("Please enter the number of site engineers for Premium package");
+      return;
+    }
+
+    if (editingUser.package === "Premium" && editingUser.customMembers < 1) {
+      setError("Number of site engineers must be at least 1");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editingUser.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (editingUser.password && editingUser.password !== editingUser.confirmPassword) {
+      setError("Passwords do not match!");
+      return;
+    }
+
+    if (editingUser.password && editingUser.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    if (editingUser.phoneNumber.length !== 10) {
+      setError("Enter correct Phone Number");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+
+      const response = await fetch(`${API_URL}/superadmin/update-user/${editingUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: editingUser.name,
+          email: editingUser.email,
+          role: editingUser.role,
+          companyName: editingUser.companyName,
+          password: editingUser.password || undefined,
+          city: editingUser.city,
+          phoneNumber: editingUser.phoneNumber,
+          address: editingUser.address,
+          package: editingUser.package,
+          customMembers: editingUser.package === "Premium" ? editingUser.customMembers : null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to update user");
+      }
+
+      setSuccess(data.message || "User updated successfully!");
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Update user error:", err);
+      setError(err.message || "An error occurred while updating the user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+
+    setLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+
+      const response = await fetch(`${API_URL}/superadmin/delete-user/${userToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete user");
+      }
+
+      setSuccess(data.message || "User deleted successfully!");
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      fetchUsers();
+    } catch (err) {
+      console.error("Delete user error:", err);
+      setError(err.message || "An error occurred while deleting the user");
     } finally {
       setLoading(false);
     }
@@ -162,22 +314,58 @@ useEffect(() => {
   };
 
   const handleLogout = () => {
-    console.log("Logout");
     navigate("/SuperAdmin/login");
   };
 
   const roles = ["Admin"];
 
+const renderInputField = (field, label, type, placeholder, icon, value, onChange, isEdit = false) => (
+      <div className="space-y-3">
+      <label className="block text-sm font-bold text-gray-800 tracking-wide">
+        {label} <span className="text-red-500">*</span>
+      </label>
+      <div
+        className={`relative rounded-2xl transition-all duration-300 ${
+          isFocused[field]
+            ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+            : "ring-1 ring-gray-200 hover:ring-gray-300"
+        }`}
+      >
+        <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+              isFocused[field] ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+            }`}
+          >
+            <icon
+              className={`w-5 h-5 ${isFocused[field] ? "text-black" : "text-gray-400"}`}
+            />
+          </div>
+          <input
+            type={type}
+            value={value}
+            onChange={onChange}
+            onFocus={() => handleFocus(field, true)}
+            onBlur={() => handleFocus(field, false)}
+            className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
+            placeholder={placeholder}
+            disabled={loading}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#ffbe2a] py-12 px-4">
       <SuperNav />
 
-      <div className="max-w-4xl mx-auto pt-24 md:pt-32">
+      <div className="max-w-6xl mx-auto pt-24 md:pt-32">
         {/* Header Section */}
         <div className="mb-10">
           <div className="flex items-center gap-5">
             <div className="relative group">
-              <div className="w-20 h-20 rounded-2xl bg-[#fff]  flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-105">
+              <div className="w-20 h-20 rounded-2xl bg-[#fff] flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-105">
                 <User className="w-10 h-10 text-black" />
               </div>
               <div className="absolute -top-2 -right-2 w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-lg">
@@ -222,533 +410,765 @@ useEffect(() => {
               </div>
             )}
 
+            {/* Form Grid - keeping your existing form fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-  {/* Full Name */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Client Name <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.name
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.name ? "bg-[#ffbe2a] shadow-md" : "bg-white"
-          }`}
-        >
-          <User
-            className={`w-5 h-5 ${isFocused.name ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type="text"
-          value={userData.name}
-          onChange={(e) =>
-            setUserData({ ...userData, name: e.target.value })
-          }
-          onFocus={() => handleFocus("name", true)}
-          onBlur={() => handleFocus("name", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Enter full name"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
+              {/* Client Name */}
+              {renderInputField(
+                "name",
+                "Client Name",
+                "text",
+                "Enter full name",
+                User,
+                userData.name,
+                (e) => setUserData({ ...userData, name: e.target.value })
+              )}
 
-  {/* Email */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Email <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.email
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.email ? "bg-[#ffbe2a] shadow-md" : "bg-white"
-          }`}
-        >
-          <Mail
-            className={`w-5 h-5 ${isFocused.email ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type="email"
-          value={userData.email}
-          onChange={(e) =>
-            setUserData({ ...userData, email: e.target.value })
-          }
-          onFocus={() => handleFocus("email", true)}
-          onBlur={() => handleFocus("email", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Enter email address"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
+              {/* Email */}
+              {renderInputField(
+                "email",
+                "Email",
+                "email",
+                "Enter email address",
+                Mail,
+                userData.email,
+                (e) => setUserData({ ...userData, email: e.target.value })
+              )}
 
-  {/* Contact Number */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Contact Number <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.phoneNumber
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.phoneNumber
-              ? "bg-[#ffbe2a] shadow-md"
-              : "bg-white"
-          }`}
-        >
-          <Lock
-            className={`w-5 h-5 ${isFocused.phoneNumber ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type="tel"
-          value={userData.phoneNumber}
-          onChange={(e) =>
-            setUserData({
-              ...userData,
-              phoneNumber: e.target.value,
-            })
-          }
-          onFocus={() => handleFocus("phoneNumber", true)}
-          onBlur={() => handleFocus("phoneNumber", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Enter Phone Number"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
+              {/* Contact Number */}
+              {renderInputField(
+                "phoneNumber",
+                "Contact Number",
+                "tel",
+                "Enter Phone Number",
+                Lock,
+                userData.phoneNumber,
+                (e) => setUserData({ ...userData, phoneNumber: e.target.value })
+              )}
 
-  {/* Role */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Role <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.role
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.role ? "bg-[#ffbe2a] shadow-md" : "bg-white"
-          }`}
-        >
-          <UserCog
-            className={`w-5 h-5 ${isFocused.role ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <select
-          value={userData.role}
-          onChange={(e) =>
-            setUserData({ ...userData, role: e.target.value })
-          }
-          onFocus={() => handleFocus("role", true)}
-          onBlur={() => handleFocus("role", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 outline-none font-medium cursor-pointer"
-          disabled={loading}
-        >
-          <option value="">Select role</option>
-          {roles.map((role) => (
-            <option key={role} value={role}>
-              {role.replace("_", " ")}
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-  </div>
-
-  {/* Company Name */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Company Name <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.companyName
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.companyName
-              ? "bg-[#ffbe2a] shadow-md"
-              : "bg-white"
-          }`}
-        >
-          <Building
-            className={`w-5 h-5 ${isFocused.companyName ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type="text"
-          value={userData.companyName}
-          onChange={(e) =>
-            setUserData({
-              ...userData,
-              companyName: e.target.value,
-            })
-          }
-          onFocus={() => handleFocus("companyName", true)}
-          onBlur={() => handleFocus("companyName", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Enter company name"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
-
-  {/* City */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      City <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.city
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.city ? "bg-[#ffbe2a] shadow-md" : "bg-white"
-          }`}
-        >
-          <User
-            className={`w-5 h-5 ${isFocused.city ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type="text"
-          value={userData.city}
-          onChange={(e) =>
-            setUserData({ ...userData, city: e.target.value })
-          }
-          onFocus={() => handleFocus("city", true)}
-          onBlur={() => handleFocus("city", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Enter city name"
-          disabled={loading}
-        />
-      </div>
-    </div>
-  </div>
-
-  {/* Password */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Password <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.password
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.password
-              ? "bg-[#ffbe2a] shadow-md"
-              : "bg-white"
-          }`}
-        >
-          <Lock
-            className={`w-5 h-5 ${isFocused.password ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type={showPassword ? "text" : "password"}
-          value={userData.password}
-          onChange={(e) =>
-            setUserData({ ...userData, password: e.target.value })
-          }
-          onFocus={() => handleFocus("password", true)}
-          onBlur={() => handleFocus("password", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Min 6 characters"
-          disabled={loading}
-        />
-        <button
-          type="button"
-          onClick={() => setShowPassword(!showPassword)}
-          className="ml-2 text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-        >
-          {showPassword ? (
-            <EyeOff className="w-5 h-5" />
-          ) : (
-            <Eye className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  {/* Confirm Password */}
-  <div className="space-y-3">
-    <label className="block text-sm font-bold text-gray-800 tracking-wide">
-      Confirm Password <span className="text-red-500">*</span>
-    </label>
-    <div
-      className={`relative rounded-2xl transition-all duration-300 ${
-        isFocused.confirmPassword
-          ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-          : "ring-1 ring-gray-200 hover:ring-gray-300"
-      }`}
-    >
-      <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-        <div
-          className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-            isFocused.confirmPassword
-              ? "bg-[#ffbe2a] shadow-md"
-              : "bg-white"
-          }`}
-        >
-          <Lock
-            className={`w-5 h-5 ${isFocused.confirmPassword ? "text-black" : "text-gray-400"}`}
-          />
-        </div>
-        <input
-          type={showConfirmPassword ? "text" : "password"}
-          value={userData.confirmPassword}
-          onChange={(e) =>
-            setUserData({
-              ...userData,
-              confirmPassword: e.target.value,
-            })
-          }
-          onFocus={() => handleFocus("confirmPassword", true)}
-          onBlur={() => handleFocus("confirmPassword", false)}
-          className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-          placeholder="Re-enter password"
-          disabled={loading}
-        />
-        <button
-          type="button"
-          onClick={() =>
-            setShowConfirmPassword(!showConfirmPassword)
-          }
-          className="ml-2 text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
-        >
-          {showConfirmPassword ? (
-            <EyeOff className="w-5 h-5" />
-          ) : (
-            <Eye className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-{/* Address - Full Width Outside Grid */}
-<div className="space-y-3 mt-8">
-  <label className="block text-sm font-bold text-gray-800 tracking-wide">
-    Address <span className="text-red-500">*</span>
-  </label>
-  <div
-    className={`relative rounded-2xl transition-all duration-300 ${
-      isFocused.address
-        ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-        : "ring-1 ring-gray-200 hover:ring-gray-300"
-    }`}
-  >
-    <div className="flex items-start px-5 py-4 bg-gray-50 rounded-2xl">
-      <div
-        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
-          isFocused.address
-            ? "bg-[#ffbe2a] shadow-md"
-            : "bg-white"
-        }`}
-      >
-        <User
-          className={`w-5 h-5 ${isFocused.address ? "text-black" : "text-gray-400"}`}
-        />
-      </div>
-      <textarea
-        value={userData.address}
-        onChange={(e) =>
-          setUserData({ ...userData, address: e.target.value })
-        }
-        rows={4}
-        onFocus={() => handleFocus("address", true)}
-        onBlur={() => handleFocus("address", false)}
-        className="flex-1 ml-4 w-full bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium resize-y"
-        placeholder="Enter full address"
-        disabled={loading}
-      />
-    </div>
-  </div>
-</div>
-
-            <div className="flex flex-col">
-              {/* Action Buttons */}
-              <div className="flex gap-5 mt-10">
-                <button
-                  onClick={handleLogout}
-                  disabled={loading}
-                  className="flex-1 bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              {/* Role */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                  Role <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`relative rounded-2xl transition-all duration-300 ${
+                    isFocused.role
+                      ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                      : "ring-1 ring-gray-200 hover:ring-gray-300"
+                  }`}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="flex-1 bg-[#ffbe2a] text-black font-bold py-4 rounded-2xl transition-all duration-200 hover:shadow-2xl shadow-[#ffbe2a]/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+                  <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isFocused.role ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                      }`}
+                    >
+                      <UserCog
+                        className={`w-5 h-5 ${isFocused.role ? "text-black" : "text-gray-400"}`}
+                      />
+                    </div>
+                    <select
+                      value={userData.role}
+                      onChange={(e) => setUserData({ ...userData, role: e.target.value })}
+                      onFocus={() => handleFocus("role", true)}
+                      onBlur={() => handleFocus("role", false)}
+                      className="flex-1 ml-4 bg-transparent text-gray-900 outline-none font-medium cursor-pointer"
+                      disabled={loading}
+                    >
+                      <option value="">Select role</option>
+                      {roles.map((role) => (
+                        <option key={role} value={role}>
+                          {role.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Company Name */}
+              {renderInputField(
+                "companyName",
+                "Company Name",
+                "text",
+                "Enter company name",
+                Building,
+                userData.companyName,
+                (e) => setUserData({ ...userData, companyName: e.target.value })
+              )}
+
+              {/* City */}
+              {renderInputField(
+                "city",
+                "City",
+                "text",
+                "Enter city name",
+                User,
+                userData.city,
+                (e) => setUserData({ ...userData, city: e.target.value })
+              )}
+
+              {/* Package */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                  Package <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`relative rounded-2xl transition-all duration-300 ${
+                    isFocused.package
+                      ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                      : "ring-1 ring-gray-200 hover:ring-gray-300"
+                  }`}
                 >
-                  {loading ? (
-                    <span className="flex items-center justify-center">
-                      <svg
-                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-black"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
+                  <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isFocused.package ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                      }`}
+                    >
+                      <Building
+                        className={`w-5 h-5 ${isFocused.package ? "text-black" : "text-gray-400"}`}
+                      />
+                    </div>
+                    <select
+                      value={userData.package}
+                      onChange={(e) =>
+                        setUserData({ ...userData, package: e.target.value, customMembers: "" })
+                      }
+                      onFocus={() => handleFocus("package", true)}
+                      onBlur={() => handleFocus("package", false)}
+                      className="flex-1 ml-4 bg-transparent text-gray-900 outline-none font-medium cursor-pointer"
+                      disabled={loading}
+                    >
+                      <option value="">Select package</option>
+                      <option value="Classic">Classic (5 members)</option>
+                      <option value="Pro">Pro (10 members)</option>
+                      <option value="Premium">Premium (Custom members)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom Members */}
+              {userData.package === "Premium" && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                    Number of Site Engineers <span className="text-red-500">*</span>
+                  </label>
+                  <div
+                    className={`relative rounded-2xl transition-all duration-300 ${
+                      isFocused.customMembers
+                        ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                        : "ring-1 ring-gray-200 hover:ring-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                          isFocused.customMembers ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                        }`}
                       >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Creating User...
-                    </span>
-                  ) : (
-                    "Create User"
-                  )}
-                </button>
+                        <UserPlus
+                          className={`w-5 h-5 ${isFocused.customMembers ? "text-black" : "text-gray-400"}`}
+                        />
+                      </div>
+                      <input
+                        type="number"
+                        value={userData.customMembers}
+                        onChange={(e) =>
+                          setUserData({ ...userData, customMembers: e.target.value })
+                        }
+                        onFocus={() => handleFocus("customMembers", true)}
+                        onBlur={() => handleFocus("customMembers", false)}
+                        className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
+                        placeholder="Enter number of site engineers"
+                        min="1"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Password */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`relative rounded-2xl transition-all duration-300 ${
+                    isFocused.password
+                      ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                      : "ring-1 ring-gray-200 hover:ring-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isFocused.password ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                      }`}
+                    >
+                      <Lock
+                        className={`w-5 h-5 ${isFocused.password ? "text-black" : "text-gray-400"}`}
+                      />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={userData.password}
+                      onChange={(e) =>
+                        setUserData({ ...userData, password: e.target.value })
+                      }
+                      onFocus={() => handleFocus("password", true)}
+                      onBlur={() => handleFocus("password", false)}
+                      className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
+                      placeholder="Min 6 characters"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="ml-2 text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Table Section */}
-              {/* Table Section */}
-<div className="bg-white rounded-lg shadow-md mt-8">
-  <div className="overflow-x-auto">
-    <table className="border w-full">
-      <thead className="bg-gray-100">
-        <tr>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Name
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Email
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Phone
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Role
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Company
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            City
-          </th>
-          <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
-            Address
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {loadingUsers ? (
-          <tr>
-            <td colSpan="7" className="border-2 border-[#ffbe2a] p-8 text-center">
-              <div className="flex items-center justify-center">
-                <svg
-                  className="animate-spin h-8 w-8 text-[#ffbe2a]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
+              {/* Confirm Password */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <div
+                  className={`relative rounded-2xl transition-all duration-300 ${
+                    isFocused.confirmPassword
+                      ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                      : "ring-1 ring-gray-200 hover:ring-gray-300"
+                  }`}
                 >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                <span className="ml-3 text-gray-600">Loading users...</span>
+                  <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        isFocused.confirmPassword ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                      }`}
+                    >
+                      <Lock
+                        className={`w-5 h-5 ${isFocused.confirmPassword ? "text-black" : "text-gray-400"}`}
+                      />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={userData.confirmPassword}
+                      onChange={(e) =>
+                        setUserData({ ...userData, confirmPassword: e.target.value })
+                      }
+                      onFocus={() => handleFocus("confirmPassword", true)}
+                      onBlur={() => handleFocus("confirmPassword", false)}
+                      className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
+                      placeholder="Re-enter password"
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="ml-2 text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </td>
-          </tr>
-        ) : users.length === 0 ? (
-          <tr>
-            <td colSpan="7" className="border-2 border-[#ffbe2a] p-8 text-center text-gray-500">
-              No users found
-            </td>
-          </tr>
-        ) : (
-          users.map((user) => (
-            <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-              <td className="border-2 border-[#ffbe2a] p-3">{user.name}</td>
-              <td className="border-2 border-[#ffbe2a] p-3">{user.email}</td>
-              <td className="border-2 border-[#ffbe2a] p-3">{user.phoneNumber}</td>
-              <td className="border-2 border-[#ffbe2a] p-3">
-                {user.role.replace("_", " ")}
-              </td>
-              <td className="border-2 border-[#ffbe2a] p-3">
-                {user.company?.name || "N/A"}
-              </td>
-              <td className="border-2 border-[#ffbe2a] p-3">{user.city}</td>
-              <td className="border-2 border-[#ffbe2a] p-3">{user.address}</td>
-            </tr>
-          ))
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
+            </div>
+
+            {/* Address - Full Width */}
+            <div className="space-y-3 mt-8">
+              <label className="block text-sm font-bold text-gray-800 tracking-wide">
+                Address <span className="text-red-500">*</span>
+              </label>
+              <div
+                className={`relative rounded-2xl transition-all duration-300 ${
+                  isFocused.address
+                    ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+                    : "ring-1 ring-gray-200 hover:ring-gray-300"
+                }`}
+              >
+                <div className="flex items-start px-5 py-4 bg-gray-50 rounded-2xl">
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
+                      isFocused.address ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                    }`}
+                  >
+                    <User
+                      className={`w-5 h-5 ${isFocused.address ? "text-black" : "text-gray-400"}`}
+                    />
+                  </div>
+                  <textarea
+                    value={userData.address}
+                    onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                    rows={4}
+                    onFocus={() => handleFocus("address", true)}
+                    onBlur={() => handleFocus("address", false)}
+                    className="flex-1 ml-4 w-full bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium resize-y"
+                    placeholder="Enter full address"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-5 mt-10">
+              <button
+                onClick={handleLogout}
+                disabled={loading}
+                className="flex-1 bg-white border-2 border-gray-200 text-gray-700 font-bold py-4 rounded-2xl transition-all duration-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="flex-1 bg-[#ffbe2a] text-black font-bold py-4 rounded-2xl transition-all duration-200 hover:shadow-2xl shadow-[#ffbe2a]/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02]"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-black"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Creating User...
+                  </span>
+                ) : (
+                  "Create User"
+                )}
+              </button>
+            </div>
+
+            {/* Users Table */}
+            <div className="bg-white rounded-lg shadow-md mt-8">
+              <div className="overflow-x-auto">
+                <table className="border w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Name
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Email
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Phone
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Role
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Company
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        City
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Package
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Members
+                      </th>
+                      <th className="border-2 border-[#ffbe2a] p-3 text-left font-semibold text-gray-700">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingUsers ? (
+                      <tr>
+                        <td colSpan="9" className="border-2 border-[#ffbe2a] p-8 text-center">
+                          <div className="flex items-center justify-center">
+                            <svg
+                              className="animate-spin h-8 w-8 text-[#ffbe2a]"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            <span className="ml-3 text-gray-600">Loading users...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : users.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="9"
+                          className="border-2 border-[#ffbe2a] p-8 text-center text-gray-500"
+                        >
+                          No users found
+                        </td>
+                      </tr>
+                    ) : (
+                      users.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="border-2 border-[#ffbe2a] p-3">{user.name}</td>
+                          <td className="border-2 border-[#ffbe2a] p-3">{user.email}</td>
+                          <td className="border-2 border-[#ffbe2a] p-3">{user.phoneNumber}</td>
+                          <td className="border-2 border-[#ffbe2a] p-3">
+                            {user.role.replace("_", " ")}
+                          </td>
+                          <td className="border-2 border-[#ffbe2a] p-3">
+                            {user.company?.name || "N/A"}
+                          </td>
+                          <td className="border-2 border-[#ffbe2a] p-3">{user.city}</td>
+                          <td className="border-2 border-[#ffbe2a] p-3">{user.package || "N/A"}</td>
+                          <td className="border-2 border-[#ffbe2a] p-3">
+                            {user.package === "Classic"
+                              ? "5"
+                              : user.package === "Pro"
+                              ? "10"
+                              : user.customMembers || "N/A"}
+                          </td>
+                          <td className="border-2 border-[#ffbe2a] p-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEdit(user)}
+                                className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                                title="Edit User"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteClick(user)}
+                                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-gray-900">Edit User</h2>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                    setError("");
+                  }}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Error Alert in Modal */}
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                  <p className="ml-3 text-sm font-medium text-red-900">{error}</p>
+                </div>
+              )}
+
+              {/* Edit Form - Similar to Create Form but using editingUser */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Name */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Client Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingUser.name}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, name: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="Enter full name"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={editingUser.email}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, email: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="Enter email address"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Contact Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={editingUser.phoneNumber}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, phoneNumber: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="Enter phone number"
+                  />
+                </div>
+
+                {/* Role */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Role <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editingUser.role}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, role: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer"
+                  >
+                    <option value="">Select role</option>
+                    {roles.map((role) => (
+                      <option key={role} value={role}>
+                        {role.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Company */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Company Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingUser.companyName}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, companyName: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="Enter company name"
+                  />
+                </div>
+
+                {/* City */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editingUser.city}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, city: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="Enter city"
+                  />
+                </div>
+
+                {/* Package */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    Package <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editingUser.package}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        package: e.target.value,
+                        customMembers: "",
+                      })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer"
+                  >
+                    <option value="">Select package</option>
+                    <option value="Classic">Classic (5 members)</option>
+                    <option value="Pro">Pro (10 members)</option>
+                    <option value="Premium">Premium (Custom members)</option>
+                  </select>
+                </div>
+
+                {/* Custom Members */}
+                {editingUser.package === "Premium" && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-800">
+                      Number of Site Engineers <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={editingUser.customMembers}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, customMembers: e.target.value })
+                      }
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                      placeholder="Enter number"
+                      min="1"
+                    />
+                  </div>
+                )}
+
+                {/* Password (Optional) */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-800">
+                    New Password <span className="text-gray-500 text-xs">(Leave blank to keep current)</span>
+                  </label>
+                  <input
+                    type="password"
+                    value={editingUser.password || ""}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, password: e.target.value })
+                    }
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                    placeholder="New password"
+                  />
+                </div>
+
+                {/* Confirm Password */}
+                {editingUser.password && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-gray-800">
+                      Confirm New Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={editingUser.confirmPassword || ""}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, confirmPassword: e.target.value })
+                      }
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
+                      placeholder="Confirm password"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2 mt-6">
+                <label className="block text-sm font-bold text-gray-800">
+                  Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={editingUser.address}
+                  onChange={(e) =>
+                    setEditingUser({ ...editingUser, address: e.target.value })
+                  }
+                  rows={4}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none resize-y"
+                  placeholder="Enter full address"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingUser(null);
+                    setError("");
+                  }}
+                  disabled={loading}
+                  className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdate}
+                  disabled={loading}
+                  className="flex-1 bg-[#ffbe2a] text-black font-bold py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {loading ? "Updating..." : "Update User"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && userToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                <Trash2 className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Delete User</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete <span className="font-semibold">{userToDelete.name}</span>? This action cannot be undone.
+              </p>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                  }}
+                  disabled={loading}
+                  className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className="flex-1 bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {loading ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

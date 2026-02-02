@@ -1,262 +1,345 @@
-import React, { useEffect, useState } from 'react'
-import { Search, Edit, Trash2, Phone, MapPin, User } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import Navbar from '../../components/common/Navbar'
-import SidePannel from '../../components/common/SidePannel'
-import DeleteConfirmationModal from '../../components/AddSiteEngineer/DeleteConfirmationModal'
-import AddEngineerModal from '../../components/AddSiteEngineer/AddEngineerModal'
-import EditEngineerModal from '../../components/AddSiteEngineer/EditEngineerModal'
+import React, { useEffect, useState } from "react";
+import { Search, Edit, Trash2, Phone, MapPin, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/common/Navbar";
+import SidePannel from "../../components/common/SidePannel";
+import DeleteConfirmationModal from "../../components/AddSiteEngineer/DeleteConfirmationModal";
+import AddEngineerModal from "../../components/AddSiteEngineer/AddEngineerModal";
+import EditEngineerModal from "../../components/AddSiteEngineer/EditEngineerModal";
+import Toast from "../../components/common/Toast";
 
-// ✅ ADD THIS HELPER FUNCTION AT THE TOP
+// ✅ FIXED HELPER FUNCTION - Construct proper backend URL
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
-  // If it's already a full URL, return as is
-  if (profileImage.startsWith('http')) return profileImage;
-  // Otherwise, prepend the backend URL
-  return `${profileImage}`;
+  if (profileImage.startsWith("http")) return profileImage;
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  return `${backendUrl}${profileImage}`;
 };
 
 // API functions
 const getAllEngineers = async () => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found')
+    throw new Error("No authentication token found");
   }
-  
-  const response = await fetch('/api/engineers', {
+
+  const response = await fetch("/api/engineers", {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-  
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
   if (!response.ok) {
     if (response.status === 401) {
-      throw { error: 'Session expired. Please login again.' }
+      throw { error: "Session expired. Please login again." };
     }
-    throw new Error('Failed to fetch engineers')
+    throw new Error("Failed to fetch engineers");
   }
-  
-  return await response.json()
-}
+
+  return await response.json();
+};
 
 const createEngineer = async (engineerData) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found')
+    throw new Error("No authentication token found");
   }
-  
-  const formData = new FormData()
-  formData.append('name', engineerData.name)
-  formData.append('phone', engineerData.phone)
-  formData.append('alternatePhone', engineerData.alternatePhone)
-  formData.append('empId', engineerData.empId)
-  formData.append('address', engineerData.address)
-  formData.append('username', engineerData.username)
-  formData.append('password', engineerData.password)
+
+  const formData = new FormData();
+  formData.append("name", engineerData.name);
+  formData.append("phone", engineerData.phone);
+  formData.append("alternatePhone", engineerData.alternatePhone);
+  formData.append("empId", engineerData.empId);
+  formData.append("address", engineerData.address);
+  formData.append("username", engineerData.username);
+  formData.append("password", engineerData.password);
   if (engineerData.profileImage) {
-    formData.append('profileImage', engineerData.profileImage)
+    formData.append("profileImage", engineerData.profileImage);
   }
-  
-  const response = await fetch('/api/engineers', {
-    method: 'POST',
+
+  const response = await fetch("/api/engineers", {
+    method: "POST",
     headers: {
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: formData
-  })
-  
+    body: formData,
+  });
+
   if (!response.ok) {
-    const error = await response.json()
-    throw error
+    const error = await response.json();
+    throw error;
   }
-  
-  return await response.json()
-}
+
+  return await response.json();
+};
 
 const updateEngineer = async (id, engineerData) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found')
+    throw new Error("No authentication token found");
   }
-  
-  const formData = new FormData()
-  formData.append('name', engineerData.name)
-  formData.append('phone', engineerData.phone)
-  formData.append('alternatePhone', engineerData.alternatePhone)
-  formData.append('empId', engineerData.empId)
-  formData.append('address', engineerData.address)
-  formData.append('username', engineerData.username)
+
+  const formData = new FormData();
+  formData.append("name", engineerData.name);
+  formData.append("phone", engineerData.phone);
+  formData.append("alternatePhone", engineerData.alternatePhone);
+  formData.append("empId", engineerData.empId);
+  formData.append("address", engineerData.address);
+  formData.append("username", engineerData.username);
   if (engineerData.password) {
-    formData.append('password', engineerData.password)
+    formData.append("password", engineerData.password);
   }
   if (engineerData.profileImage) {
-    formData.append('profileImage', engineerData.profileImage)
+    formData.append("profileImage", engineerData.profileImage);
   }
-  
+
   const response = await fetch(`/api/engineers/${id}`, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Authorization': `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
     },
-    body: formData
-  })
-  
+    body: formData,
+  });
+
   if (!response.ok) {
-    const error = await response.json()
-    throw error
+    const error = await response.json();
+    throw error;
   }
-  
-  return await response.json()
-}
+
+  return await response.json();
+};
 
 const deleteEngineer = async (id) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found')
+    throw new Error("No authentication token found");
   }
-  
+
   const response = await fetch(`/api/engineers/${id}`, {
-    method: 'DELETE',
+    method: "DELETE",
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  })
-  
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
   if (!response.ok) {
-    const error = await response.json()
-    throw error
+    const error = await response.json();
+    throw error;
   }
-  
-  return await response.json()
-}
+
+  return await response.json();
+};
 
 const AddEngineers = () => {
-  const navigate = useNavigate()
-  const [engineers, setEngineers] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedEngineer, setSelectedEngineer] = useState(null)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const navigate = useNavigate();
+  const [engineers, setEngineers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedEngineer, setSelectedEngineer] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [packageInfo, setPackageInfo] = useState(null);
+  
+  // ✅ Toast notification state
+  const [toast, setToast] = useState(null);
+
+  // ✅ Helper function to show toast
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+  };
 
   const fetchEngineers = async () => {
-    setIsLoading(true)
-    
-    const token = localStorage.getItem('token')
+    setIsLoading(true);
+
+    const token = localStorage.getItem("token");
     if (!token) {
-      setEngineers([])
-      setIsLoading(false)
-      return
+      setEngineers([]);
+      setIsLoading(false);
+      return;
     }
-    
+
     try {
-      const response = await getAllEngineers()
-      
+      const response = await getAllEngineers();
+
       if (response && response.success && response.engineers) {
-        setEngineers(response.engineers)
+        setEngineers(response.engineers);
       } else {
-        setEngineers([])
+        setEngineers([]);
       }
     } catch (error) {
-      console.error('Error fetching engineers:', error)
-      
-      if (error.error === 'Session expired. Please login again.' || 
-          error.message === 'Session expired. Please login again.' ||
-          error.error === 'Unauthorized' ||
-          error.message === 'Unauthorized') {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        navigate('/login')
+      console.error("Error fetching engineers:", error);
+
+      if (
+        error.error === "Session expired. Please login again." ||
+        error.message === "Session expired. Please login again." ||
+        error.error === "Unauthorized" ||
+        error.message === "Unauthorized"
+      ) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
       } else {
-        setEngineers([])
+        setEngineers([]);
       }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+  const fetchPackageInfo = async () => {
+    const token = localStorage.getItem("token");
+    const userString = localStorage.getItem("user");
+    
+    console.log("=== PACKAGE INFO DEBUG ===");
+    console.log("Raw user string from localStorage:", userString);
+    
+    const user = JSON.parse(userString || "{}");
+    console.log("Parsed user object:", user);
+    console.log("User package:", user.package);
+    console.log("User customMembers:", user.customMembers);
+
+    // First try to get from localStorage
+    if (user.package) {
+      let limit;
+      if (user.package === "Classic") limit = 5;
+      else if (user.package === "Pro") limit = 10;
+      else if (user.package === "Premium") limit = user.customMembers;
+
+      console.log("Setting packageInfo with limit:", limit);
+      setPackageInfo({ package: user.package, limit });
+    } else {
+      console.log("No package in localStorage, fetching from API...");
+      // If not in localStorage, fetch from API
+      try {
+        const response = await fetch("/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("API response status:", response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("API response data:", data);
+          
+          if (data.success && data.user) {
+            let limit;
+            if (data.user.package === "Classic") limit = 5;
+            else if (data.user.package === "Pro") limit = 10;
+            else if (data.user.package === "Premium") limit = data.user.customMembers;
+
+            console.log("Setting packageInfo from API with limit:", limit);
+            setPackageInfo({ package: data.user.package, limit });
+            
+            // Update localStorage
+            localStorage.setItem("user", JSON.stringify(data.user));
+          }
+        } else {
+          console.log("API response not OK");
+        }
+      } catch (error) {
+        console.error("Error fetching package info:", error);
+      }
+    }
+    console.log("=== END DEBUG ===");
+  };
 
   useEffect(() => {
-    fetchEngineers()
-  }, [])
+    fetchEngineers();
+    fetchPackageInfo();
+  }, []);
 
-  const filteredEngineers = engineers.filter(engineer =>
-    engineer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    engineer.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    engineer.phone.includes(searchTerm)
-  )
+  const filteredEngineers = engineers.filter(
+    (engineer) =>
+      engineer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      engineer.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      engineer.phone.includes(searchTerm),
+  );
 
   const handleDelete = async (id) => {
     try {
-      const response = await deleteEngineer(id)
+      const response = await deleteEngineer(id);
       if (response.success) {
-        await fetchEngineers()
-        setShowDeleteModal(false)
-        setSelectedEngineer(null)
-        alert('Engineer deleted successfully!')
+        await fetchEngineers();
+        setShowDeleteModal(false);
+        setSelectedEngineer(null);
+        showToast("Engineer deleted successfully!", "success");
       }
     } catch (error) {
-      console.error('Error deleting engineer:', error)
-      alert(error.error || 'Failed to delete engineer')
+      console.error("Error deleting engineer:", error);
+      showToast(error.error || "Failed to delete engineer", "error");
     }
-  }
+  };
 
   const handleEdit = (engineer) => {
-    setSelectedEngineer(engineer)
-    setShowEditModal(true)
-  }
+    setSelectedEngineer(engineer);
+    setShowEditModal(true);
+  };
 
   const handleAddEngineer = async (engineerData) => {
     try {
-      setIsSubmitting(true)
-      const response = await createEngineer(engineerData)
-      
+      setIsSubmitting(true);
+      const response = await createEngineer(engineerData);
+
       if (response.success) {
-        setShowAddModal(false)
-        await fetchEngineers()
-        alert('Engineer added successfully!')
-        return true
+        setShowAddModal(false);
+        await fetchEngineers();
+        showToast("Engineer added successfully!", "success");
+        return true;
       }
-      return false
+      return false;
     } catch (error) {
-      console.error('Add engineer error:', error)
-      alert(error.error || 'Failed to add engineer')
-      return false
+      console.error("Add engineer error:", error);
+      // Show the detailed error message from backend
+      showToast(error.error || error.message || "Failed to add engineer", "error");
+      return false;
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleUpdateEngineer = async (id, engineerData) => {
-    setIsSubmitting(true)
-    
+    setIsSubmitting(true);
+
     try {
-      const response = await updateEngineer(id, engineerData)
-      
+      const response = await updateEngineer(id, engineerData);
+
       if (response.success) {
-        await fetchEngineers()
-        setShowEditModal(false)
-        setSelectedEngineer(null)
-        alert('Engineer updated successfully!')
-        return true
+        await fetchEngineers();
+        setShowEditModal(false);
+        setSelectedEngineer(null);
+        showToast("Engineer updated successfully!", "success");
+        return true;
       }
-      return false
+      return false;
     } catch (error) {
-      console.error('Error updating engineer:', error)
-      alert(error.error || 'Failed to update engineer')
-      return false
+      console.error("Error updating engineer:", error);
+      showToast(error.error || "Failed to update engineer", "error");
+      return false;
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* ✅ Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
-        <Navbar/>
+        <Navbar />
       </nav>
 
       <aside className="fixed left-0 top-16 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
@@ -270,12 +353,22 @@ const AddEngineers = () => {
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Engineers List</h2>
                 <p className="text-gray-600 mt-1">
-                  {isLoading ? 'Loading...' : `Total Engineers: ${filteredEngineers.length}`}
+                  {isLoading ? 'Loading...' : `${filteredEngineers.length} / ${packageInfo?.limit || '...'} Engineers`}
                 </p>
               </div>
               
               <button 
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  // Check if limit is reached
+                  if (packageInfo && engineers.length >= packageInfo.limit) {
+                    showToast(
+                      `Cannot add more engineers. Your ${packageInfo.package} package allows ${packageInfo.limit} engineers. Please upgrade your package to add more.`,
+                      "warning"
+                    );
+                    return;
+                  }
+                  setShowAddModal(true);
+                }}
                 className="flex items-center justify-center gap-2 px-4 py-2 text-black rounded-lg transition-colors"
                 style={{ backgroundColor: '#ffbe2a' }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e6ab25'}
@@ -335,43 +428,67 @@ const AddEngineers = () => {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredEngineers.map((engineer) => (
-                      <tr key={engineer.id} className="hover:bg-gray-50 transition-colors">
+                      <tr
+                        key={engineer.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                               {engineer.profileImage ? (
-                                <img 
+                                <img
                                   src={getImageUrl(engineer.profileImage)}
-                                  alt={engineer.name} 
+                                  alt={engineer.name}
                                   className="h-full w-full object-cover"
                                   onError={(e) => {
-                                    console.error('Image failed to load:', engineer.profileImage);
-                                    e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold">${engineer.name.split(' ').map(n => n[0]).join('').toUpperCase()}</span>`;
+                                    console.error(
+                                      "Image failed to load:",
+                                      engineer.profileImage,
+                                    );
+                                    e.target.style.display = "none";
+                                    e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold">${engineer.name
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .toUpperCase()}</span>`;
                                   }}
                                 />
                               ) : (
                                 <span className="text-blue-600 font-semibold">
-                                  {engineer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                  {engineer.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .toUpperCase()}
                                 </span>
                               )}
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{engineer.name}</div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {engineer.name}
+                              </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{engineer.empId}</div>
+                          <div className="text-sm text-gray-900">
+                            {engineer.empId}
+                          </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">{engineer.phone}</div>
+                          <div className="text-sm text-gray-900">
+                            {engineer.phone}
+                          </div>
                           {engineer.alternatePhone && (
-                            <div className="text-sm text-gray-500">{engineer.alternatePhone}</div>
+                            <div className="text-sm text-gray-500">
+                              {engineer.alternatePhone}
+                            </div>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs truncate">{engineer.address}</div>
+                          <div className="text-sm text-gray-900 max-w-xs truncate">
+                            {engineer.address}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
@@ -384,8 +501,8 @@ const AddEngineers = () => {
                             </button>
                             <button
                               onClick={() => {
-                                setSelectedEngineer(engineer)
-                                setShowDeleteModal(true)
+                                setSelectedEngineer(engineer);
+                                setShowDeleteModal(true);
                               }}
                               className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
                               title="Delete"
@@ -403,9 +520,13 @@ const AddEngineers = () => {
               {filteredEngineers.length === 0 && (
                 <div className="text-center py-12">
                   <User className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No engineers found</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    No engineers found
+                  </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding a new engineer.'}
+                    {searchTerm
+                      ? "Try adjusting your search terms."
+                      : "Get started by adding a new engineer."}
                   </p>
                 </div>
               )}
@@ -416,30 +537,48 @@ const AddEngineers = () => {
           {!isLoading && (
             <div className="lg:hidden space-y-4">
               {filteredEngineers.map((engineer) => (
-                <div key={engineer.id} className="bg-white rounded-lg shadow-md p-4">
+                <div
+                  key={engineer.id}
+                  className="bg-white rounded-lg shadow-md p-4"
+                >
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
                       <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                         {engineer.profileImage ? (
-                          <img 
+                          <img
                             src={getImageUrl(engineer.profileImage)}
-                            alt={engineer.name} 
+                            alt={engineer.name}
                             className="h-full w-full object-cover"
                             onError={(e) => {
-                              console.error('Image failed to load:', engineer.profileImage);
-                              e.target.style.display = 'none';
-                              e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold text-lg">${engineer.name.split(' ').map(n => n[0]).join('').toUpperCase()}</span>`;
+                              console.error(
+                                "Image failed to load:",
+                                engineer.profileImage,
+                              );
+                              e.target.style.display = "none";
+                              e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold text-lg">${engineer.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()}</span>`;
                             }}
                           />
                         ) : (
                           <span className="text-blue-600 font-semibold text-lg">
-                            {engineer.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            {engineer.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()}
                           </span>
                         )}
                       </div>
                       <div className="ml-3">
-                        <h3 className="text-lg font-semibold text-gray-900">{engineer.name}</h3>
-                        <p className="text-sm text-gray-500">{engineer.empId}</p>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {engineer.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {engineer.empId}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -451,8 +590,8 @@ const AddEngineers = () => {
                       </button>
                       <button
                         onClick={() => {
-                          setSelectedEngineer(engineer)
-                          setShowDeleteModal(true)
+                          setSelectedEngineer(engineer);
+                          setShowDeleteModal(true);
                         }}
                         className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
                       >
@@ -465,15 +604,21 @@ const AddEngineers = () => {
                     <div className="flex items-start">
                       <Phone className="w-4 h-4 text-gray-400 mt-1 mr-2 flex-shrink-0" />
                       <div>
-                        <p className="text-sm text-gray-900">{engineer.phone}</p>
+                        <p className="text-sm text-gray-900">
+                          {engineer.phone}
+                        </p>
                         {engineer.alternatePhone && (
-                          <p className="text-sm text-gray-500">{engineer.alternatePhone}</p>
+                          <p className="text-sm text-gray-500">
+                            {engineer.alternatePhone}
+                          </p>
                         )}
                       </div>
                     </div>
                     <div className="flex items-start">
                       <MapPin className="w-4 h-4 text-gray-400 mt-1 mr-2 flex-shrink-0" />
-                      <p className="text-sm text-gray-600">{engineer.address}</p>
+                      <p className="text-sm text-gray-600">
+                        {engineer.address}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -482,9 +627,13 @@ const AddEngineers = () => {
               {filteredEngineers.length === 0 && (
                 <div className="bg-white rounded-lg shadow-md p-12 text-center">
                   <User className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No engineers found</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    No engineers found
+                  </h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    {searchTerm ? 'Try adjusting your search terms.' : 'Get started by adding a new engineer.'}
+                    {searchTerm
+                      ? "Try adjusting your search terms."
+                      : "Get started by adding a new engineer."}
                   </p>
                 </div>
               )}
@@ -503,8 +652,8 @@ const AddEngineers = () => {
       <EditEngineerModal
         isOpen={showEditModal}
         onClose={() => {
-          setShowEditModal(false)
-          setSelectedEngineer(null)
+          setShowEditModal(false);
+          setSelectedEngineer(null);
         }}
         onSubmit={handleUpdateEngineer}
         isSubmitting={isSubmitting}
@@ -516,12 +665,12 @@ const AddEngineers = () => {
         engineer={selectedEngineer}
         onConfirm={handleDelete}
         onCancel={() => {
-          setShowDeleteModal(false)
-          setSelectedEngineer(null)
+          setShowDeleteModal(false);
+          setSelectedEngineer(null);
         }}
       />
     </div>
-  )
-}
+  );
+};
 
-export default AddEngineers
+export default AddEngineers;

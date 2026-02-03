@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2 } from 'lucide-react'
+import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, ChevronDown, ChevronUp, Delete, Pen } from 'lucide-react'
 import labourApi from '../../api/labourAPI'
 import EmployeeNavbar from '../../components/Employee/EmployeeNavbar'
 
@@ -10,6 +10,7 @@ const LabourManagement = () => {
   const [showEditForm, setShowEditForm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [selectedLabour, setSelectedLabour] = useState(null)
+  const [expandedPayments, setExpandedPayments] = useState({})
   
   const [newLabour, setNewLabour] = useState({
     name: '',
@@ -143,6 +144,17 @@ const LabourManagement = () => {
     }
   }
 
+  const togglePaymentHistory = (labourId) => {
+    setExpandedPayments(prev => ({
+      ...prev,
+      [labourId]: !prev[labourId]
+    }))
+  }
+
+  const getPaymentCount = (labour) => {
+    return labour.payments ? labour.payments.length : 0
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -153,7 +165,7 @@ const LabourManagement = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-            <nav className="fixed top-0 left-0 right-0 z-50 h-16">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <EmployeeNavbar />
       </nav>
       <div className="max-w-8xl pt-25 mx-auto">
@@ -165,7 +177,7 @@ const LabourManagement = () => {
             </div>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
+              className="flex items-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg cursor-pointer transition font-medium"
             >
               <Plus size={20} />
               Add Labour
@@ -301,7 +313,7 @@ const LabourManagement = () => {
                   </button>
                   <button
                     onClick={handleUpdateLabour}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
                   >
                     Update Labour
                   </button>
@@ -371,7 +383,7 @@ const LabourManagement = () => {
                   </button>
                   <button
                     onClick={handleAddPayment}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg  transition font-medium"
                   >
                     Add Payment
                   </button>
@@ -381,7 +393,7 @@ const LabourManagement = () => {
           </div>
         )}
 
-        {/* Labour Cards */}
+        {/* MINIMIZED Labour Cards */}
         {labourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />
@@ -389,79 +401,95 @@ const LabourManagement = () => {
             <p className="text-gray-600 mb-6">Get started by adding your first labourer</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-6 py-3 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
+              className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg  transition font-medium"
             >
               <Plus size={20} />
               Add First Labour
             </button>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" style={{ gridAutoRows: 'auto' }}>
             {labourers.map((labour) => (
-              <div key={labour.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900">{labour.name}</h3>
-                    <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-                      <Phone size={14} />
-                      {labour.phone}
-                    </p>
-                    {labour.address && (
-                      <p className="text-sm text-gray-600 flex items-start gap-1 mt-1">
-                        <MapPin size={14} className="mt-0.5" />
-                        <span className="line-clamp-2">{labour.address}</span>
-                      </p>
-                    )}
-                  </div>
+              <div key={labour.id} className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition self-start">
+                
+                {/* Name and Icons Row */}
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-lg font-bold text-gray-900">{labour.name}</h3>
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEditForm(labour)}
-                      className="text-blue-500 hover:text-blue-700 transition"
-                      title="Edit labour details"
+                      className="text-blue-500 hover:text-blue-700"
                     >
-                      <Edit2 size={18} />
+                      <Pen size={16} />
                     </button>
                     <button
                       onClick={() => deleteLabour(labour.id)}
-                      className="text-red-500 hover:text-red-700 transition"
-                      title="Delete labour"
+                      className="text-red-500 hover:text-red-700"
                     >
-                      <X size={20} />
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
-                
-                <div className="bg-green-50 rounded-lg p-4 mb-4">
-                  <p className="text-sm text-gray-600">Total Paid</p>
-                  <p className="text-2xl font-bold text-green-600 flex items-center gap-1">
-                    <IndianRupee size={20} />
+
+                {/* Phone Number */}
+                <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
+                  <Phone size={14} />
+                  {labour.phone}
+                </p>
+
+                {/* Total Paid */}
+                <div className="bg-green-50 rounded-lg p-3 mb-3">
+                  <p className="text-xs text-gray-600">Total Paid</p>
+                  <p className="text-xl font-bold text-green-600 flex items-center gap-1">
+                    <IndianRupee size={18} />
                     {labour.totalPaid?.toFixed(2) || '0.00'}
                   </p>
                 </div>
-                
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">Recent Payments</p>
-                  {!labour.payments || labour.payments.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic">No payments yet</p>
-                  ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {labour.payments.slice(0, 5).map((p) => (
-                        <div key={p.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                          <span className="text-gray-600">{new Date(p.date).toLocaleDateString()}</span>
-                          <span className="font-semibold text-gray-900">₹{p.amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
+
+                {/* Add Payment Button */}
                 <button
                   onClick={() => openPaymentModal(labour)}
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-4 py-2 rounded-lg hover:from-yellow-500 hover:to-yellow-600 transition font-medium"
+                  className="w-full flex items-center justify-center gap-2 bg-[#ffbe2a] cursor-pointer text-black px-4 py-2 rounded-lg transition font-medium mb-2"
                 >
                   <Plus size={18} />
                   Add Payment
                 </button>
+
+                {/* View Payment History Link */}
+                <button
+                  onClick={() => togglePaymentHistory(labour.id)}
+                  className="w-full flex items-center justify-center gap-1 text-yellow-600  text-sm font-medium"
+                >
+                  {expandedPayments[labour.id] ? (
+                    <>
+                      <ChevronUp size={16} />
+                      Hide Payment History
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown size={16} />
+                      View Payment History ({getPaymentCount(labour)})
+                    </>
+                  )}
+                </button>
+
+                {/* Collapsible Payment History */}
+                {expandedPayments[labour.id] && (
+                  <div className="mt-3 pt-3 border-t border-gray-200">
+                    {!labour.payments || labour.payments.length === 0 ? (
+                      <p className="text-sm text-gray-500 italic text-center">No payments yet</p>
+                    ) : (
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {labour.payments.map((p) => (
+                          <div key={p.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
+                            <span className="text-gray-600">{new Date(p.date).toLocaleDateString()}</span>
+                            <span className="font-semibold text-gray-900">₹{p.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

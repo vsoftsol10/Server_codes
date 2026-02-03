@@ -109,10 +109,10 @@ const EmployeeDashboard = () => {
   };
 
   // Calculate stats
-  const validRequests = materialRequests.filter(r => r.material && r.project);
-  const approvedCount = validRequests.filter(r => r.status.toLowerCase() === 'approved').length;
-  const pendingCount = validRequests.filter(r => r.status.toLowerCase() === 'pending').length;
-  const rejectedCount = validRequests.filter(r => r.status.toLowerCase() === 'rejected').length;
+  // const validRequests = materialRequests.filter(r => r.material && r.project);
+ const approvedCount = materialRequests.filter(r => r.status?.toLowerCase() === 'approved').length;
+const pendingCount = materialRequests.filter(r => r.status?.toLowerCase() === 'pending').length;
+const rejectedCount = materialRequests.filter(r => r.status?.toLowerCase() === 'rejected').length;
   const completedProjectsCount = assignedProjects.filter(
   p => p.status?.toLowerCase() === 'completed'
 ).length;
@@ -127,7 +127,7 @@ const EmployeeDashboard = () => {
   { 
     icon: AlertCircle, 
     label: 'Material Requests', 
-    value: loading ? '...' : validRequests.length.toString(), 
+    value: loading ? '...' : materialRequests.length.toString(), 
     color: 'bg-purple-500', 
     trend: `${pendingCount} pending` 
   },
@@ -237,7 +237,7 @@ const EmployeeDashboard = () => {
 
             {/* Material Requests */}
             <MaterialRequestTable
-              materialRequests={materialRequests}
+              materialRequests={materialRequests}   
               loading={loading}
               approvedCount={approvedCount}
               pendingCount={pendingCount}

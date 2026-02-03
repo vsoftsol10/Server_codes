@@ -90,7 +90,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-20 sm:h-20 md:h-24 bg-gradient-to-r from-[#ffbe2a]/70 via-[#ffbe2a]/80 to-[#ffbe2a] border-t-2 sm:border-t-4 border-slate-800 shadow-md backdrop-blur-xl">      
+      <nav className="fixed top-0 left-0 right-0 z-50 h-20 sm:h-20 md:h-24 bg-[#ffbe2a] border-t-2 sm:border-t-4 border-slate-800 shadow-md backdrop-blur-xl">      
         <div className="max-w-8xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full gap-2 sm:gap-4">
             {/* Left side - Brand */}
@@ -110,14 +110,14 @@ const Navbar = () => {
             {/* Right side - Icons */}
             <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 flex-shrink-0">
               {/* Notification Icon */}
-              <button
+              {/* <button
                 onClick={handleNotification}
                 className="p-2 sm:p-2.5 md:p-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-colors duration-200 relative"
                 aria-label="Notifications"
               >
                 <Bell size={18} className="sm:w-5 sm:h-5 md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
                 <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 md:top-2 md:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-500 rounded-full"></span>
-              </button>
+              </button> */}
 
               {/* Logout Button */}
               <button

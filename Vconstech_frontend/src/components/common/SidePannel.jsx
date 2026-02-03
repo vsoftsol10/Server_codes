@@ -143,7 +143,7 @@ const SidePannel = () => {
                 onClick={() => handleItemClick(index, item.path, item.submenu)}
                 className={`flex items-center py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
                   ${activeIndex === index
-                    ? "border-l-4 bg-[#ffbe2a]/60 border-black text-black font-semibold"
+                    ? "border-l-4 bg-[#ffbe2a] border-black text-black font-semibold"
                     : "hover:bg-black/5 text-black"
                   }
                   ${item.name === "Logout" ? "mt-4" : ""}`}
@@ -172,7 +172,7 @@ const SidePannel = () => {
                       onClick={() => handleSubmenuClick(index, subItem.path)}
                       className={`flex items-center py-3 pl-16 pr-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
                         ${location.pathname === subItem.path
-                          ? "bg-[#ffbe2a]/40 text-black font-semibold border-l-4 border-black"
+                          ? "bg-[#ffbe2a]/50 text-black font-semibold border-l-4 border-black"
                           : "hover:bg-black/5 text-gray-700"
                         }`}
                     >

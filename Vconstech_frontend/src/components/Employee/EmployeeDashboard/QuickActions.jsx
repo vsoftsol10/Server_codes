@@ -8,7 +8,7 @@ const QuickActions = ({ onMaterialRequest, onFileUpload }) => {
       <div className="space-y-2">
         <button 
           onClick={onMaterialRequest}
-          className="w-full flex items-center gap-3 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="w-full flex items-center gap-3 p-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
         >
           <Plus className="w-5 h-5" />
           <span className="font-medium">Raise Material Request</span>

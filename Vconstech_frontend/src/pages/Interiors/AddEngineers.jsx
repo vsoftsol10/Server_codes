@@ -434,7 +434,7 @@ const AddEngineers = () => {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                            {/* <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                               {engineer.profileImage ? (
                                 <img
                                   src={getImageUrl(engineer.profileImage)}
@@ -462,7 +462,7 @@ const AddEngineers = () => {
                                     .toUpperCase()}
                                 </span>
                               )}
-                            </div>
+                            </div> */}
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">
                                 {engineer.name}
@@ -549,18 +549,18 @@ const AddEngineers = () => {
                             src={getImageUrl(engineer.profileImage)}
                             alt={engineer.name}
                             className="h-full w-full object-cover"
-                            onError={(e) => {
-                              console.error(
-                                "Image failed to load:",
-                                engineer.profileImage,
-                              );
-                              e.target.style.display = "none";
-                              e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold text-lg">${engineer.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .toUpperCase()}</span>`;
-                            }}
+                            // onError={(e) => {
+                            //   console.error(
+                            //     "Image failed to load:",
+                            //     // engineer.profileImage,
+                            //   );
+                            //   e.target.style.display = "none";
+                            //   e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold text-lg">${engineer.name
+                            //     .split(" ")
+                            //     .map((n) => n[0])
+                            //     .join("")
+                            //     .toUpperCase()}</span>`;
+                            // }}
                           />
                         ) : (
                           <span className="text-blue-600 font-semibold text-lg">

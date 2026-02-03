@@ -418,7 +418,7 @@ const ProjectManagement = () => {
                 onClick={() =>
                   projectReportService.downloadAllProjectsReport(projects)
                 }
-                className="flex items-center gap-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
+                className="flex items-center gap-1 bg-yellow-500 text-white px-4 py-2 rounded-lg cursor-pointer"
               >
                 <Download className="w-5 h-5" />
                 Download All Reports
@@ -479,7 +479,7 @@ const ProjectManagement = () => {
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg  focus:border-transparent"
                   />
                 </div>
                 <div className="relative">
@@ -490,7 +490,7 @@ const ProjectManagement = () => {
                     <Filter className="w-4 h-4" />
                     <span className="hidden sm:inline">Filter</span>
                     {filterType !== "all" && (
-                      <span className="bg-blue-500 text-white rounded-full w-2 h-2"></span>
+                      <span className="bg-yellow-500 text-white rounded-full w-2 h-2"></span>
                     )}
                   </button>
                   {showFilterDropdown && (
@@ -514,7 +514,7 @@ const ProjectManagement = () => {
                             }}
                             className={`w-full text-left px-3 py-2 rounded text-sm ${
                               filterType === type
-                                ? "bg-blue-50 text-blue-600"
+                                ? "bg-yellow-100 text-black-600"
                                 : "hover:bg-gray-50"
                             }`}
                           >
@@ -540,7 +540,7 @@ const ProjectManagement = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap text-sm ${
                     activeTab === tab.id
-                      ? "bg-blue-50 text-blue-600"
+                      ? "bg-yellow-100 text-black-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >

@@ -152,7 +152,6 @@ const FileManagement = () => {
       console.log('Downloading file:', file.fileName);
       showMessage('Downloading file...', false);
 
-      // Use the new download API endpoint with authentication
       const downloadUrl = `${API_BASE_URL}/projects/${selectedProject.id}/files/${file.id}/download`;
       console.log('Download URL:', downloadUrl);
 
@@ -166,20 +165,13 @@ const FileManagement = () => {
         throw new Error(errorData.error || `Failed to download file: ${response.status} ${response.statusText}`);
       }
 
-      // Get the blob from the response
       const blob = await response.blob();
-
-      // Create a temporary URL for the blob
       const blobUrl = window.URL.createObjectURL(blob);
-
-      // Create a temporary anchor element and trigger download
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = file.fileName || file.filename || 'download';
       document.body.appendChild(link);
       link.click();
-
-      // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
 
@@ -192,14 +184,14 @@ const FileManagement = () => {
 
   const getStatusBadgeColor = (status) => {
     const statusMap = {
-      'PENDING': 'bg-yellow-200 border-yellow-400 text-yellow-800',
-      'ONGOING': 'bg-blue-200 border-blue-400 text-blue-800',
-      'COMPLETED': 'bg-green-200 border-green-400 text-green-800',
-      'Planning': 'bg-yellow-200 border-yellow-400 text-yellow-800',
-      'In Progress': 'bg-blue-200 border-blue-400 text-blue-800',
-      'Completed': 'bg-green-200 border-green-400 text-green-800'
+      'PENDING': 'bg-yellow-100 text-yellow-800',
+      'ONGOING': 'bg-blue-100 text-blue-800',
+      'COMPLETED': 'bg-green-100 text-green-800',
+      'Planning': 'bg-yellow-100 text-yellow-800',
+      'In Progress': 'bg-blue-100 text-blue-800',
+      'Completed': 'bg-green-100 text-green-800'
     };
-    return statusMap[status] || 'bg-gray-200 border-gray-400 text-gray-800';
+    return statusMap[status] || 'bg-gray-100 text-gray-800';
   };
 
   const formatDate = (dateString) => {
@@ -255,7 +247,7 @@ const FileManagement = () => {
             <div className="mb-4 px-2 flex items-center gap-2 text-sm md:text-base text-gray-600">
               <button onClick={handleBackToProjects} className="hover:text-black font-medium">Projects</button>
               <ChevronRight size={16} />
-              <span className="text-black font-semibold">{selectedProject.name}</span>
+              <span className="text-black font-semibold truncate">{selectedProject.name}</span>
             </div>
           )}
 
@@ -267,7 +259,7 @@ const FileManagement = () => {
               </button>
               <button onClick={() => setShowAddFileForm(true)} className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-3 md:py-4 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors">
                 <Plus size={24} />
-                <span className="text-sm md:text-base">Upload File</span>
+                <span className="text-sm md:text-base">Upload Files</span>
               </button>
             </div>
           )}
@@ -277,37 +269,71 @@ const FileManagement = () => {
               <h3 className="text-lg md:text-xl font-bold text-black mb-4">Upload File to {selectedProject?.name}</h3>
 
               <div>
-                <label className="block text-xs md:text-sm font-medium text-black mb-1.5 md:mb-2">Document Type (Optional)</label>
-                <select
-                  name="documentType"
-                  value={fileFormData.documentType}
-                  onChange={(e) => setFileFormData(prev => ({ ...prev, documentType: e.target.value }))}
-                  className="w-full px-3 md:px-4 py-2 md:py-3 text-sm md:text-base border-2 border-black rounded-lg focus:ring-2 focus:ring-black focus:border-black bg-white text-black"
-                >
-                  <option value="">Select document type</option>
-                  {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                </select>
+                <label className="block text-xs md:text-sm font-medium text-black mb-1.5 md:mb-2">
+                  Document Type (Optional)
+                </label>
+                <div className="relative">
+                  <select
+                    name="documentType"
+                    value={fileFormData.documentType}
+                    onChange={(e) => setFileFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-black rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white text-black appearance-none cursor-pointer transition-all hover:border-amber-400 pr-10"
+                  >
+                    <option value="">Select document type</option>
+                    {documentTypes.map(type => (
+                      <option key={type} value={type} className="py-2">
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-black">
+                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs md:text-sm font-medium text-black mb-1.5 md:mb-2">Attach File *</label>
-                <div className="border-2 border-dashed border-amber-400 rounded-lg p-6 md:p-8 text-center bg-amber-50">
-                  <input type="file" id="file-upload" onChange={handleFileChange} className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls,.dwg,.dxf" />
+                <div className="border-2 border-dashed border-amber-400 rounded-lg p-4 md:p-6 lg:p-8 text-center bg-amber-50">
+                  <input 
+                    type="file" 
+                    id="file-upload" 
+                    onChange={handleFileChange} 
+                    className="hidden" 
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls,.dwg,.dxf" 
+                  />
                   <label htmlFor="file-upload" className="cursor-pointer">
-                    <Upload size={40} className="mx-auto text-amber-600 mb-2" />
-                    <p className="text-sm md:text-base font-medium text-black">{fileFormData.fileName || 'Click to upload file'}</p>
-                    <p className="text-xs text-gray-600 mt-1">PDF, DOC, DOCX, JPG, PNG, XLSX, DWG, DXF supported</p>
+                    <Upload size={32} className="mx-auto text-amber-600 mb-2 md:w-10 md:h-10" />
+                    <p className="text-xs sm:text-sm md:text-base font-medium text-black break-words px-2">
+                      {fileFormData.fileName || 'Click to upload file'}
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1 px-2">
+                      PDF, DOC, DOCX, JPG, PNG, XLSX, DWG, DXF supported
+                    </p>
                   </label>
                 </div>
               </div>
 
               <div className="flex gap-2">
-                <button onClick={handleAddFile} className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 md:py-3 px-4 md:px-6 text-sm md:text-base rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors border-2 border-black">
+                <button 
+                  onClick={handleAddFile} 
+                  className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 md:py-3 px-4 md:px-6 text-sm md:text-base rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors border-2 border-black"
+                >
                   <Upload size={16} className="md:w-5 md:h-5" />
-                  Upload File
+                  <span className="hidden xs:inline">Upload File</span>
+                  <span className="xs:hidden">Upload</span>
                 </button>
-                <button onClick={() => { setShowAddFileForm(false); setFileFormData({ documentType: '', file: null, fileName: '' }); }} className="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 md:py-3 px-3 md:px-6 rounded-lg border-2 border-black shadow-lg flex items-center justify-center transition-colors">
+                <button 
+                  onClick={() => { 
+                    setShowAddFileForm(false); 
+                    setFileFormData({ documentType: '', file: null, fileName: '' }); 
+                  }} 
+                  className="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 md:py-3 px-3 md:px-6 rounded-lg border-2 border-black shadow-lg flex items-center justify-center transition-colors"
+                >
                   <X size={16} className="md:w-5 md:h-5" />
+                  <span className="hidden sm:inline ml-2">Cancel</span>
                 </button>
               </div>
             </div>
@@ -322,26 +348,49 @@ const FileManagement = () => {
                 </div>
               ) : projects.length > 0 ? (
                 projects.map(project => (
-                  <div key={project.id} className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleOpenProject(project)}>
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 md:gap-4 flex-1">
-                        <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0">
-                          <FolderOpen size={24} className="md:w-8 md:h-8 text-black" />
+                  <div key={project.id} className="bg-white border-2 border-amber-400 rounded-xl p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleOpenProject(project)}>
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 md:gap-4 flex-1 w-full">
+                        <div className="bg-amber-400 p-3 md:p-4 rounded-lg flex-shrink-0">
+                          <FolderOpen size={24} className="text-black md:w-8 md:h-8" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-black text-sm md:text-lg mb-1 break-words">{project.name}</h4>
-                          {project.description && <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">{project.description}</p>}
-                          <div className="flex flex-wrap gap-2 items-center mb-2">
-                            <span className={`text-xs md:text-sm px-3 py-1.5 rounded-lg border-2 font-medium ${getStatusBadgeColor(project.status)}`}>{project.status}</span>
-                            {project.projectType && <span className="text-xs md:text-sm bg-gray-200 px-3 py-1.5 rounded-lg border-2 border-gray-400 font-medium">{project.projectType}</span>}
+                          <h3 className="font-bold text-black text-base md:text-xl mb-2 break-words">{project.name}</h3>
+                          {project.description && (
+                            <p className="text-xs md:text-sm text-gray-700 mb-3 break-words">{project.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 items-center mb-3">
+                            <span className={`text-xs md:text-sm px-2 md:px-3 py-1 md:py-1.5 rounded-md font-medium ${getStatusBadgeColor(project.status)}`}>
+                              {project.status}
+                            </span>
+                            {project.projectType && (
+                              <span className="text-xs md:text-sm bg-gray-100 text-gray-700 px-2 md:px-3 py-1 md:py-1.5 rounded-md font-medium">
+                                {project.projectType}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-600 space-y-1">
-                            {project.clientName && <p><span className="font-medium">Client:</span> {project.clientName}</p>}
-                            {(project.startDate || project.endDate) && <p><span className="font-medium">Timeline:</span> {formatDate(project.startDate)} - {formatDate(project.endDate)}</p>}
+                          <div className="text-xs md:text-sm text-gray-700 space-y-1">
+                            {project.clientName && (
+                              <p className="break-words"><span className="font-medium">Client:</span> {project.clientName}</p>
+                            )}
+                            {(project.startDate || project.endDate) && (
+                              <p className="break-words">
+                                <span className="font-medium">Timeline:</span> {formatDate(project.startDate)} - {formatDate(project.endDate)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <ChevronRight size={24} className="text-gray-400 flex-shrink-0" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenProject(project);
+                        }}
+                        className="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors flex-shrink-0"
+                      >
+                        <Plus size={20} />
+                        <span>Upload Files</span>
+                      </button>
                     </div>
                   </div>
                 ))
@@ -349,7 +398,7 @@ const FileManagement = () => {
                 <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
                   <FolderOpen size={48} className="md:w-16 md:h-16 mx-auto text-gray-400 mb-4" />
                   <p className="text-base md:text-lg font-medium text-gray-700 mb-2">No projects found</p>
-                  <p className="text-sm text-gray-500">Projects will appear here once they are created</p>
+                  <p className="text-sm text-gray-500 px-4">Projects will appear here once they are created</p>
                 </div>
               )}
             </div>
@@ -365,29 +414,45 @@ const FileManagement = () => {
               ) : projectFiles.length > 0 ? (
                 projectFiles.map(file => (
                   <div key={file.id} className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 md:gap-4 flex-1">
-                        <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0 text-2xl">{getFileIcon(file)}</div>
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 md:gap-4 flex-1 w-full">
+                        <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0 text-xl md:text-2xl">
+                          {getFileIcon(file)}
+                        </div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-black text-sm md:text-lg mb-2 break-words">{file.fileName || file.filename}</h4>
+                          <h4 className="font-bold text-black text-sm md:text-lg mb-2 break-all">{file.fileName || file.filename}</h4>
                           <div className="flex flex-wrap gap-2 mb-3">
                             {file.documentType && (
-                              <span className="inline-flex items-center gap-1.5 text-xs md:text-sm bg-amber-200 px-3 py-1.5 rounded-lg border-2 border-amber-400 font-medium">
+                              <span className="inline-flex items-center gap-1.5 text-xs md:text-sm bg-amber-200 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border-2 border-amber-400 font-medium">
                                 <File size={14} />
                                 {file.documentType}
                               </span>
                             )}
-                            {file.fileSize && <span className="text-xs md:text-sm bg-gray-200 px-3 py-1.5 rounded-lg border-2 border-gray-400">{(file.fileSize / 1024).toFixed(2)} KB</span>}
+                            {file.fileSize && (
+                              <span className="text-xs md:text-sm bg-gray-200 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border-2 border-gray-400">
+                                {(file.fileSize / 1024).toFixed(2)} KB
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs md:text-sm text-gray-600 mb-2">Uploaded: {formatDate(file.uploadedAt || file.createdAt)}</p>
-                          <button onClick={() => handleViewFile(file)} className="bg-blue-400 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg border-2 border-black text-xs md:text-sm font-medium flex items-center gap-1.5 transition-colors">
+                          <p className="text-xs md:text-sm text-gray-600 mb-2">
+                            Uploaded: {formatDate(file.uploadedAt || file.createdAt)}
+                          </p>
+                          <button 
+                            onClick={() => handleViewFile(file)} 
+                            className="bg-blue-400 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg border-2 border-black text-xs md:text-sm font-medium flex items-center gap-1.5 transition-colors"
+                          >
                             <ExternalLink size={14} />
                             View/Download
                           </button>
                         </div>
                       </div>
-                      <button onClick={() => handleDeleteFile(file.id)} className="bg-red-400 hover:bg-red-500 p-2 md:p-3 rounded-lg border-2 border-black transition-colors flex-shrink-0" title="Delete File">
-                        <Trash2 size={18} className="md:w-5 md:h-5 text-white" />
+                      <button 
+                        onClick={() => handleDeleteFile(file.id)} 
+                        className="w-full sm:w-auto bg-red-400 hover:bg-red-500 p-2 md:p-3 rounded-lg border-2 border-black transition-colors flex items-center justify-center gap-2" 
+                        title="Delete File"
+                      >
+                        <Trash2 size={18} className="text-white md:w-5 md:h-5" />
+                        <span className="sm:hidden text-white font-medium">Delete File</span>
                       </button>
                     </div>
                   </div>
@@ -396,7 +461,7 @@ const FileManagement = () => {
                 <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
                   <File size={48} className="md:w-16 md:h-16 mx-auto text-gray-400 mb-4" />
                   <p className="text-base md:text-lg font-medium text-gray-700 mb-2">No files uploaded yet</p>
-                  <p className="text-sm text-gray-500">Click "Upload File" to add documents to this project</p>
+                  <p className="text-sm text-gray-500 px-4">Click "Upload Files" to add documents to this project</p>
                 </div>
               )}
             </div>

@@ -1109,11 +1109,11 @@ const Billing = () => {
 
               {/* Bill Summary */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 mb-6 border-2 border-gray-200">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b-2 border-[#ffbe2a]">
+                <h2 className="text-xl font-bold text-gray-800 mb-6 pb-2 border-b-2 border-[#ffbe2a]">
                   Bill Summary
                 </h2>
                 <div className="space-y-3">
-                  <div className="flex justify-between text-gray-700 text-lg">
+                  <div className="flex justify-between text-gray-700 text-l">
                     <span className="font-semibold">Subtotal (Items):</span>
                     <span className="font-bold">₹ {calculateSubtotal().toFixed(2)}</span>
                   </div>
@@ -1147,31 +1147,31 @@ const Billing = () => {
                   
                   {formData.cgst > 0 && (
                     <div className="flex justify-between text-gray-600">
-                      <span className="pl-4">+ CGST ({formData.cgst}%):</span>
+                      <span className="text-l pl-4">+ CGST ({formData.cgst}%):</span>
                       <span>₹ {calculateCGST().toFixed(2)}</span>
                     </div>
                   )}
                   {formData.sgst > 0 && (
                     <div className="flex justify-between text-gray-600">
-                      <span className="pl-4">+ SGST ({formData.sgst}%):</span>
+                      <span className="text-l pl-4">+ SGST ({formData.sgst}%):</span>
                       <span>₹ {calculateSGST().toFixed(2)}</span>
                     </div>
                   )}
                   {formData.igst > 0 && (
                     <div className="flex justify-between text-gray-600">
-                      <span className="pl-4">+ IGST ({formData.igst}%):</span>
+                      <span className="text-l pl-4">+ IGST ({formData.igst}%):</span>
                       <span>₹ {calculateIGST().toFixed(2)}</span>
                     </div>
                   )}
                   
-                  <div className="flex justify-between text-gray-700 text-lg pt-2 border-t border-gray-300">
+                  <div className="flex justify-between text-gray-700 text-l pt-2 border-t border-gray-300">
                     <span className="font-semibold">Total with Tax:</span>
                     <span className="font-bold">₹ {calculateTotalWithTax().toFixed(2)}</span>
                   </div>
                   
                   {formData.tds > 0 && (
                     <div className="flex justify-between text-red-600">
-                      <span className="pl-4">- TDS ({formData.tds}%):</span>
+                      <span className=" text-l pl-4">- TDS ({formData.tds}%):</span>
                       <span>₹ {calculateTDS().toFixed(2)}</span>
                     </div>
                   )}
@@ -1195,7 +1195,7 @@ const Billing = () => {
                   )}
                   
                   <div className="border-t-4 border-[#ffbe2a] pt-4 mt-4">
-                    <div className="flex justify-between text-2xl font-bold">
+                    <div className="flex justify-between text-l font-bold">
                       <span className="text-gray-900">Net Payable Amount:</span>
                       <span className="text-[#ffbe2a]">₹ {calculateNetPayable().toFixed(2)}</span>
                     </div>

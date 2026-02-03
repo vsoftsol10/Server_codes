@@ -167,7 +167,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
         <div className="p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           <div className="space-y-6">
             {/* Profile Picture Section */}
-            <div className="flex flex-col items-center">
+            {/* <div className="flex flex-col items-center">
               <div className="relative">
                 <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-4 border-gray-200">
                   {imagePreview ? (
@@ -199,7 +199,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
               </div>
               <p className="text-sm text-gray-500 mt-2">Upload profile picture (Max 5MB)</p>
               {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
-            </div>
+            </div> */}
 
             {/* Basic Information Section */}
             <div className="border-b pb-4">

@@ -10,13 +10,13 @@ const DailyProgressHistory = ({
     <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-blue-600" />
+          <Calendar className="w-5 h-5 text-yellow-600" />
           Daily Progress History
         </h2>
         {dailyProgressHistory.length > 0 && (
           <button
             onClick={onPrintHistory}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors border border-yellow-700"
             title="Print History"
           >
             <Printer className="w-4 h-4" />
@@ -38,7 +38,7 @@ const DailyProgressHistory = ({
           {dailyProgressHistory.map((update) => (
             <div 
               key={update.id} 
-              className="border border-gray-200 rounded-lg p-3 hover:border-blue-300 transition-colors"
+              className="border border-gray-200 rounded-lg p-3  transition-colors"
             >
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1">

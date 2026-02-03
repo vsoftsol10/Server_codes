@@ -106,6 +106,7 @@ export const handleLoginSuccess = (response) => {
 export const logout = (navigate = null) => {
   console.log('🔐 Logging out...');
   
+  const role = getUserRole();
   // Clear all authentication data
   removeAuthToken();
   
@@ -129,11 +130,11 @@ export const logout = (navigate = null) => {
   
   // Navigate to home if navigate function provided
   if (navigate) {
-    if(isAdmin){
+    if(role === 'Admin'){
       navigate('/');
       window.location.reload();
     }
-    else if(isEngineer){
+    else if(role === 'Site_Engineer'){
       navigate('/employee-login')
     }
   }

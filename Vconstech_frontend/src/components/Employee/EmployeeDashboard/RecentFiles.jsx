@@ -16,7 +16,7 @@ const RecentFiles = ({
         <h2 className="text-lg font-bold text-gray-900">Recent File Uploads</h2>
         <button
           onClick={onNavigateToFiles} 
-          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          className="text-sm text-yellow-700  font-medium bg-yellow-100 p-2 rounded-md border-yellow-700"
         >
           View All Files
         </button>

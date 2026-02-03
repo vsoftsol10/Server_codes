@@ -24,7 +24,7 @@ const ProjectCard = ({
   getStatusDisplay
 }) => {
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+    <div className="border border-gray-200 rounded-lg p-4 hover:border-yellow-300 transition-colors">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900">{project.name}</h3>
@@ -75,19 +75,19 @@ const ProjectCard = ({
       )}
 
       {/* Progress Section */}
-      <div className="mt-5 mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
+      <div className="mt-5 mb-3 p-3 bg-gradient-to-r from-yellow-50 to-yellow-50 rounded-lg border border-yellow-100">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
             <Percent className="w-4 h-4" />
             Project Progress
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-base font-bold text-blue-600">{project.progress || 0}%</span>
+            <span className="text-base font-bold text-black-600">{project.progress || 0}%</span>
             {!showProgressSlider[project.id] && !showProgressMessage[project.id] && (
               <>
                 <button
                   onClick={() => onOpenProgressSlider(project.id, project.progress || 0)}
-                  className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="text-xs px-2 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
                 >
                   Update
                 </button>
@@ -107,7 +107,7 @@ const ProjectCard = ({
         {/* Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
           <div
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-yellow-500 to-yellow-600 h-full rounded-full transition-all duration-300"
             style={{ width: `${project.progress || 0}%` }}
           />
         </div>

@@ -12,7 +12,7 @@ const Notifications = ({ notifications, loading }) => {
       ) : (
         <div className="space-y-3">
           {notifications.map((notif, index) => (
-            <div key={index} className="p-3 border-l-4 border-blue-500 bg-blue-50 rounded">
+            <div key={index} className="p-3 border-l-4 border-yellow-700 bg-yellow-50 rounded">
               <p className="text-sm text-gray-900">{notif.message}</p>
               <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
             </div>

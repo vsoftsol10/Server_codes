@@ -226,16 +226,15 @@ const useEmployeeDashboard = () => {
         try {
           const requestsData = await materialRequestAPI.getMyRequests();
           
-          const sortedRequests = (requestsData.requests || [])
-            .filter(req => req.material && req.project)
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 5);
+         const sortedRequests = (requestsData.requests || [])
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5);
           
           setMaterialRequests(sortedRequests);
           
           const requestNotifications = sortedRequests.map(req => {
             const timeAgo = getTimeAgo(new Date(req.createdAt));
-            const materialName = req.material?.name || 'Unknown Material';
+            const materialName = req.material?.name || req.name || 'Unknown Material';
             const status = req.status.toLowerCase();
             
             if (status === 'approved') {

@@ -1,4 +1,4 @@
-import { Bell, LogOut, X } from 'lucide-react';
+import { Bell, LogOut, User, User2, User2Icon, UserCog2, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -110,14 +110,23 @@ const Navbar = () => {
             {/* Right side - Icons */}
             <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 flex-shrink-0">
               {/* Notification Icon */}
-              {/* <button
+              <button
                 onClick={handleNotification}
                 className="p-2 sm:p-2.5 md:p-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-colors duration-200 relative"
                 aria-label="Notifications"
               >
                 <Bell size={18} className="sm:w-5 sm:h-5 md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
                 <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 md:top-2 md:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-500 rounded-full"></span>
-              </button> */}
+              </button>
+
+              <button
+                onClick={handleNotification}
+                className="p-2 sm:p-2.5 md:p-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-colors duration-200 relative"
+                aria-label="Notifications"
+              >
+                <UserCog2 size={18} className="sm:w-6 sm:h-6 md:w-[35px] md:h-[35px] p-1  rounded-lg" strokeWidth={2.5} />
+                {/* <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 md:top-2 md:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-500 rounded-full"></span> */}
+              </button>
 
               {/* Logout Button */}
               <button

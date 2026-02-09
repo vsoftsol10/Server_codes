@@ -669,34 +669,46 @@ const projectReportService = {
    * @param {Array} projects - Array of project data
    * @returns {Promise<string>} HTML report
    */
-  downloadAllProjectsReport: async (projects) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+  /**
+ * Generate consolidated report for all projects and download it
+ * @param {Array} projects - Array of project data
+ * @returns {Promise<boolean>} Success status
+ */
+downloadAllProjectsReport: async (projects) => {
+  try {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
 
-      if (!Array.isArray(projects) || projects.length === 0) {
-        throw new Error('No projects available to generate report');
-      }
+    if (!Array.isArray(projects) || projects.length === 0) {
+      throw new Error('No projects available to generate report');
+    }
 
-      console.log('📊 Generating consolidated report for', projects.length, 'projects');
+    console.log('📊 Generating consolidated report for', projects.length, 'projects');
 
-      const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-          style: 'currency',
-          currency: 'INR',
-          maximumFractionDigits: 0
-        }).format(amount || 0);
-      };
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 0
+      }).format(amount || 0);
+    };
 
-      // Calculate totals across all projects
-      const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
-      const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
-      const totalRemaining = totalBudget - totalSpent;
+    // Calculate totals across all projects
+    const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
+    const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
+    const totalRemaining = totalBudget - totalSpent;
 
-      const html = `<!DOCTYPE html>
+    // Count projects by status
+    const statusCounts = {
+      planning: projects.filter(p => p.status === 'Planning').length,
+      inProgress: projects.filter(p => p.status === 'In Progress').length,
+      completed: projects.filter(p => p.status === 'Completed').length
+    };
+
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -731,12 +743,16 @@ const projectReportService = {
     .header-meta {
       color: #6b7280;
       font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
     }
     .summary-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 20px;
-      margin-bottom: 40px;
+      margin-bottom: 30px;
     }
     .summary-card {
       background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
@@ -756,6 +772,33 @@ const projectReportService = {
       font-size: 24px;
       font-weight: 700;
     }
+    .status-overview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .status-item {
+      text-align: center;
+      padding: 15px;
+      background: white;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+    }
+    .status-count {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .status-label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
     table { 
       width: 100%;
       border-collapse: collapse;
@@ -765,27 +808,41 @@ const projectReportService = {
       padding: 12px;
       text-align: left;
       border-bottom: 1px solid #e5e7eb;
+      font-size: 14px;
     }
     th { 
-      background: #f9fafb;
-      color: #6b7280;
+      background: #ffbe2a;
+      color: #1f2937;
       font-weight: 600;
       font-size: 12px;
       text-transform: uppercase;
       position: sticky;
       top: 0;
     }
-    tr:hover { background: #f9fafb; }
+    tbody tr:hover { 
+      background: #f9fafb; 
+    }
     .status-badge { 
       display: inline-block;
       padding: 4px 12px;
       border-radius: 20px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      background: #e5e7eb;
+    }
+    .status-planning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .status-progress {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .status-completed {
+      background: #d1fae5;
+      color: #065f46;
     }
     .progress-bar { 
-      width: 100%;
+      width: 100px;
       height: 20px;
       background: #e5e7eb;
       border-radius: 10px;
@@ -795,11 +852,28 @@ const projectReportService = {
       height: 100%;
       background: linear-gradient(90deg, #3b82f6, #2563eb);
       color: white;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       display: flex;
       align-items: center;
       justify-content: center;
+      white-space: nowrap;
+    }
+    .amount-positive {
+      color: #059669;
+      font-weight: 600;
+    }
+    .amount-negative {
+      color: #dc2626;
+      font-weight: 600;
+    }
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1f2937;
+      margin: 30px 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e5e7eb;
     }
     .footer { 
       margin-top: 40px;
@@ -812,6 +886,7 @@ const projectReportService = {
     @media print {
       body { background: white; padding: 0; }
       .container { box-shadow: none; }
+      th { position: relative; }
     }
   </style>
 </head>
@@ -820,13 +895,15 @@ const projectReportService = {
     <div class="header">
       <h1>All Projects Report</h1>
       <div class="header-meta">
-        Total Projects: ${projects.length} | Generated: ${new Date().toLocaleString('en-IN', { 
+        <span>Total Projects: <strong>${projects.length}</strong></span>
+        <span>Generated: ${new Date().toLocaleString('en-IN', { 
           dateStyle: 'medium', 
           timeStyle: 'short' 
-        })}
+        })}</span>
       </div>
     </div>
 
+    <h2 class="section-title">Financial Overview</h2>
     <div class="summary-grid">
       <div class="summary-card">
         <div class="summary-label">Total Budget</div>
@@ -838,22 +915,41 @@ const projectReportService = {
       </div>
       <div class="summary-card">
         <div class="summary-label">Total Remaining</div>
-        <div class="summary-value">${formatCurrency(totalRemaining)}</div>
+        <div class="summary-value" style="color: ${totalRemaining < 0 ? '#dc2626' : '#059669'}">${formatCurrency(totalRemaining)}</div>
       </div>
     </div>
 
+    <h2 class="section-title">Project Status Overview</h2>
+    <div class="status-overview">
+      <div class="status-item">
+        <div class="status-count" style="color: #d97706;">${statusCounts.planning}</div>
+        <div class="status-label">Planning</div>
+      </div>
+      <div class="status-item">
+        <div class="status-count" style="color: #2563eb;">${statusCounts.inProgress}</div>
+        <div class="status-label">In Progress</div>
+      </div>
+      <div class="status-item">
+        <div class="status-count" style="color: #059669;">${statusCounts.completed}</div>
+        <div class="status-label">Completed</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Project Details</h2>
     <table>
       <thead>
         <tr>
           <th>Project ID</th>
           <th>Project Name</th>
           <th>Client</th>
+          <th>Type</th>
           <th>Status</th>
           <th>Progress</th>
           <th>Budget</th>
           <th>Spent</th>
           <th>Remaining</th>
-          <th>Engineer</th>
+          <th>Site Engineer</th>
+          <th>Location</th>
         </tr>
       </thead>
       <tbody>
@@ -863,12 +959,18 @@ const projectReportService = {
           const remaining = budget - spent;
           const progress = project.progress || 0;
           
+          let statusClass = 'status-badge';
+          if (project.status === 'Planning') statusClass += ' status-planning';
+          else if (project.status === 'In Progress') statusClass += ' status-progress';
+          else if (project.status === 'Completed') statusClass += ' status-completed';
+          
           return `
           <tr>
-            <td>${project.id || 'N/A'}</td>
+            <td><strong>${project.id || 'N/A'}</strong></td>
             <td><strong>${project.name || 'Unnamed Project'}</strong></td>
             <td>${project.clientName || project.client || 'N/A'}</td>
-            <td><span class="status-badge">${project.status || 'N/A'}</span></td>
+            <td>${project.type || project.projectType || 'N/A'}</td>
+            <td><span class="${statusClass}">${project.status || 'N/A'}</span></td>
             <td>
               <div class="progress-bar">
                 <div class="progress-fill" style="width: ${progress}%">${progress}%</div>
@@ -876,8 +978,9 @@ const projectReportService = {
             </td>
             <td>${formatCurrency(budget)}</td>
             <td>${formatCurrency(spent)}</td>
-            <td style="color: ${remaining < 0 ? '#dc2626' : '#059669'}">${formatCurrency(remaining)}</td>
-            <td>${project.assignedEngineer?.name || project.engineerName || project.engineer?.name || 'Not Assigned'}</td>
+            <td class="${remaining < 0 ? 'amount-negative' : 'amount-positive'}">${formatCurrency(remaining)}</td>
+            <td>${project.assignedEngineer?.name || project.assignedEngineerName || project.engineerName || project.engineer?.name || 'Not Assigned'}</td>
+            <td>${project.location || 'N/A'}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -894,12 +997,25 @@ const projectReportService = {
 </body>
 </html>`;
 
-      return html;
-    } catch (error) {
-      console.error('❌ Error generating all projects report:', error);
-      throw error;
-    }
-  },
+    // ✅ Download the generated HTML
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().split('T')[0];
+    a.download = `All_Projects_Report_${date}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('✅ All projects report downloaded successfully');
+    return true;
+  } catch (error) {
+    console.error('❌ Error generating all projects report:', error);
+    throw error;
+  }
+},
 
   downloadReport: (html, projectName) => {
     const blob = new Blob([html], { type: 'text/html' });

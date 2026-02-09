@@ -167,47 +167,49 @@ export const projectAPI = {
   },
 
   // Update project
-  updateProject: async (id, projectData, file = null) => {
-    const token = getAuthToken();
-    
-    const body = {
-  name: projectData.name,
-  clientName: projectData.client,
-  projectType: projectData.type,
-  budget: projectData.budget || null,
-  description: projectData.description || null,
-  startDate: projectData.startDate || null,
-  endDate: projectData.endDate || null,
-  location: projectData.location || null,
-  status: projectData.status || null,
-  assignedUserId: projectData.assignedEmployee || null,
-  actualProgress: progress !== undefined ? parseInt(progress) : undefined
-};
-    
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-    
-    const result = await handleResponse(response);
-    
-    if (file && result.project) {
-      try {
-        console.log('Uploading new file for project:', result.project.id);
-        await projectAPI.uploadFile(result.project.id, file);
-        console.log('File uploaded successfully');
-      } catch (err) {
-        console.error('File upload failed:', err);
-        throw new Error(`Project updated but file upload failed: ${err.error || err.message}`);
-      }
+  // Update project
+// Update project
+updateProject: async (id, projectData, file = null) => {
+  const token = getAuthToken();
+  
+  const body = {
+    name: projectData.name,
+    clientName: projectData.client,
+    projectType: projectData.type,
+    budget: projectData.budget || null,
+    description: projectData.description || null,
+    startDate: projectData.startDate || null,
+    endDate: projectData.endDate || null,
+    location: projectData.location || null,
+    status: projectData.status || null,
+    assignedUserId: projectData.assignedEmployee || null,
+    actualProgress: projectData.progress !== undefined ? parseInt(projectData.progress) : undefined
+  };
+  
+  const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    method: 'PUT', // ✅ Changed from 'PATCH' to 'PUT'
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  
+  const result = await handleResponse(response);
+  
+  if (file && result.project) {
+    try {
+      console.log('Uploading new file for project:', result.project.id);
+      await projectAPI.uploadFile(result.project.id, file);
+      console.log('File uploaded successfully');
+    } catch (err) {
+      console.error('File upload failed:', err);
+      throw new Error(`Project updated but file upload failed: ${err.error || err.message}`);
     }
-    
-    return result;
-  },
+  }
+  
+  return result;
+},
 
   // Update project status
   updateProjectStatus: async (id, status) => {

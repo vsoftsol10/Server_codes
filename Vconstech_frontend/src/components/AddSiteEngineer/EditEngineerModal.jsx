@@ -191,7 +191,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
             {/* Profile Image */}
-            <div className="flex flex-col items-center">
+            {/* <div className="flex flex-col items-center">
               <div className="relative">
                 <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
                   {imagePreview ? (
@@ -219,7 +219,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                 <p className="text-red-500 text-sm mt-2">{errors.profileImage}</p>
               )}
               <p className="text-sm text-gray-500 mt-2">Click the upload icon to change image</p>
-            </div>
+            </div> */}
 
             {/* Basic Information Section */}
             <div className="border-b pb-4">

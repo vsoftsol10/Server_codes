@@ -407,21 +407,21 @@ const AddEngineers = () => {
             <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-yellow-400">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Engineer
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Employee ID
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Contact
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Address
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-right text-l font-bold text-black uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>

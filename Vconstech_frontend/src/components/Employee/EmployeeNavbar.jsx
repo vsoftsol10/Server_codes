@@ -32,7 +32,7 @@ const EmployeeNavbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16 sm:h-20 lg:h-24 bg-gradient-to-r from-[#ffbe2a]/70 via-[#ffbe2a]/80 to-[#ffbe2a] border-t-4 border-slate-800 shadow-md backdrop-blur-xl">      
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16 sm:h-20 lg:h-24 bg-[#ffbe2a] border-t-4 border-slate-800 shadow-md backdrop-blur-xl">      
         <div className="max-w-8xl mx-auto px-3 sm:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full">
             {/* Left side - Brand */}

@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Lock, Mail, Home, AlertCircle, CheckCircle } from "lucide-react";
 import { handleLoginSuccess } from "../utils/auth";
 import adminLogin from "../assets/admin login.png";
+import adminTab from "../assets/AdminTab.png";
+import logo from "../assets/constech-logo.png";
 
 const Login = () => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -73,21 +75,32 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-white flex">
-      <div className="hidden lg:flex lg:w-1/2 relative bg-yellow-400 overflow-hidden">
-       <img
-  src={adminLogin}
-  alt="Admin Login Background"
-  className="w-full h-full   object-cover object-center"
-/>
+      {/* Desktop image (large screens) */}
+      <div className="hidden xl:flex xl:w-1/2 relative bg-yellow-400 overflow-hidden items-center justify-center">
+        <img
+          src={adminLogin}
+          alt="Admin Login Background"
+          className="w-full h-full object-contain"
+        />
       </div>
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      
+      {/* Tablet image (1024x680 size) */}
+      <div className="hidden lg:flex xl:hidden lg:w-1/2 relative bg-yellow-400 overflow-hidden items-center justify-center">
+        <img
+          src={adminTab}
+          alt="Admin Tab Background"
+          className="w-full h-full object-contain"
+        />
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-8 bg-yellow-50">
         <div className="w-full max-w-md">
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-black rounded-xl mb-4">
-              <Home className="w-8 h-8 text-white" />
+            <div className="inline-flex items-center justify-center w-50 h-full  rounded-xl mb-4">
+              {/* <Home className="w-8 h-8 text-white" /> */}
+              <img src={logo} alt="Vconstech Logo" className="w-full h-full mr-2" />
             </div>
-            <h1 className="text-3xl font-bold text-black mb-2">INTERIOR</h1>
-            <p className="text-gray-600">Enterprise Resource Planning</p>
+            {/* <p className="text-gray-600">Enterprise Resource Planning</p> */}
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">

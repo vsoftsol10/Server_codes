@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import adminLogin from "../../assets/admin login.png";
+import adminTab from "../../assets/AdminTab.png";
 import { useNavigate } from 'react-router-dom';
 import { loginEngineer } from '../../api/engineerService';
 import { handleLoginSuccess } from '../../utils/auth';
@@ -45,14 +46,23 @@ export default function EmployeeLogin() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Video Background Section */}
-        <div className="hidden lg:flex lg:w-1/2 relative bg-yellow-400 overflow-hidden">
-               <img
-          src={adminLogin}
-          alt="Admin Login Background"
-          className="w-full h-full   object-cover object-center"
-        />
-              </div>
+     {/* Desktop image (large screens) */}
+           <div className="hidden xl:flex xl:w-1/2 relative bg-yellow-400 overflow-hidden items-center justify-center">
+             <img
+               src={adminLogin}
+               alt="Admin Login Background"
+               className="w-full h-full object-contain"
+             />
+           </div>
+           
+           {/* Tablet image (1024x680 size) */}
+           <div className="hidden lg:flex xl:hidden lg:w-1/2 relative bg-yellow-400 overflow-hidden items-center justify-center">
+             <img
+               src={adminTab}
+               alt="Admin Tab Background"
+               className="w-full h-full object-contain"
+             />
+           </div>
 
 
       {/* Right Side - Login Form */}

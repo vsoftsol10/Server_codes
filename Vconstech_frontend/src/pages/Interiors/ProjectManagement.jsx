@@ -84,30 +84,33 @@ const ProjectManagement = () => {
     }
   };
   const loadProjects = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      console.log("🔄 Fetching projects at:", new Date().toISOString());
+    console.log("🔄 Fetching projects at:", new Date().toISOString());
 
-      // ✅ Use the service that calculates actual spent
-      const enrichedProjects =
-        await costCalculationService.getAllProjectsWithSpent();
+    const enrichedProjects =
+      await costCalculationService.getAllProjectsWithSpent();
 
-      console.log("📦 Received enriched projects:", enrichedProjects.length);
+    console.log("📦 Received enriched projects:", enrichedProjects.length);
+    console.log("📦 First project sample:", enrichedProjects[0]); // ✅ Add this to see the structure
 
-      // Transform data to match frontend format
-      const transformedProjects = enrichedProjects.map((project) => ({
+    // Transform data to match frontend format
+    const transformedProjects = enrichedProjects.map((project) => {
+      console.log(`📋 Project ${project.projectId} - DB ID: ${project.id}`); // ✅ Add this
+      
+      return {
         id: project.projectId,
-        dbId: project.id,
+        dbId: project.id, // ✅ This is the database ID
         name: project.name,
         client: project.clientName,
         type: project.projectType,
         status: transformStatus(project.status),
         progress: project.actualProgress || 0,
         budget: project.budget || 0,
-        spent: project.spent || 0, // ✅ Use calculated spent from service
-        spentBreakdown: project.spentBreakdown, // ✅ Include breakdown
+        spent: project.spent || 0,
+        spentBreakdown: project.spentBreakdown,
         startDate: project.startDate
           ? new Date(project.startDate).toISOString().split("T")[0]
           : "",
@@ -130,17 +133,18 @@ const ProjectManagement = () => {
           completed: 0,
         },
         description: project.description || "",
-      }));
+      };
+    });
 
-      console.log("✅ Setting projects with real calculated spent");
-      setProjects(transformedProjects);
-    } catch (err) {
-      console.error("Failed to load projects:", err);
-      setError(err.error || "Failed to load projects");
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.log("✅ Setting projects with real calculated spent");
+    setProjects(transformedProjects);
+  } catch (err) {
+    console.error("Failed to load projects:", err);
+    setError(err.error || "Failed to load projects");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Transform backend status to frontend format
   const transformStatus = (status) => {
@@ -279,58 +283,64 @@ const ProjectManagement = () => {
     }
   };
 
-  const handleEditProject = (project) => {
-    // Transform project data for editing - keep frontend status format
-    const editData = {
-      ...project,
-      client: project.client,
-      // Keep status in frontend format for the modal
-      status: project.status,
-    };
-    setEditingProject(editData);
-    setShowEditModal(true);
+const handleEditProject = (project) => {
+  // Transform project data for editing - include progress
+  const editData = {
+    ...project,
+    client: project.client,
+    status: project.status,
+    progress: project.progress || 0, // ✅ Ensure progress is included with default value
   };
-
+  setEditingProject(editData);
+  setShowEditModal(true);
+};
   const handleUpdateProject = async (file) => {
-    if (!editingProject.name || !editingProject.client) {
-      throw new Error("Please fill in all required fields");
+  if (!editingProject.name || !editingProject.client) {
+    throw new Error("Please fill in all required fields");
+  }
+
+  try {
+    console.log("🔍 Editing project:", editingProject); // ✅ Add this debug log
+    console.log("🔍 Database ID being sent:", editingProject.dbId); // ✅ Add this debug log
+    
+    // ✅ Build projectData object, only include progress if it exists
+    const projectData = {
+      name: editingProject.name,
+      client: editingProject.client,
+      type: editingProject.type,
+      budget: editingProject.budget,
+      quotationAmount: editingProject.quotationAmount,
+      startDate: editingProject.startDate,
+      endDate: editingProject.endDate,
+      location: editingProject.location,
+      assignedEmployee: editingProject.assignedEmployee,
+      description: editingProject.description,
+      status: editingProject.status
+        ? transformStatusToBackend(editingProject.status)
+        : undefined,
+    };
+
+    // ✅ Only include progress if it's defined and valid
+    if (editingProject.progress !== undefined && editingProject.progress !== null) {
+      projectData.progress = editingProject.progress;
     }
 
-    try {
-      // ✅ Explicitly include progress in the update
-      const projectData = {
-        name: editingProject.name,
-        client: editingProject.client,
-        type: editingProject.type,
-        budget: editingProject.budget,
-        quotationAmount: editingProject.quotationAmount,
-        startDate: editingProject.startDate,
-        endDate: editingProject.endDate,
-        location: editingProject.location,
-        assignedEmployee: editingProject.assignedEmployee,
-        description: editingProject.description,
-        progress: editingProject.progress, // ✅ Include progress
-        status: editingProject.status
-          ? transformStatusToBackend(editingProject.status)
-          : undefined,
-      };
+    console.log("📤 Updating project with data:", projectData);
 
-      console.log("Updating project with data:", projectData); // Debug log
+    await projectAPI.updateProject(editingProject.dbId, projectData, file);
 
-      await projectAPI.updateProject(editingProject.dbId, projectData, file);
+    await loadProjects();
 
-      await loadProjects();
+    setShowEditModal(false);
+    setSelectedProject(null);
+    setEditingProject(null);
 
-      setShowEditModal(false);
-      setSelectedProject(null);
-      setEditingProject(null);
-
-      alert("Project updated successfully!");
-    } catch (err) {
-      console.error("Update failed:", err);
-      throw err;
-    }
-  };
+    alert("Project updated successfully!");
+  } catch (err) {
+    console.error("❌ Update failed:", err);
+    throw err;
+  }
+};
 
   const handleDeleteProject = async (projectId) => {
     if (

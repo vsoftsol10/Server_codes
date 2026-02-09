@@ -13,6 +13,11 @@ import {
   Edit,
   Trash2,
   X,
+  Phone,
+  MapPin,
+  Home,
+  Package,
+  Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
@@ -44,6 +49,7 @@ const CreateUser = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
 
   const fetchUsers = async () => {
@@ -67,55 +73,151 @@ const CreateUser = () => {
     fetchUsers();
   }, []);
 
+  // Real-time validation functions
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) return "Email is required";
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return "";
+  };
+
+  const validatePhone = (phone) => {
+    if (!phone) return "Phone number is required";
+    if (!/^\d+$/.test(phone)) return "Phone number must contain only digits";
+    if (phone.length !== 10) return "Phone number must be exactly 10 digits";
+    return "";
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return "Password is required";
+    if (password.length < 6) return "Password must be at least 6 characters";
+    if (password.length > 50) return "Password must be less than 50 characters";
+    return "";
+  };
+
+  const validateConfirmPassword = (password, confirmPassword) => {
+    if (!confirmPassword) return "Please confirm your password";
+    if (password !== confirmPassword) return "Passwords do not match";
+    return "";
+  };
+
+  const validateName = (name) => {
+    if (!name) return "Name is required";
+    if (name.length < 2) return "Name must be at least 2 characters";
+    if (name.length > 100) return "Name must be less than 100 characters";
+    return "";
+  };
+
+  const validateCompanyName = (companyName) => {
+    if (!companyName) return "Company name is required";
+    if (companyName.length < 2) return "Company name must be at least 2 characters";
+    return "";
+  };
+
+  const validateCity = (city) => {
+    if (!city) return "City is required";
+    if (city.length < 2) return "City name must be at least 2 characters";
+    return "";
+  };
+
+  const validateAddress = (address) => {
+    if (!address) return "Address is required";
+    if (address.length < 10) return "Please enter a complete address";
+    return "";
+  };
+
+  const validateCustomMembers = (members) => {
+    if (!members) return "Number of site engineers is required";
+    const num = parseInt(members);
+    if (isNaN(num) || num < 1) return "Must be at least 1";
+    if (num > 1000) return "Must be less than 1000";
+    return "";
+  };
+
+  // Handle field changes with validation
+  const handleFieldChange = (field, value) => {
+    setUserData({ ...userData, [field]: value });
+    
+    // Clear field-specific error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors({ ...fieldErrors, [field]: "" });
+    }
+    
+    // Real-time validation
+    let error = "";
+    switch (field) {
+      case "email":
+        error = validateEmail(value);
+        break;
+      case "phoneNumber":
+        error = validatePhone(value);
+        break;
+      case "password":
+        error = validatePassword(value);
+        if (userData.confirmPassword) {
+          const confirmError = validateConfirmPassword(value, userData.confirmPassword);
+          setFieldErrors({ ...fieldErrors, confirmPassword: confirmError });
+        }
+        break;
+      case "confirmPassword":
+        error = validateConfirmPassword(userData.password, value);
+        break;
+      case "name":
+        error = validateName(value);
+        break;
+      case "companyName":
+        error = validateCompanyName(value);
+        break;
+      case "city":
+        error = validateCity(value);
+        break;
+      case "address":
+        error = validateAddress(value);
+        break;
+      case "customMembers":
+        error = validateCustomMembers(value);
+        break;
+      default:
+        break;
+    }
+    
+    if (error) {
+      setFieldErrors({ ...fieldErrors, [field]: error });
+    }
+  };
+
   const handleSubmit = async () => {
     setError("");
     setSuccess("");
+    setFieldErrors({});
 
-    // Validation
-    if (
-      !userData.name ||
-      !userData.email ||
-      !userData.role ||
-      !userData.companyName ||
-      !userData.password ||
-      !userData.confirmPassword ||
-      !userData.phoneNumber ||
-      !userData.city ||
-      !userData.address ||
-      !userData.package
-    ) {
-      setError("All fields are required");
-      return;
+    // Comprehensive validation
+    const errors = {};
+    
+    errors.name = validateName(userData.name);
+    errors.email = validateEmail(userData.email);
+    errors.phoneNumber = validatePhone(userData.phoneNumber);
+    errors.companyName = validateCompanyName(userData.companyName);
+    errors.city = validateCity(userData.city);
+    errors.address = validateAddress(userData.address);
+    errors.password = validatePassword(userData.password);
+    errors.confirmPassword = validateConfirmPassword(userData.password, userData.confirmPassword);
+
+    if (!userData.role) errors.role = "Please select a role";
+    if (!userData.package) errors.package = "Please select a package";
+    
+    if (userData.package === "Premium") {
+      errors.customMembers = validateCustomMembers(userData.customMembers);
     }
 
-    if (userData.package === "Premium" && !userData.customMembers) {
-      setError("Please enter the number of site engineers for Premium package");
-      return;
-    }
+    // Filter out empty errors
+    const validErrors = Object.fromEntries(
+      Object.entries(errors).filter(([_, value]) => value !== "")
+    );
 
-    if (userData.package === "Premium" && userData.customMembers < 1) {
-      setError("Number of site engineers must be at least 1");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(userData.email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (userData.password !== userData.confirmPassword) {
-      setError("Passwords do not match!");
-      return;
-    }
-
-    if (userData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
-
-    if (userData.phoneNumber.length !== 10) {
-      setError("Enter correct Phone Number");
+    if (Object.keys(validErrors).length > 0) {
+      setFieldErrors(validErrors);
+      setError("Please fix all validation errors before submitting");
       return;
     }
 
@@ -163,6 +265,7 @@ const CreateUser = () => {
         package: "",
         customMembers: "",
       });
+      setFieldErrors({});
       fetchUsers();
     } catch (err) {
       console.error("Create user error:", err);
@@ -182,54 +285,44 @@ const CreateUser = () => {
     setShowEditModal(true);
     setError("");
     setSuccess("");
+    setFieldErrors({});
   };
 
   const handleUpdate = async () => {
     setError("");
     setSuccess("");
+    setFieldErrors({});
 
-    if (
-      !editingUser.name ||
-      !editingUser.email ||
-      !editingUser.role ||
-      !editingUser.companyName ||
-      !editingUser.phoneNumber ||
-      !editingUser.city ||
-      !editingUser.address ||
-      !editingUser.package
-    ) {
-      setError("All fields are required");
-      return;
+    // Validation for edit
+    const errors = {};
+    
+    errors.name = validateName(editingUser.name);
+    errors.email = validateEmail(editingUser.email);
+    errors.phoneNumber = validatePhone(editingUser.phoneNumber);
+    errors.companyName = validateCompanyName(editingUser.companyName);
+    errors.city = validateCity(editingUser.city);
+    errors.address = validateAddress(editingUser.address);
+
+    if (!editingUser.role) errors.role = "Please select a role";
+    if (!editingUser.package) errors.package = "Please select a package";
+
+    if (editingUser.package === "Premium") {
+      errors.customMembers = validateCustomMembers(editingUser.customMembers);
     }
 
-    if (editingUser.package === "Premium" && !editingUser.customMembers) {
-      setError("Please enter the number of site engineers for Premium package");
-      return;
+    if (editingUser.password) {
+      errors.password = validatePassword(editingUser.password);
+      errors.confirmPassword = validateConfirmPassword(editingUser.password, editingUser.confirmPassword);
     }
 
-    if (editingUser.package === "Premium" && editingUser.customMembers < 1) {
-      setError("Number of site engineers must be at least 1");
-      return;
-    }
+    // Filter out empty errors
+    const validErrors = Object.fromEntries(
+      Object.entries(errors).filter(([_, value]) => value !== "")
+    );
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(editingUser.email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (editingUser.password && editingUser.password !== editingUser.confirmPassword) {
-      setError("Passwords do not match!");
-      return;
-    }
-
-    if (editingUser.password && editingUser.password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return;
-    }
-
-    if (editingUser.phoneNumber.length !== 10) {
-      setError("Enter correct Phone Number");
+    if (Object.keys(validErrors).length > 0) {
+      setFieldErrors(validErrors);
+      setError("Please fix all validation errors before updating");
       return;
     }
 
@@ -266,6 +359,7 @@ const CreateUser = () => {
       setSuccess(data.message || "User updated successfully!");
       setShowEditModal(false);
       setEditingUser(null);
+      setFieldErrors({});
       fetchUsers();
     } catch (err) {
       console.error("Update user error:", err);
@@ -319,42 +413,62 @@ const CreateUser = () => {
 
   const roles = ["Admin"];
 
-const renderInputField = (field, label, type, placeholder, icon, value, onChange, isEdit = false) => (
+  const renderInputField = (field, label, type, placeholder, icon, value, onChange) => {
+    const Icon = icon;
+    const hasError = fieldErrors[field];
+    
+    return (
       <div className="space-y-3">
-      <label className="block text-sm font-bold text-gray-800 tracking-wide">
-        {label} <span className="text-red-500">*</span>
-      </label>
-      <div
-        className={`relative rounded-2xl transition-all duration-300 ${
-          isFocused[field]
-            ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
-            : "ring-1 ring-gray-200 hover:ring-gray-300"
-        }`}
-      >
-        <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-              isFocused[field] ? "bg-[#ffbe2a] shadow-md" : "bg-white"
-            }`}
-          >
-            <icon
-              className={`w-5 h-5 ${isFocused[field] ? "text-black" : "text-gray-400"}`}
+        <label className="block text-sm font-bold text-gray-800 tracking-wide">
+          {label} <span className="text-red-500">*</span>
+        </label>
+        <div
+          className={`relative rounded-2xl transition-all duration-300 ${
+            hasError
+              ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+              : isFocused[field]
+              ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
+              : "ring-1 ring-gray-200 hover:ring-gray-300"
+          }`}
+        >
+          <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                hasError
+                  ? "bg-red-500 shadow-md"
+                  : isFocused[field]
+                  ? "bg-[#ffbe2a] shadow-md"
+                  : "bg-white"
+              }`}
+            >
+              <Icon
+                className={`w-5 h-5 ${
+                  hasError
+                    ? "text-white"
+                    : isFocused[field]
+                    ? "text-black"
+                    : "text-gray-400"
+                }`}
+              />
+            </div>
+            <input
+              type={type}
+              value={value}
+              onChange={(e) => onChange(field, e.target.value)}
+              onFocus={() => handleFocus(field, true)}
+              onBlur={() => handleFocus(field, false)}
+              className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
+              placeholder={placeholder}
+              disabled={loading}
             />
           </div>
-          <input
-            type={type}
-            value={value}
-            onChange={onChange}
-            onFocus={() => handleFocus(field, true)}
-            onBlur={() => handleFocus(field, false)}
-            className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
-            placeholder={placeholder}
-            disabled={loading}
-          />
         </div>
+        {hasError && (
+          <p className="text-red-500 text-xs font-medium mt-1 ml-1">{hasError}</p>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#ffbe2a] py-12 px-4">
@@ -410,7 +524,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
               </div>
             )}
 
-            {/* Form Grid - keeping your existing form fields */}
+            {/* Form Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Client Name */}
               {renderInputField(
@@ -420,7 +534,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 "Enter full name",
                 User,
                 userData.name,
-                (e) => setUserData({ ...userData, name: e.target.value })
+                handleFieldChange
               )}
 
               {/* Email */}
@@ -431,7 +545,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 "Enter email address",
                 Mail,
                 userData.email,
-                (e) => setUserData({ ...userData, email: e.target.value })
+                handleFieldChange
               )}
 
               {/* Contact Number */}
@@ -439,10 +553,10 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 "phoneNumber",
                 "Contact Number",
                 "tel",
-                "Enter Phone Number",
-                Lock,
+                "Enter 10-digit phone number",
+                Phone,
                 userData.phoneNumber,
-                (e) => setUserData({ ...userData, phoneNumber: e.target.value })
+                handleFieldChange
               )}
 
               {/* Role */}
@@ -452,7 +566,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 </label>
                 <div
                   className={`relative rounded-2xl transition-all duration-300 ${
-                    isFocused.role
+                    fieldErrors.role
+                      ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                      : isFocused.role
                       ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                       : "ring-1 ring-gray-200 hover:ring-gray-300"
                   }`}
@@ -460,16 +576,26 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                        isFocused.role ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                        fieldErrors.role
+                          ? "bg-red-500 shadow-md"
+                          : isFocused.role
+                          ? "bg-[#ffbe2a] shadow-md"
+                          : "bg-white"
                       }`}
                     >
                       <UserCog
-                        className={`w-5 h-5 ${isFocused.role ? "text-black" : "text-gray-400"}`}
+                        className={`w-5 h-5 ${
+                          fieldErrors.role
+                            ? "text-white"
+                            : isFocused.role
+                            ? "text-black"
+                            : "text-gray-400"
+                        }`}
                       />
                     </div>
                     <select
                       value={userData.role}
-                      onChange={(e) => setUserData({ ...userData, role: e.target.value })}
+                      onChange={(e) => handleFieldChange("role", e.target.value)}
                       onFocus={() => handleFocus("role", true)}
                       onBlur={() => handleFocus("role", false)}
                       className="flex-1 ml-4 bg-transparent text-gray-900 outline-none font-medium cursor-pointer"
@@ -484,6 +610,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     </select>
                   </div>
                 </div>
+                {fieldErrors.role && (
+                  <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.role}</p>
+                )}
               </div>
 
               {/* Company Name */}
@@ -494,7 +623,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 "Enter company name",
                 Building,
                 userData.companyName,
-                (e) => setUserData({ ...userData, companyName: e.target.value })
+                handleFieldChange
               )}
 
               {/* City */}
@@ -503,9 +632,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 "City",
                 "text",
                 "Enter city name",
-                User,
+                MapPin,
                 userData.city,
-                (e) => setUserData({ ...userData, city: e.target.value })
+                handleFieldChange
               )}
 
               {/* Package */}
@@ -515,7 +644,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 </label>
                 <div
                   className={`relative rounded-2xl transition-all duration-300 ${
-                    isFocused.package
+                    fieldErrors.package
+                      ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                      : isFocused.package
                       ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                       : "ring-1 ring-gray-200 hover:ring-gray-300"
                   }`}
@@ -523,18 +654,29 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                        isFocused.package ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                        fieldErrors.package
+                          ? "bg-red-500 shadow-md"
+                          : isFocused.package
+                          ? "bg-[#ffbe2a] shadow-md"
+                          : "bg-white"
                       }`}
                     >
-                      <Building
-                        className={`w-5 h-5 ${isFocused.package ? "text-black" : "text-gray-400"}`}
+                      <Package
+                        className={`w-5 h-5 ${
+                          fieldErrors.package
+                            ? "text-white"
+                            : isFocused.package
+                            ? "text-black"
+                            : "text-gray-400"
+                        }`}
                       />
                     </div>
                     <select
                       value={userData.package}
-                      onChange={(e) =>
-                        setUserData({ ...userData, package: e.target.value, customMembers: "" })
-                      }
+                      onChange={(e) => {
+                        handleFieldChange("package", e.target.value);
+                        setUserData({ ...userData, package: e.target.value, customMembers: "" });
+                      }}
                       onFocus={() => handleFocus("package", true)}
                       onBlur={() => handleFocus("package", false)}
                       className="flex-1 ml-4 bg-transparent text-gray-900 outline-none font-medium cursor-pointer"
@@ -547,6 +689,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     </select>
                   </div>
                 </div>
+                {fieldErrors.package && (
+                  <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.package}</p>
+                )}
               </div>
 
               {/* Custom Members */}
@@ -557,7 +702,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   </label>
                   <div
                     className={`relative rounded-2xl transition-all duration-300 ${
-                      isFocused.customMembers
+                      fieldErrors.customMembers
+                        ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                        : isFocused.customMembers
                         ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                         : "ring-1 ring-gray-200 hover:ring-gray-300"
                     }`}
@@ -565,19 +712,27 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                          isFocused.customMembers ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                          fieldErrors.customMembers
+                            ? "bg-red-500 shadow-md"
+                            : isFocused.customMembers
+                            ? "bg-[#ffbe2a] shadow-md"
+                            : "bg-white"
                         }`}
                       >
-                        <UserPlus
-                          className={`w-5 h-5 ${isFocused.customMembers ? "text-black" : "text-gray-400"}`}
+                        <Users
+                          className={`w-5 h-5 ${
+                            fieldErrors.customMembers
+                              ? "text-white"
+                              : isFocused.customMembers
+                              ? "text-black"
+                              : "text-gray-400"
+                          }`}
                         />
                       </div>
                       <input
                         type="number"
                         value={userData.customMembers}
-                        onChange={(e) =>
-                          setUserData({ ...userData, customMembers: e.target.value })
-                        }
+                        onChange={(e) => handleFieldChange("customMembers", e.target.value)}
                         onFocus={() => handleFocus("customMembers", true)}
                         onBlur={() => handleFocus("customMembers", false)}
                         className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
@@ -587,6 +742,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                       />
                     </div>
                   </div>
+                  {fieldErrors.customMembers && (
+                    <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.customMembers}</p>
+                  )}
                 </div>
               )}
 
@@ -597,7 +755,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 </label>
                 <div
                   className={`relative rounded-2xl transition-all duration-300 ${
-                    isFocused.password
+                    fieldErrors.password
+                      ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                      : isFocused.password
                       ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                       : "ring-1 ring-gray-200 hover:ring-gray-300"
                   }`}
@@ -605,19 +765,27 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                        isFocused.password ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                        fieldErrors.password
+                          ? "bg-red-500 shadow-md"
+                          : isFocused.password
+                          ? "bg-[#ffbe2a] shadow-md"
+                          : "bg-white"
                       }`}
                     >
                       <Lock
-                        className={`w-5 h-5 ${isFocused.password ? "text-black" : "text-gray-400"}`}
+                        className={`w-5 h-5 ${
+                          fieldErrors.password
+                            ? "text-white"
+                            : isFocused.password
+                            ? "text-black"
+                            : "text-gray-400"
+                        }`}
                       />
                     </div>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={userData.password}
-                      onChange={(e) =>
-                        setUserData({ ...userData, password: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange("password", e.target.value)}
                       onFocus={() => handleFocus("password", true)}
                       onBlur={() => handleFocus("password", false)}
                       className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
@@ -633,6 +801,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     </button>
                   </div>
                 </div>
+                {fieldErrors.password && (
+                  <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.password}</p>
+                )}
               </div>
 
               {/* Confirm Password */}
@@ -642,7 +813,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 </label>
                 <div
                   className={`relative rounded-2xl transition-all duration-300 ${
-                    isFocused.confirmPassword
+                    fieldErrors.confirmPassword
+                      ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                      : isFocused.confirmPassword
                       ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                       : "ring-1 ring-gray-200 hover:ring-gray-300"
                   }`}
@@ -650,19 +823,27 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <div className="flex items-center px-5 py-4 bg-gray-50 rounded-2xl">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                        isFocused.confirmPassword ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                        fieldErrors.confirmPassword
+                          ? "bg-red-500 shadow-md"
+                          : isFocused.confirmPassword
+                          ? "bg-[#ffbe2a] shadow-md"
+                          : "bg-white"
                       }`}
                     >
                       <Lock
-                        className={`w-5 h-5 ${isFocused.confirmPassword ? "text-black" : "text-gray-400"}`}
+                        className={`w-5 h-5 ${
+                          fieldErrors.confirmPassword
+                            ? "text-white"
+                            : isFocused.confirmPassword
+                            ? "text-black"
+                            : "text-gray-400"
+                        }`}
                       />
                     </div>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       value={userData.confirmPassword}
-                      onChange={(e) =>
-                        setUserData({ ...userData, confirmPassword: e.target.value })
-                      }
+                      onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
                       onFocus={() => handleFocus("confirmPassword", true)}
                       onBlur={() => handleFocus("confirmPassword", false)}
                       className="flex-1 ml-4 bg-transparent text-gray-900 placeholder-gray-400 outline-none font-medium"
@@ -678,6 +859,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     </button>
                   </div>
                 </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.confirmPassword}</p>
+                )}
               </div>
             </div>
 
@@ -688,7 +872,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
               </label>
               <div
                 className={`relative rounded-2xl transition-all duration-300 ${
-                  isFocused.address
+                  fieldErrors.address
+                    ? "ring-2 ring-red-500 shadow-lg shadow-red-500/20"
+                    : isFocused.address
                     ? "ring-2 ring-[#ffbe2a] shadow-lg shadow-[#ffbe2a]/20"
                     : "ring-1 ring-gray-200 hover:ring-gray-300"
                 }`}
@@ -696,16 +882,26 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 <div className="flex items-start px-5 py-4 bg-gray-50 rounded-2xl">
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 ${
-                      isFocused.address ? "bg-[#ffbe2a] shadow-md" : "bg-white"
+                      fieldErrors.address
+                        ? "bg-red-500 shadow-md"
+                        : isFocused.address
+                        ? "bg-[#ffbe2a] shadow-md"
+                        : "bg-white"
                     }`}
                   >
-                    <User
-                      className={`w-5 h-5 ${isFocused.address ? "text-black" : "text-gray-400"}`}
+                    <Home
+                      className={`w-5 h-5 ${
+                        fieldErrors.address
+                          ? "text-white"
+                          : isFocused.address
+                          ? "text-black"
+                          : "text-gray-400"
+                      }`}
                     />
                   </div>
                   <textarea
                     value={userData.address}
-                    onChange={(e) => setUserData({ ...userData, address: e.target.value })}
+                    onChange={(e) => handleFieldChange("address", e.target.value)}
                     rows={4}
                     onFocus={() => handleFocus("address", true)}
                     onBlur={() => handleFocus("address", false)}
@@ -715,6 +911,9 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   />
                 </div>
               </div>
+              {fieldErrors.address && (
+                <p className="text-red-500 text-xs font-medium mt-1 ml-1">{fieldErrors.address}</p>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -896,6 +1095,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     setShowEditModal(false);
                     setEditingUser(null);
                     setError("");
+                    setFieldErrors({});
                   }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -911,22 +1111,32 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 </div>
               )}
 
-              {/* Edit Form - Similar to Create Form but using editingUser */}
+              {/* Edit Form */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-gray-800">
                     Client Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={editingUser.name}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, name: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="Enter full name"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <User className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={editingUser.name}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, name: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.name ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="Enter full name"
+                    />
+                  </div>
+                  {fieldErrors.name && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.name}</p>
+                  )}
                 </div>
 
                 {/* Email */}
@@ -934,15 +1144,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     Email <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="email"
-                    value={editingUser.email}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, email: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="Enter email address"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      value={editingUser.email}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, email: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.email ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  {fieldErrors.email && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.email}</p>
+                  )}
                 </div>
 
                 {/* Phone */}
@@ -950,15 +1170,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     Contact Number <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="tel"
-                    value={editingUser.phoneNumber}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, phoneNumber: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="Enter phone number"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="tel"
+                      value={editingUser.phoneNumber}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, phoneNumber: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.phoneNumber ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                  {fieldErrors.phoneNumber && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.phoneNumber}</p>
+                  )}
                 </div>
 
                 {/* Role */}
@@ -966,20 +1196,30 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     Role <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={editingUser.role}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, role: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer"
-                  >
-                    <option value="">Select role</option>
-                    {roles.map((role) => (
-                      <option key={role} value={role}>
-                        {role.replace("_", " ")}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <UserCog className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <select
+                      value={editingUser.role}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, role: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.role ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer`}
+                    >
+                      <option value="">Select role</option>
+                      {roles.map((role) => (
+                        <option key={role} value={role}>
+                          {role.replace("_", " ")}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {fieldErrors.role && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.role}</p>
+                  )}
                 </div>
 
                 {/* Company */}
@@ -987,15 +1227,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     Company Name <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={editingUser.companyName}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, companyName: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="Enter company name"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Building className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={editingUser.companyName}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, companyName: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.companyName ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="Enter company name"
+                    />
+                  </div>
+                  {fieldErrors.companyName && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.companyName}</p>
+                  )}
                 </div>
 
                 {/* City */}
@@ -1003,15 +1253,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     City <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={editingUser.city}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, city: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="Enter city"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <MapPin className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={editingUser.city}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, city: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.city ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="Enter city"
+                    />
+                  </div>
+                  {fieldErrors.city && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.city}</p>
+                  )}
                 </div>
 
                 {/* Package */}
@@ -1019,22 +1279,32 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     Package <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={editingUser.package}
-                    onChange={(e) =>
-                      setEditingUser({
-                        ...editingUser,
-                        package: e.target.value,
-                        customMembers: "",
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer"
-                  >
-                    <option value="">Select package</option>
-                    <option value="Classic">Classic (5 members)</option>
-                    <option value="Pro">Pro (10 members)</option>
-                    <option value="Premium">Premium (Custom members)</option>
-                  </select>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Package className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <select
+                      value={editingUser.package}
+                      onChange={(e) =>
+                        setEditingUser({
+                          ...editingUser,
+                          package: e.target.value,
+                          customMembers: "",
+                        })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.package ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none cursor-pointer`}
+                    >
+                      <option value="">Select package</option>
+                      <option value="Classic">Classic (5 members)</option>
+                      <option value="Pro">Pro (10 members)</option>
+                      <option value="Premium">Premium (Custom members)</option>
+                    </select>
+                  </div>
+                  {fieldErrors.package && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.package}</p>
+                  )}
                 </div>
 
                 {/* Custom Members */}
@@ -1043,16 +1313,26 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     <label className="block text-sm font-bold text-gray-800">
                       Number of Site Engineers <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="number"
-                      value={editingUser.customMembers}
-                      onChange={(e) =>
-                        setEditingUser({ ...editingUser, customMembers: e.target.value })
-                      }
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                      placeholder="Enter number"
-                      min="1"
-                    />
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <Users className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="number"
+                        value={editingUser.customMembers}
+                        onChange={(e) =>
+                          setEditingUser({ ...editingUser, customMembers: e.target.value })
+                        }
+                        className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                          fieldErrors.customMembers ? "border-red-500" : "border-gray-200"
+                        } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                        placeholder="Enter number"
+                        min="1"
+                      />
+                    </div>
+                    {fieldErrors.customMembers && (
+                      <p className="text-red-500 text-xs font-medium">{fieldErrors.customMembers}</p>
+                    )}
                   </div>
                 )}
 
@@ -1061,15 +1341,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                   <label className="block text-sm font-bold text-gray-800">
                     New Password <span className="text-gray-500 text-xs">(Leave blank to keep current)</span>
                   </label>
-                  <input
-                    type="password"
-                    value={editingUser.password || ""}
-                    onChange={(e) =>
-                      setEditingUser({ ...editingUser, password: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                    placeholder="New password"
-                  />
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="password"
+                      value={editingUser.password || ""}
+                      onChange={(e) =>
+                        setEditingUser({ ...editingUser, password: e.target.value })
+                      }
+                      className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                        fieldErrors.password ? "border-red-500" : "border-gray-200"
+                      } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                      placeholder="New password"
+                    />
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="text-red-500 text-xs font-medium">{fieldErrors.password}</p>
+                  )}
                 </div>
 
                 {/* Confirm Password */}
@@ -1078,15 +1368,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     <label className="block text-sm font-bold text-gray-800">
                       Confirm New Password <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="password"
-                      value={editingUser.confirmPassword || ""}
-                      onChange={(e) =>
-                        setEditingUser({ ...editingUser, confirmPassword: e.target.value })
-                      }
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-                      placeholder="Confirm password"
-                    />
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                        <Lock className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <input
+                        type="password"
+                        value={editingUser.confirmPassword || ""}
+                        onChange={(e) =>
+                          setEditingUser({ ...editingUser, confirmPassword: e.target.value })
+                        }
+                        className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                          fieldErrors.confirmPassword ? "border-red-500" : "border-gray-200"
+                        } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`}
+                        placeholder="Confirm password"
+                      />
+                    </div>
+                    {fieldErrors.confirmPassword && (
+                      <p className="text-red-500 text-xs font-medium">{fieldErrors.confirmPassword}</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1096,15 +1396,25 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                 <label className="block text-sm font-bold text-gray-800">
                   Address <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  value={editingUser.address}
-                  onChange={(e) =>
-                    setEditingUser({ ...editingUser, address: e.target.value })
-                  }
-                  rows={4}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none resize-y"
-                  placeholder="Enter full address"
-                />
+                <div className="relative">
+                  <div className="absolute left-3 top-3">
+                    <Home className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <textarea
+                    value={editingUser.address}
+                    onChange={(e) =>
+                      setEditingUser({ ...editingUser, address: e.target.value })
+                    }
+                    rows={4}
+                    className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
+                      fieldErrors.address ? "border-red-500" : "border-gray-200"
+                    } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none resize-y`}
+                    placeholder="Enter full address"
+                  />
+                </div>
+                {fieldErrors.address && (
+                  <p className="text-red-500 text-xs font-medium">{fieldErrors.address}</p>
+                )}
               </div>
 
               {/* Modal Actions */}
@@ -1114,6 +1424,7 @@ const renderInputField = (field, label, type, placeholder, icon, value, onChange
                     setShowEditModal(false);
                     setEditingUser(null);
                     setError("");
+                    setFieldErrors({});
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50"

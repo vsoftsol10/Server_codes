@@ -242,14 +242,42 @@ const Billing = () => {
     }
   };
 
-  const handlePrintBill = (bill) => {
+ const handlePrintBill = (bill) => {
+  if (!bill) {
+    alert('Invalid bill data');
+    return;
+  }
+
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
 
-  // ✅ Ensure items is always an array
-  const items = Array.isArray(bill?.items) ? bill.items : [];
+  // ✅ Handle both BillItem (from backend) and items (from frontend)
+  const items = Array.isArray(bill?.BillItem) ? bill.BillItem : 
+                Array.isArray(bill?.items) ? bill.items : [];
 
-  // Calculate totals for the bill
+  if (items.length === 0) {
+    alert('No items found in this bill');
+    printWindow.close();
+    return;
+  }
+
+  // ✅ Format dates properly
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+  };
+
+  // ✅ Get bill number from correct property
+  const billNumber = bill.billId || bill.billNumber || 'N/A';
+  const billDate = formatDate(bill.billDate);
+  const dueDate = formatDate(bill.dueDate);
+
+  // Calculate totals for the bill using correct property names
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item?.amount || 0),
     0
@@ -261,15 +289,21 @@ const Billing = () => {
     Number(bill?.transportCharges || 0) +
     Number(bill?.otherCharges || 0);
 
-  const cgst = (grossAmount * Number(bill?.cgst || 0)) / 100;
-  const sgst = (grossAmount * Number(bill?.sgst || 0)) / 100;
-  const igst = (grossAmount * Number(bill?.igst || 0)) / 100;
+  // Use the percentage values from backend
+  const cgstPercent = Number(bill?.cgstPercent || bill?.cgst || 0);
+  const sgstPercent = Number(bill?.sgstPercent || bill?.sgst || 0);
+  const igstPercent = Number(bill?.igstPercent || bill?.igst || 0);
+  const tdsPercent = Number(bill?.tdsPercent || bill?.tds || 0);
+  const retentionPercent = Number(bill?.retentionPercent || bill?.retention || 0);
+
+  const cgst = (grossAmount * cgstPercent) / 100;
+  const sgst = (grossAmount * sgstPercent) / 100;
+  const igst = (grossAmount * igstPercent) / 100;
 
   const totalWithTax = grossAmount + cgst + sgst + igst;
 
-  const tds = (totalWithTax * Number(bill?.tds || 0)) / 100;
-  const retention =
-    (totalWithTax * Number(bill?.retention || 0)) / 100;
+  const tds = (totalWithTax * tdsPercent) / 100;
+  const retention = (totalWithTax * retentionPercent) / 100;
 
   const netPayable =
     totalWithTax -
@@ -278,105 +312,300 @@ const Billing = () => {
     Number(bill?.advancePaid || 0) -
     Number(bill?.previousBills || 0);
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Bill - ${bill.billNumber}</title>
-        <style>
-          @media print {
-            @page { margin: 0.5cm; }
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Bill - ${billNumber}</title>
+      <style>
+        @media print {
+          @page { 
+            margin: 1cm; 
+            size: A4;
           }
           body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            max-width: 210mm;
-            margin: 0 auto;
+            margin: 0;
+            padding: 0;
           }
-          .header {
-            text-align: center;
-            border-bottom: 3px solid #ffbe2a;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+          .print-button { 
+            display: none !important; 
           }
-          .company-info, .client-info, .project-info {
-            margin-bottom: 15px;
-          }
-          .section-title {
-            font-weight: bold;
-            background: #f3f4f6;
-            padding: 5px 10px;
-            margin-bottom: 5px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
-          }
-          th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-          }
-          th {
-            background: #f3f4f6;
-            font-weight: bold;
-          }
-          .summary {
-            margin-top: 20px;
-            border-top: 2px solid #000;
-            padding-top: 10px;
-          }
-          .total-row {
-            font-weight: bold;
-            font-size: 1.1em;
-            background: #ffbe2a;
-          }
-          .text-right { text-align: right; }
-          .print-button {
-            background: #000;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 20px;
-          }
-          @media print {
-            .print-button { display: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <button class="print-button" onclick="window.print()">🖨️ Print Bill</button>
+        }
         
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          padding: 20px;
+          max-width: 210mm;
+          margin: 0 auto;
+          background: #f5f5f5;
+        }
+        
+        .invoice-container {
+          background: white;
+          padding: 30px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+          text-align: center;
+          border-bottom: 4px solid #ffbe2a;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        
+        .header h1 {
+          font-size: 32px;
+          color: #333;
+          margin-bottom: 15px;
+          letter-spacing: 2px;
+        }
+        
+        .bill-info {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 15px;
+        }
+        
+        .bill-info p {
+          font-size: 14px;
+          color: #666;
+        }
+        
+        .bill-info strong {
+          color: #333;
+          font-weight: 600;
+        }
+        
+        .info-section {
+          margin-bottom: 25px;
+          padding: 15px;
+          background: #f9f9f9;
+          border-left: 4px solid #ffbe2a;
+        }
+        
+        .section-title {
+          font-weight: 700;
+          font-size: 14px;
+          color: #333;
+          text-transform: uppercase;
+          margin-bottom: 12px;
+          letter-spacing: 1px;
+        }
+        
+        .info-section p {
+          margin: 6px 0;
+          font-size: 13px;
+          color: #555;
+          line-height: 1.6;
+        }
+        
+        .info-section strong {
+          color: #333;
+          font-weight: 600;
+        }
+        
+        .two-column {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 25px;
+        }
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+          font-size: 13px;
+        }
+        
+        th {
+          background: #333;
+          color: white;
+          padding: 12px 10px;
+          text-align: left;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 11px;
+          letter-spacing: 0.5px;
+        }
+        
+        td {
+          border: 1px solid #ddd;
+          padding: 10px;
+          color: #555;
+        }
+        
+        tbody tr:nth-child(even) {
+          background: #f9f9f9;
+        }
+        
+        tbody tr:hover {
+          background: #f0f0f0;
+        }
+        
+        .text-right { 
+          text-align: right; 
+        }
+        
+        .text-center { 
+          text-align: center; 
+        }
+        
+        .summary-table {
+          margin-top: 30px;
+          width: 100%;
+          max-width: 800px;
+          margin-left: auto;
+        }
+        
+        .summary-table td {
+          padding: 8px 15px;
+          border: none;
+          border-bottom: 1px solid #eee;
+        }
+        
+        .summary-table tr:last-child td {
+          border-bottom: none;
+        }
+        
+        .summary-table .label {
+          font-weight: 500;
+          color: #555;
+        }
+        
+        .summary-table .value {
+          text-align: right;
+          font-weight: 600;
+          color: #333;
+        }
+        
+        .summary-table .subtotal-row {
+          border-top: 2px solid #ddd;
+        }
+        
+        .summary-table .total-row {
+          background: #333;
+          color: white;
+          font-size: 16px;
+        }
+        
+        .summary-table .total-row td {
+          padding: 12px 15px;
+          border-bottom: none;
+        }
+        
+        .net-payable-row {
+          background: #ffbe2a !important;
+          font-size: 18px !important;
+          font-weight: 700 !important;
+        }
+        
+        .net-payable-row td {
+          padding: 15px !important;
+          color: #000 !important;
+        }
+        
+        .additional-info {
+          margin-top: 30px;
+          padding: 15px;
+          background: #f9f9f9;
+          border-left: 4px solid #ffbe2a;
+        }
+        
+        .additional-info h4 {
+          font-size: 13px;
+          color: #333;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .additional-info p {
+          font-size: 12px;
+          color: #555;
+          line-height: 1.6;
+          white-space: pre-line;
+        }
+        
+        .footer {
+          margin-top: 40px;
+          text-align: center;
+          padding-top: 20px;
+          border-top: 2px solid #eee;
+        }
+        
+        .footer p {
+          font-size: 11px;
+          color: #999;
+          font-style: italic;
+        }
+        
+        .print-button {
+          background: #333;
+          color: white;
+          padding: 12px 30px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 20px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: background 0.3s;
+        }
+        
+        .print-button:hover {
+          background: #ffbe2a;
+          color: #000;
+        }
+      </style>
+    </head>
+    <body>
+      <button class="print-button" onclick="window.print()">
+        🖨️ Print Invoice
+      </button>
+      
+      <div class="invoice-container">
         <div class="header">
           <h1>TAX INVOICE</h1>
-          <p><strong>Bill No:</strong> ${bill.billNumber} | <strong>Date:</strong> ${bill.billDate}</p>
-          ${bill.dueDate ? `<p><strong>Due Date:</strong> ${bill.dueDate}</p>` : ''}
+          <div class="bill-info">
+            <p><strong>Bill No:</strong> ${billNumber}</p>
+            <p><strong>Date:</strong> ${billDate}</p>
+            ${dueDate !== 'N/A' ? `<p><strong>Due Date:</strong> ${dueDate}</p>` : ''}
+          </div>
         </div>
 
-        <div class="company-info">
-          <div class="section-title">FROM (Contractor/Company)</div>
-          <p><strong>${bill.companyName || 'N/A'}</strong></p>
-          <p>${bill.companyAddress || ''}</p>
-          ${bill.companyGST ? `<p><strong>GST:</strong> ${bill.companyGST}</p>` : ''}
-          ${bill.companyPhone ? `<p><strong>Phone:</strong> ${bill.companyPhone}</p>` : ''}
-          ${bill.companyEmail ? `<p><strong>Email:</strong> ${bill.companyEmail}</p>` : ''}
+        <div class="two-column">
+          <div class="info-section">
+            <div class="section-title">FROM (Contractor/Company)</div>
+            <p><strong>${bill.companyName || 'N/A'}</strong></p>
+            ${bill.companyAddress ? `<p>${bill.companyAddress}</p>` : ''}
+            ${bill.companyGST ? `<p><strong>GST:</strong> ${bill.companyGST}</p>` : ''}
+            ${bill.companyPhone ? `<p><strong>Phone:</strong> ${bill.companyPhone}</p>` : ''}
+            ${bill.companyEmail ? `<p><strong>Email:</strong> ${bill.companyEmail}</p>` : ''}
+          </div>
+
+          <div class="info-section">
+            <div class="section-title">TO (Client)</div>
+            <p><strong>${bill.clientName || 'N/A'}</strong></p>
+            ${bill.clientAddress ? `<p>${bill.clientAddress}</p>` : ''}
+            ${bill.clientGST ? `<p><strong>GST:</strong> ${bill.clientGST}</p>` : ''}
+            ${bill.clientPhone ? `<p><strong>Phone:</strong> ${bill.clientPhone}</p>` : ''}
+            ${bill.clientEmail ? `<p><strong>Email:</strong> ${bill.clientEmail}</p>` : ''}
+          </div>
         </div>
 
-        <div class="client-info">
-          <div class="section-title">TO (Client)</div>
-          <p><strong>${bill.clientName}</strong></p>
-          <p>${bill.clientAddress || ''}</p>
-          ${bill.clientGST ? `<p><strong>GST:</strong> ${bill.clientGST}</p>` : ''}
-          ${bill.clientPhone ? `<p><strong>Phone:</strong> ${bill.clientPhone}</p>` : ''}
-          ${bill.clientEmail ? `<p><strong>Email:</strong> ${bill.clientEmail}</p>` : ''}
-        </div>
-
-        <div class="project-info">
+        <div class="info-section">
           <div class="section-title">PROJECT DETAILS</div>
-          <p><strong>Project:</strong> ${bill.projectName}</p>
+          <p><strong>Project:</strong> ${bill.projectName || 'N/A'}</p>
           ${bill.projectLocation ? `<p><strong>Location:</strong> ${bill.projectLocation}</p>` : ''}
           ${bill.workOrderNo ? `<p><strong>Work Order No:</strong> ${bill.workOrderNo}</p>` : ''}
         </div>
@@ -384,89 +613,167 @@ const Billing = () => {
         <table>
           <thead>
             <tr>
-              <th>S.No</th>
-              <th>Description</th>
-              <th>Unit</th>
-              <th>Quantity</th>
-              <th>Rate</th>
-              <th class="text-right">Amount</th>
+              <th style="width: 50px;">S.No</th>
+              <th>Description of Work</th>
+              <th style="width: 80px;">Unit</th>
+              <th style="width: 100px;">Quantity</th>
+              <th style="width: 120px;">Rate</th>
+              <th class="text-right" style="width: 130px;">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${bill.items.map((item, idx) => `
+            ${items.map((item, idx) => `
               <tr>
-                <td>${idx + 1}</td>
-                <td>${item.description}</td>
-                <td>${item.unit}</td>
-                <td>${item.quantity}</td>
-                <td>₹ ${parseFloat(item.rate).toFixed(2)}</td>
-                <td class="text-right">₹ ${parseFloat(item.amount).toFixed(2)}</td>
+                <td class="text-center">${idx + 1}</td>
+                <td>${item.description || 'N/A'}</td>
+                <td class="text-center">${item.unit || 'Nos'}</td>
+                <td class="text-center">${Number(item.quantity || 0).toFixed(2)}</td>
+                <td class="text-right">₹ ${Number(item.rate || 0).toFixed(2)}</td>
+                <td class="text-right"><strong>₹ ${Number(item.amount || 0).toFixed(2)}</strong></td>
               </tr>
             `).join('')}
           </tbody>
         </table>
 
-        <div class="summary">
-          <table>
-            <tr><td><strong>Subtotal (Items)</strong></td><td class="text-right">₹ ${subtotal.toFixed(2)}</td></tr>
-            ${bill.labourCharges > 0 ? `<tr><td>Labour Charges</td><td class="text-right">₹ ${parseFloat(bill.labourCharges).toFixed(2)}</td></tr>` : ''}
-            ${bill.transportCharges > 0 ? `<tr><td>Transport Charges</td><td class="text-right">₹ ${parseFloat(bill.transportCharges).toFixed(2)}</td></tr>` : ''}
-            ${bill.otherCharges > 0 ? `<tr><td>Other Charges</td><td class="text-right">₹ ${parseFloat(bill.otherCharges).toFixed(2)}</td></tr>` : ''}
-            <tr><td><strong>Gross Amount</strong></td><td class="text-right"><strong>₹ ${grossAmount.toFixed(2)}</strong></td></tr>
-            ${bill.cgst > 0 ? `<tr><td>CGST (${bill.cgst}%)</td><td class="text-right">₹ ${cgst.toFixed(2)}</td></tr>` : ''}
-            ${bill.sgst > 0 ? `<tr><td>SGST (${bill.sgst}%)</td><td class="text-right">₹ ${sgst.toFixed(2)}</td></tr>` : ''}
-            ${bill.igst > 0 ? `<tr><td>IGST (${bill.igst}%)</td><td class="text-right">₹ ${igst.toFixed(2)}</td></tr>` : ''}
-            <tr><td><strong>Total with Tax</strong></td><td class="text-right"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td></tr>
-            ${bill.tds > 0 ? `<tr><td>TDS (${bill.tds}%)</td><td class="text-right">- ₹ ${tds.toFixed(2)}</td></tr>` : ''}
-            ${bill.retention > 0 ? `<tr><td>Retention (${bill.retention}%)</td><td class="text-right">- ₹ ${retention.toFixed(2)}</td></tr>` : ''}
-            ${bill.advancePaid > 0 ? `<tr><td>Advance Paid</td><td class="text-right">- ₹ ${parseFloat(bill.advancePaid).toFixed(2)}</td></tr>` : ''}
-            ${bill.previousBills > 0 ? `<tr><td>Previous Bills</td><td class="text-right">- ₹ ${parseFloat(bill.previousBills).toFixed(2)}</td></tr>` : ''}
-            <tr class="total-row"><td><strong>NET PAYABLE AMOUNT</strong></td><td class="text-right"><strong>₹ ${netPayable.toFixed(2)}</strong></td></tr>
-          </table>
-        </div>
+        <table class="summary-table">
+          <tr>
+            <td class="label">Subtotal (Items)</td>
+            <td class="value">₹ ${subtotal.toFixed(2)}</td>
+          </tr>
+          ${bill.labourCharges > 0 ? `
+            <tr>
+              <td class="label">Labour Charges</td>
+              <td class="value">₹ ${Number(bill.labourCharges).toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${bill.transportCharges > 0 ? `
+            <tr>
+              <td class="label">Transport Charges</td>
+              <td class="value">₹ ${Number(bill.transportCharges).toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${bill.otherCharges > 0 ? `
+            <tr>
+              <td class="label">Other Charges${bill.otherChargesDescription ? ' (' + bill.otherChargesDescription + ')' : ''}</td>
+              <td class="value">₹ ${Number(bill.otherCharges).toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          <tr class="subtotal-row">
+            <td class="label"><strong>Gross Amount</strong></td>
+            <td class="value"><strong>₹ ${grossAmount.toFixed(2)}</strong></td>
+          </tr>
+          ${cgstPercent > 0 ? `
+            <tr>
+              <td class="label">CGST (${cgstPercent}%)</td>
+              <td class="value">₹ ${cgst.toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${sgstPercent > 0 ? `
+            <tr>
+              <td class="label">SGST (${sgstPercent}%)</td>
+              <td class="value">₹ ${sgst.toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${igstPercent > 0 ? `
+            <tr>
+              <td class="label">IGST (${igstPercent}%)</td>
+              <td class="value">₹ ${igst.toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          <tr class="total-row" >
+            <td style="color: #fff;"><strong>Total with Tax</strong></td>
+            <td style="color: #fff;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
+          </tr>
+          ${tdsPercent > 0 ? `
+            <tr style="color: #d32f2f;">
+              <td class="label">Less: TDS (${tdsPercent}%)</td>
+              <td class="value">- ₹ ${tds.toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${retentionPercent > 0 ? `
+            <tr style="color: #d32f2f;">
+              <td class="label">Less: Retention (${retentionPercent}%)</td>
+              <td class="value">- ₹ ${retention.toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${bill.advancePaid > 0 ? `
+            <tr style="color: #d32f2f;">
+              <td class="label">Less: Advance Paid</td>
+              <td class="value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          ${bill.previousBills > 0 ? `
+            <tr style="color: #d32f2f;">
+              <td class="label">Less: Previous Bills</td>
+              <td class="value">- ₹ ${Number(bill.previousBills).toFixed(2)}</td>
+            </tr>
+          ` : ''}
+          <tr class="net-payable-row">
+            <td><strong>NET PAYABLE AMOUNT</strong></td>
+            <td><strong>₹ ${netPayable.toFixed(2)}</strong></td>
+          </tr>
+        </table>
 
-        ${bill.remarks ? `<div style="margin-top: 15px;"><strong>Remarks:</strong><br>${bill.remarks}</div>` : ''}
-        ${bill.termsAndConditions ? `<div style="margin-top: 15px;"><strong>Terms & Conditions:</strong><br>${bill.termsAndConditions}</div>` : ''}
+        ${bill.remarks ? `
+          <div class="additional-info">
+            <h4>Remarks</h4>
+            <p>${bill.remarks}</p>
+          </div>
+        ` : ''}
 
-        <div style="margin-top: 30px; text-align: center; border-top: 1px solid #ccc; padding-top: 10px;">
-          <p><em>This is a computer-generated bill</em></p>
+        ${bill.termsAndConditions ? `
+          <div class="additional-info">
+            <h4>Terms & Conditions</h4>
+            <p>${bill.termsAndConditions}</p>
+          </div>
+        ` : ''}
+
+        <div class="footer">
+          <p>This is a computer-generated invoice and does not require a signature</p>
+          <p>Generated on ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
         </div>
-      </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-  };
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+};
 
   const handleDeleteBill = async (billId) => {
-    if (!window.confirm('Are you sure you want to delete this bill?')) {
-      return;
-    }
+  if (!billId) {
+    alert('Invalid bill ID');
+    return;
+  }
 
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const token = localStorage.getItem('token');
+  if (!window.confirm('Are you sure you want to delete this bill?')) {
+    return;
+  }
 
-      const response = await fetch(`${API_URL}/bills/${billId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+  try {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const token = localStorage.getItem('token');
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        alert('✅ Bill deleted successfully!');
-        fetchBills();
-      } else {
-        alert(`❌ Error: ${data.error || 'Failed to delete bill'}`);
+    const response = await fetch(`${API_URL}/bills/${billId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Error deleting bill:', error);
-      alert('❌ Failed to delete bill. Please try again.');
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      alert('✅ Bill deleted successfully!');
+      fetchBills();
+    } else {
+      alert(`❌ Error: ${data.error || 'Failed to delete bill'}`);
     }
-  };
+  } catch (error) {
+    console.error('Error deleting bill:', error);
+    alert('❌ Failed to delete bill. Please try again.');
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1238,86 +1545,101 @@ const Billing = () => {
                 </div>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bills.map((bill) => {
-                    // Calculate net payable for display
-                    const items = bill.items || [];
+                 {bills.map((bill) => {
+  // Calculate net payable for display
+  const items = Array.isArray(bill?.BillItem) ? bill.BillItem : 
+                Array.isArray(bill?.items) ? bill.items : [];
 
-const subtotal = items.reduce(
-  (sum, item) => sum + parseFloat(item.amount || 0),
-  0
-);
+  const subtotal = items.reduce(
+    (sum, item) => sum + Number(item?.amount || 0),
+    0
+  );
 
-const grossAmount =
-  subtotal +
-  parseFloat(bill.labourCharges || 0) +
-  parseFloat(bill.transportCharges || 0) +
-  parseFloat(bill.otherCharges || 0);
+  const grossAmount =
+    subtotal +
+    Number(bill?.labourCharges || 0) +
+    Number(bill?.transportCharges || 0) +
+    Number(bill?.otherCharges || 0);
 
-const cgst = (grossAmount * parseFloat(bill.cgst || 0)) / 100;
-const sgst = (grossAmount * parseFloat(bill.sgst || 0)) / 100;
-const igst = (grossAmount * parseFloat(bill.igst || 0)) / 100;
+  const cgstPercent = Number(bill?.cgstPercent || bill?.cgst || 0);
+  const sgstPercent = Number(bill?.sgstPercent || bill?.sgst || 0);
+  const igstPercent = Number(bill?.igstPercent || bill?.igst || 0);
+  const tdsPercent = Number(bill?.tdsPercent || bill?.tds || 0);
+  const retentionPercent = Number(bill?.retentionPercent || bill?.retention || 0);
 
-const totalWithTax = grossAmount + cgst + sgst + igst;
+  const cgst = (grossAmount * cgstPercent) / 100;
+  const sgst = (grossAmount * sgstPercent) / 100;
+  const igst = (grossAmount * igstPercent) / 100;
 
-const tds = (totalWithTax * parseFloat(bill.tds || 0)) / 100;
-const retention =
-  (totalWithTax * parseFloat(bill.retention || 0)) / 100;
+  const totalWithTax = grossAmount + cgst + sgst + igst;
 
-const netPayable =
-  totalWithTax -
-  tds -
-  retention -
-  parseFloat(bill.advancePaid || 0) -
-  parseFloat(bill.previousBills || 0);
+  const tds = (totalWithTax * tdsPercent) / 100;
+  const retention = (totalWithTax * retentionPercent) / 100;
 
+  const netPayable =
+    totalWithTax -
+    tds -
+    retention -
+    Number(bill?.advancePaid || 0) -
+    Number(bill?.previousBills || 0);
 
-                    return (
-                      <div key={bill._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-800">{bill.billNumber}</h3>
-                            <p className="text-sm text-gray-500">{new Date(bill.billDate).toLocaleDateString()}</p>
-                          </div>
-                          <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded">
-                            ₹{netPayable.toFixed(2)}
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-start gap-2">
-                            <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm text-gray-700 line-clamp-1">{bill.clientName}</p>
-                          </div>
-                          <div className="flex items-start gap-2">
-                            <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm text-gray-600 line-clamp-1">{bill.projectName}</p>
-                          </div>
-                          {bill.workOrderNo && (
-                            <div className="flex items-start gap-2">
-                              <FileSignature className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                              <p className="text-xs text-gray-500">{bill.workOrderNo}</p>
-                            </div>
-                          )}
-                        </div>
+  // ✅ Use correct bill ID property
+  const billId = bill._id || bill.id;
+  const billNumber = bill.billId || bill.billNumber || 'N/A';
 
-                        <div className="flex gap-2 pt-3 border-t border-gray-200">
-                          <button
-                            onClick={() => handlePrintBill(bill)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#ffbe2a] text-black text-sm font-semibold rounded hover:bg-[#e5ab26] transition-colors"
-                          >
-                            <Printer className="w-4 h-4" />
-                            Print
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBill(bill._id)}
-                            className="flex items-center justify-center px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded hover:bg-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+  return (
+    <div key={billId} className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h3 className="font-bold text-lg text-gray-800">{billNumber}</h3>
+          <p className="text-sm text-gray-500">
+            {new Date(bill.billDate).toLocaleDateString('en-IN', { 
+              day: '2-digit', 
+              month: 'short', 
+              year: 'numeric' 
+            })}
+          </p>
+        </div>
+        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-1 rounded">
+          ₹{netPayable.toFixed(2)}
+        </span>
+      </div>
+      
+      <div className="space-y-2 mb-4">
+        <div className="flex items-start gap-2">
+          <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-gray-700 line-clamp-1">{bill.clientName}</p>
+        </div>
+        <div className="flex items-start gap-2">
+          <Building2 className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-gray-600 line-clamp-1">{bill.projectName}</p>
+        </div>
+        {bill.workOrderNo && (
+          <div className="flex items-start gap-2">
+            <FileSignature className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-gray-500">{bill.workOrderNo}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2 pt-3 border-t border-gray-200">
+        <button
+          onClick={() => handlePrintBill(bill)}
+          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#ffbe2a] text-black text-sm font-semibold rounded hover:bg-[#e5ab26] transition-colors"
+        >
+          <Printer className="w-4 h-4" />
+          Print
+        </button>
+        <button
+          onClick={() => handleDeleteBill(billId)}
+          className="flex items-center justify-center px-3 py-2 bg-red-500 text-white text-sm font-semibold rounded hover:bg-red-600 transition-colors"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+})}
                 </div>
               )}
             </div>

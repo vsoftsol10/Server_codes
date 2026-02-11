@@ -6,33 +6,40 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Create uploads directory if it doesn't exist
-const uploadDir = path.join(__dirname, '../../uploads/project-files');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Create uploads directories if they don't exist
+const projectFilesDir = path.join(__dirname, '../../uploads/project-files');
+const logosDir = path.join(__dirname, '../../uploads/logos');
+
+if (!fs.existsSync(projectFilesDir)) {
+  fs.mkdirSync(projectFilesDir, { recursive: true });
 }
 
-// Configure storage
-const storage = multer.diskStorage({
+if (!fs.existsSync(logosDir)) {
+  fs.mkdirSync(logosDir, { recursive: true });
+}
+
+// ==================== PROJECT FILES UPLOAD ====================
+
+// Configure storage for project files
+const projectFilesStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, projectFilesDir);
   },
   filename: (req, file, cb) => {
-    // Generate unique filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
-// File filter - UPDATED to match frontend requirements
-const fileFilter = (req, file, cb) => {
+// File filter for project files
+const projectFilesFilter = (req, file, cb) => {
   const allowedExtensions = [
-    '.pdf', '.doc', '.docx',           // Documents
-    '.jpg', '.jpeg', '.png',           // Images
-    '.xlsx', '.xls',                   // Spreadsheets
-    '.dwg', '.dxf',                    // CAD files
-    '.skp', '.obj', '.fbx',            // 3D files
-    '.3ds', '.stl', '.rvt', '.ifc'     // Other design files
+    '.pdf', '.doc', '.docx',
+    '.jpg', '.jpeg', '.png',
+    '.xlsx', '.xls',
+    '.dwg', '.dxf',
+    '.skp', '.obj', '.fbx',
+    '.3ds', '.stl', '.rvt', '.ifc'
   ];
   
   const ext = path.extname(file.originalname).toLowerCase();
@@ -40,15 +47,46 @@ const fileFilter = (req, file, cb) => {
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
-    cb(new Error(`Invalid file type: ${ext}. Allowed types: ${allowedExtensions.join(', ')}`));
+    cb(new Error(`Invalid file type: ${ext}`));
   }
 };
 
-// Configure multer
 export const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage: projectFilesStorage,
+  fileFilter: projectFilesFilter,
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100MB limit
+    fileSize: 100 * 1024 * 1024 // 100MB
   }
+});
+
+// ==================== LOGO UPLOAD ====================
+
+const logoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, logosDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const logoFileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed'));
+  }
+};
+
+export const uploadLogo = multer({
+  storage: logoStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  },
+  fileFilter: logoFileFilter
 });

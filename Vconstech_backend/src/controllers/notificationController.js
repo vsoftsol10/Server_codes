@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 export const getNotifications = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role; // Get user role from token
     
     if (!userId) {
       return res.status(400).json({ 
@@ -15,8 +16,17 @@ export const getNotifications = async (req, res) => {
 
     const { unreadOnly } = req.query;
 
-    // ✅ FIX: Use engineerId and convert to Int
-    const where = { engineerId: parseInt(userId) };
+    // ✅ BUILD WHERE CLAUSE BASED ON ROLE
+    let where = {};
+    
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
+      // Admins see notifications meant for them
+      where.recipientRole = 'ADMIN';
+    } else if (userRole === 'ENGINEER' || userRole === 'SITE_ENGINEER') {
+      // Engineers see their own notifications
+      where.engineerId = parseInt(userId);
+      where.recipientRole = 'ENGINEER';
+    }
 
     if (unreadOnly === 'true') {
       where.read = false;
@@ -25,17 +35,33 @@ export const getNotifications = async (req, res) => {
     const notifications = await prisma.notification.findMany({
       where,
       orderBy: { date: 'desc' },
-      take: 50
+      take: 50,
+      include: {
+        // ✅ Include engineer details for admin view
+        engineer: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
     }).catch(err => {
       console.error('Prisma notification query error:', err);
       return [];
     });
 
+    // ✅ COUNT UNREAD BASED ON ROLE
+    let unreadWhere = { read: false };
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
+      unreadWhere.recipientRole = 'ADMIN';
+    } else {
+      unreadWhere.engineerId = parseInt(userId);
+      unreadWhere.recipientRole = 'ENGINEER';
+    }
+
     const unreadCount = await prisma.notification.count({
-      where: {
-        engineerId: parseInt(userId),
-        read: false
-      }
+      where: unreadWhere
     }).catch(err => {
       console.error('Prisma notification count error:', err);
       return 0;
@@ -61,6 +87,7 @@ export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role;
 
     if (!userId) {
       return res.status(400).json({ 
@@ -80,8 +107,12 @@ export const markAsRead = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Use engineerId
-    if (notification.engineerId !== parseInt(userId)) {
+    // ✅ AUTHORIZATION: Check if user has permission to mark as read
+    const hasPermission = 
+      (userRole === 'ADMIN' && notification.recipientRole === 'ADMIN') ||
+      (notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
+
+    if (!hasPermission) {
       return res.status(403).json({ 
         success: false,
         error: 'Unauthorized' 
@@ -111,6 +142,7 @@ export const markAsRead = async (req, res) => {
 export const markAllAsRead = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role;
 
     if (!userId) {
       return res.status(400).json({ 
@@ -119,11 +151,18 @@ export const markAllAsRead = async (req, res) => {
       });
     }
 
+    // ✅ BUILD WHERE BASED ON ROLE
+    let where = { read: false };
+    
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
+      where.recipientRole = 'ADMIN';
+    } else {
+      where.engineerId = parseInt(userId);
+      where.recipientRole = 'ENGINEER';
+    }
+
     const result = await prisma.notification.updateMany({
-      where: {
-        engineerId: parseInt(userId),
-        read: false
-      },
+      where,
       data: { read: true }
     });
 
@@ -146,6 +185,7 @@ export const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role;
 
     if (!userId) {
       return res.status(400).json({ 
@@ -165,7 +205,12 @@ export const deleteNotification = async (req, res) => {
       });
     }
 
-    if (notification.engineerId !== parseInt(userId)) {
+    // ✅ AUTHORIZATION CHECK
+    const hasPermission = 
+      (userRole === 'ADMIN' && notification.recipientRole === 'ADMIN') ||
+      (notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
+
+    if (!hasPermission) {
       return res.status(403).json({ 
         success: false,
         error: 'Unauthorized' 
@@ -193,6 +238,7 @@ export const deleteNotification = async (req, res) => {
 export const clearReadNotifications = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role;
 
     if (!userId) {
       return res.status(400).json({ 
@@ -201,11 +247,18 @@ export const clearReadNotifications = async (req, res) => {
       });
     }
 
+    // ✅ BUILD WHERE BASED ON ROLE
+    let where = { read: true };
+    
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
+      where.recipientRole = 'ADMIN';
+    } else {
+      where.engineerId = parseInt(userId);
+      where.recipientRole = 'ENGINEER';
+    }
+
     const result = await prisma.notification.deleteMany({
-      where: {
-        engineerId: parseInt(userId),
-        read: true
-      }
+      where
     });
 
     res.json({ 

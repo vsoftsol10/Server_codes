@@ -68,6 +68,18 @@ app.use('/api/daily-progress', dailyprogressRoutes);
 app.use('/api/engineers', engineerRoutes);
 app.use('/api/users', userRoute);
 
+console.log('\n🔍 Checking /api/users routes:');
+if (userRoute && userRoute.stack) {
+  userRoute.stack.forEach((layer) => {
+    if (layer.route) {
+      console.log(`  ${Object.keys(layer.route.methods).join(', ').toUpperCase()} /api/users${layer.route.path}`);
+    }
+  });
+} else {
+  console.log('  ❌ userRoute has no stack - not properly configured');
+}
+console.log('');
+
 // ========== SUPER ADMIN ROUTES ==========
 app.use('/api/superadmin', superAdminRoutes);
 

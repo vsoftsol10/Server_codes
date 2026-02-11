@@ -8,7 +8,7 @@ import file from "../../assets/Icon/FileManagement.png";
 import labourManage from "../../assets/Icon/LabourManagement.png";
 import billing1 from "../../assets/Icon/bill.png";
 import AddEngg from "../../assets/Icon/AddEngg.png";
-import { LogOut, X, ChevronDown, ChevronRight, Settings } from "lucide-react";
+import { LogOut, X, ChevronDown, ChevronRight, Settings, UserCheck } from "lucide-react";
 
 const SidePannel = () => {
   const navigate = useNavigate();
@@ -79,7 +79,7 @@ const SidePannel = () => {
     { name: "Contract Management", path: "/contract", icon: contractIcon },
     { name: "File Management", path: "/file-managememt", icon: fileIcon },
     { name: "Labour Management", path: "/labor-managememt", icon: laborManagementIcon },
-    { name: "Settings", path: "/settings", icon: <Settings/> },
+    { name: "Profile", path: "/profile", icon: <UserCheck/> },
     { name: "Logout", path: "/", icon: logout },
   ];
 

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -187,17 +188,20 @@ model MaterialRequest {
 }
 
 model Notification {
-  id         Int              @id @default(autoincrement())
-  message    String
-  type       NotificationType
-  read       Boolean          @default(false)
-  date       DateTime         @default(now())
-  engineerId Int
-  engineer   Engineer         @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+  id            Int              @id @default(autoincrement())
+  message       String
+  type          NotificationType
+  read          Boolean          @default(false)
+  date          DateTime         @default(now())
+  engineerId    Int
+  recipientRole String?
+  requestId     Int?
+  engineer      Engineer         @relation(fields: [engineerId], references: [id], onDelete: Cascade)
 
   @@index([engineerId])
   @@index([read])
   @@index([date])
+  @@index([recipientRole, read])
 }
 
 model Contract {
@@ -258,6 +262,7 @@ model Company {
   name      String
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  logo      String?
   Bill      Bill[]
   labours   Labour[]
   materials Material[]

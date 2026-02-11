@@ -71,16 +71,15 @@ export const determineProjectMaterialStatus = (assigned, used) => {
  * Create notification for user
  * ✅ FIXED: Uses engineerId (Int) instead of userId
  */
-export const createNotification = async (userId, message, type = 'INFO') => {
+export const createNotification = async (engineerId, message, type, recipientRole = 'ENGINEER', requestId = null) => {
   try {
-    // Ensure userId is an integer
-    const engineerId = parseInt(userId);
-    
     const notification = await prisma.notification.create({
       data: {
-        engineerId, // ✅ Use engineerId as Int
+        engineerId: parseInt(engineerId),
         message,
         type,
+        recipientRole, // ✅ NEW
+        requestId: requestId ? parseInt(requestId) : null, // ✅ NEW
         read: false,
         date: new Date()
       }
@@ -88,6 +87,6 @@ export const createNotification = async (userId, message, type = 'INFO') => {
     return notification;
   } catch (error) {
     console.error('Error creating notification:', error);
-    return null;
+    throw error;
   }
 };

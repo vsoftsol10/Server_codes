@@ -180,7 +180,7 @@ export const createMaterialRequest = async (req, res) => {
     const request = await prisma.materialRequest.create({
       data: {
         requestId,
-        employeeId: parseInt(userId), // ✅ FIX: Convert to Int
+        employeeId: parseInt(userId),
         name,
         category,
         unit,
@@ -199,17 +199,35 @@ export const createMaterialRequest = async (req, res) => {
           select: {
             name: true
           }
+        },
+        employee: {
+          select: {
+            name: true
+          }
         }
       }
     });
 
     console.log('✅ Request created successfully:', request.id);
 
-    // Create notification
+    // ✅ CREATE TWO NOTIFICATIONS:
+    
+    // 1. For ENGINEER (confirmation)
     await createNotification(
-      parseInt(userId), // ✅ FIX: Convert to Int
+      parseInt(userId),
       `Material request for "${name}" has been submitted for approval`,
-      'INFO'
+      'INFO',
+      'ENGINEER', // ✅ Show to engineer
+      request.id
+    );
+
+    // 2. For ADMIN (action required)
+    await createNotification(
+      parseInt(userId), // Keep track of which engineer made the request
+      `New material request: "${name}" from ${request.employee.name} requires approval`,
+      'INFO',
+      'ADMIN', // ✅ Show to admin
+      request.id
     );
 
     res.status(201).json({ 
@@ -230,6 +248,7 @@ export const createMaterialRequest = async (req, res) => {
     });
   }
 };
+
 // Add this function to your materialRequestController.js
 
 export const getAllRequests = async (req, res) => {
@@ -314,9 +333,7 @@ export const approveMaterialRequest = async (req, res) => {
     const { approvalNotes } = req.body;
     
     console.log('📝 Approving request ID:', id);
-    console.log('👤 Request user:', req.user);
     
-    // ✅ FIX: Allow null for Admin users without engineer profile
     const reviewerId = req.user?.engineerId || null;
     const { companyId } = req.user;
 
@@ -326,8 +343,6 @@ export const approveMaterialRequest = async (req, res) => {
         error: 'Company ID not found' 
       });
     }
-    
-    console.log('✅ Reviewer Engineer ID (null is OK for Admin):', reviewerId);
 
     const request = await prisma.materialRequest.findUnique({
       where: { id: parseInt(id) },
@@ -365,7 +380,7 @@ export const approveMaterialRequest = async (req, res) => {
           status: 'APPROVED',
           reviewDate: new Date(),
           approvalNotes: approvalNotes || null,
-          reviewedBy: reviewerId // ✅ Can be null - schema allows it
+          reviewedBy: reviewerId
         },
         include: {
           employee: true,
@@ -414,7 +429,6 @@ export const approveMaterialRequest = async (req, res) => {
           }
         });
       } else if (request.type === 'PROJECT_MATERIAL') {
-        // 🔥 FIX: Check if ProjectMaterial already exists
         const existingProjectMaterial = await tx.projectMaterial.findUnique({
           where: {
             projectId_materialId: {
@@ -425,18 +439,15 @@ export const approveMaterialRequest = async (req, res) => {
         });
 
         if (existingProjectMaterial) {
-          // Update existing record - add to the assigned quantity
           await tx.projectMaterial.update({
             where: { id: existingProjectMaterial.id },
             data: {
               assigned: existingProjectMaterial.assigned + request.quantity,
-              status: 'ACTIVE', // Update status to ACTIVE if needed
+              status: 'ACTIVE',
               updatedAt: new Date()
             }
           });
-          console.log('✅ Updated existing ProjectMaterial with additional quantity');
         } else {
-          // Create new record
           await tx.projectMaterial.create({
             data: {
               projectId: request.projectId,
@@ -446,17 +457,19 @@ export const approveMaterialRequest = async (req, res) => {
               status: 'ACTIVE'
             }
           });
-          console.log('✅ Created new ProjectMaterial');
         }
       }
 
       return updatedRequest;
     });
 
+    // ✅ NOTIFY ENGINEER ONLY (not admin)
     await createNotification(
       request.employeeId,
       `Your request for "${request.name}" has been approved`,
-      'SUCCESS'
+      'SUCCESS',
+      'ENGINEER', // ✅ Only engineer sees this
+      request.id
     );
 
     console.log('✅ Request approved successfully');
@@ -481,10 +494,6 @@ export const rejectMaterialRequest = async (req, res) => {
     const { id } = req.params;
     const { rejectionReason } = req.body;
     
-    console.log('📝 Rejecting request ID:', id);
-    console.log('👤 Request user:', req.user);
-    
-    // ✅ FIX: Allow null for Admin users without engineer profile
     const reviewerId = req.user?.engineerId || null;
     const { companyId } = req.user;
 
@@ -501,8 +510,6 @@ export const rejectMaterialRequest = async (req, res) => {
         error: 'Rejection reason is required' 
       });
     }
-    
-    console.log('✅ Reviewer Engineer ID (null is OK for Admin):', reviewerId);
 
     const request = await prisma.materialRequest.findUnique({
       where: { id: parseInt(id) },
@@ -538,7 +545,7 @@ export const rejectMaterialRequest = async (req, res) => {
         status: 'REJECTED',
         reviewDate: new Date(),
         rejectionReason: rejectionReason.trim(),
-        reviewedBy: reviewerId // ✅ Can be null - schema allows it
+        reviewedBy: reviewerId
       },
       include: {
         employee: true,
@@ -548,10 +555,13 @@ export const rejectMaterialRequest = async (req, res) => {
       }
     });
 
+    // ✅ NOTIFY ENGINEER ONLY (not admin)
     await createNotification(
       request.employeeId,
       `Your request for "${request.name}" has been rejected: ${rejectionReason}`,
-      'ERROR'
+      'ERROR',
+      'ENGINEER', // ✅ Only engineer sees this
+      request.id
     );
 
     console.log('✅ Request rejected successfully');

@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2 } from 'lucide-react'
 import labourApi from '../../api/labourAPI'
 import Navbar from '../../components/common/Navbar'
 import SidePannel from '../../components/common/SidePannel'
 
 const API_URL = '/api/labours'
 
-const AdminLabourManagemet = () => {
+const AdminLabourManagement = () => {
   const [labourers, setLabourers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false)
   const [selectedLabour, setSelectedLabour] = useState(null)
-  const [expandedPayments, setExpandedPayments] = useState({})
   
   const [newLabour, setNewLabour] = useState({
     name: '',
@@ -132,6 +132,11 @@ const AdminLabourManagemet = () => {
     setShowPaymentModal(true)
   }
 
+  const openViewPaymentsModal = (labour) => {
+    setSelectedLabour(labour)
+    setShowViewPaymentsModal(true)
+  }
+
   const deleteLabour = async (id) => {
     if (window.confirm('Are you sure you want to delete this labourer? This will also delete all their payment records.')) {
       try {
@@ -145,13 +150,6 @@ const AdminLabourManagemet = () => {
         alert('Failed to delete labourer: ' + error.message)
       }
     }
-  }
-
-  const togglePaymentHistory = (labourId) => {
-    setExpandedPayments(prev => ({
-      ...prev,
-      [labourId]: !prev[labourId]
-    }))
   }
 
   const getPaymentCount = (labour) => {
@@ -185,7 +183,7 @@ const AdminLabourManagemet = () => {
             </div>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg transition font-medium cursor-pointer"
+              className="flex items-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg transition font-medium cursor-pointer hover:bg-[#e5ab26]"
             >
               <Plus size={20} />
               Add Labour
@@ -252,7 +250,7 @@ const AdminLabourManagemet = () => {
                   </button>
                   <button
                     onClick={handleAddLabour}
-                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg  transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
                   >
                     Add Labour
                   </button>
@@ -321,7 +319,7 @@ const AdminLabourManagemet = () => {
                   </button>
                   <button
                     onClick={handleUpdateLabour}
-                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg  transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
                   >
                     Update Labour
                   </button>
@@ -331,7 +329,7 @@ const AdminLabourManagemet = () => {
           </div>
         )}
 
-        {/* Payment Modal */}
+        {/* Add Payment Modal */}
         {showPaymentModal && selectedLabour && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
@@ -391,7 +389,7 @@ const AdminLabourManagemet = () => {
                   </button>
                   <button
                     onClick={handleAddPayment}
-                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg  transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
                   >
                     Add Payment
                   </button>
@@ -401,7 +399,97 @@ const AdminLabourManagemet = () => {
           </div>
         )}
 
-        {/* MINIMIZED Labour Cards */}
+        {/* View Payments Modal */}
+        {showViewPaymentsModal && selectedLabour && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Payment History</h2>
+                  <p className="text-sm text-gray-600 mt-1">{selectedLabour.name}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowViewPaymentsModal(false)
+                    setSelectedLabour(null)
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Total Amount Summary */}
+              <div className="bg-green-50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-600">Total Amount Paid</p>
+                <p className="text-3xl font-bold text-green-600 flex items-center gap-1">
+                  <IndianRupee size={24} />
+                  {selectedLabour.totalPaid?.toFixed(2) || '0.00'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {getPaymentCount(selectedLabour)} payment{getPaymentCount(selectedLabour) !== 1 ? 's' : ''}
+                </p>
+              </div>
+
+              {/* Payments List */}
+              <div className="flex-1 overflow-y-auto">
+                {!selectedLabour.payments || selectedLabour.payments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <IndianRupee className="mx-auto text-gray-300 mb-3" size={48} />
+                    <p className="text-gray-500">No payments recorded yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {selectedLabour.payments
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex justify-between items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="bg-yellow-100 p-2 rounded">
+                              <Calendar size={18} className="text-yellow-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {new Date(p.date).toLocaleDateString('en-IN', {
+                                  weekday: 'short',
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                              <IndianRupee size={18} />
+                              {p.amount.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    setShowViewPaymentsModal(false)
+                    setSelectedLabour(null)
+                  }}
+                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table View */}
         {labourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />
@@ -409,97 +497,105 @@ const AdminLabourManagemet = () => {
             <p className="text-gray-600 mb-6">Get started by adding your first labourer</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg  transition font-medium"
+              className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg hover:bg-[#e5ab26] transition font-medium"
             >
               <Plus size={20} />
               Add First Labour
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" style={{ gridAutoRows: 'auto' }}>
-            {labourers.map((labour) => (
-              <div key={labour.id} className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition self-start">
-                
-                {/* Name and Icons Row */}
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-bold text-gray-900">{labour.name}</h3>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => openEditForm(labour)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => deleteLabour(labour.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Phone Number */}
-                <p className="text-sm text-gray-600 flex items-center gap-1 mb-3">
-                  <Phone size={14} />
-                  {labour.phone}
-                </p>
-
-                {/* Total Paid */}
-                <div className="bg-green-50 rounded-lg p-3 mb-3">
-                  <p className="text-xs text-gray-600">Total Paid</p>
-                  <p className="text-xl font-bold text-green-600 flex items-center gap-1">
-                    <IndianRupee size={18} />
-                    {labour.totalPaid?.toFixed(2) || '0.00'}
-                  </p>
-                </div>
-
-                {/* Add Payment Button */}
-                <button
-                  onClick={() => openPaymentModal(labour)}
-                  className="w-full flex items-center justify-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg cursor-pointer transition font-medium mb-2"
-                >
-                  <Plus size={18} />
-                  Add Payment
-                </button>
-
-                {/* View Payment History Link */}
-                <button
-                  onClick={() => togglePaymentHistory(labour.id)}
-                  className="w-full flex items-center justify-center gap-1 text-yellow-600  text-sm font-medium"
-                >
-                  {expandedPayments[labour.id] ? (
-                    <>
-                      <ChevronUp size={16} />
-                      Hide Payment History
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown size={16} />
-                      View Payment History ({getPaymentCount(labour)})
-                    </>
-                  )}
-                </button>
-
-                {/* Collapsible Payment History */}
-                {expandedPayments[labour.id] && (
-                  <div className="mt-3 pt-3 border-t border-gray-200">
-                    {!labour.payments || labour.payments.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic text-center">No payments yet</p>
-                    ) : (
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {labour.payments.map((p) => (
-                          <div key={p.id} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                            <span className="text-gray-600">{new Date(p.date).toLocaleDateString()}</span>
-                            <span className="font-semibold text-gray-900">₹{p.amount.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-yellow-500 border-b border-black-100">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      S.No
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Phone Number
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Address
+                    </th>
+                    {/* <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Total Amount
+                    </th> */}
+                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {labourers.map((labour, index) => (
+                    <tr key={labour.id} className="hover:bg-gray-50 transition">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <User size={16} className="text-gray-400" />
+                          <span className="font-medium text-gray-900">{labour.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Phone size={16} className="text-gray-400" />
+                          <span className="text-sm text-gray-600">{labour.phone}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-600">
+                        <div className="flex items-start gap-2">
+                          <MapPin size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                          <span className="line-clamp-2">{labour.address || 'N/A'}</span>
+                        </div>
+                      </td>
+                      {/* <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <div className="inline-flex items-center gap-1 font-bold text-green-600 text-lg">
+                          <IndianRupee size={18} />
+                          {labour.totalPaid?.toFixed(2) || '0.00'}
+                        </div>
+                      </td> */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => openViewPaymentsModal(labour)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="View Payments"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          <button
+                            onClick={() => openPaymentModal(labour)}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
+                            title="Add Payment"
+                          >
+                            <Plus size={18} />
+                          </button>
+                          <button
+                            onClick={() => openEditForm(labour)}
+                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
+                            title="Edit"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => deleteLabour(labour.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -507,4 +603,4 @@ const AdminLabourManagemet = () => {
   )
 }
 
-export default AdminLabourManagemet
+export default AdminLabourManagement

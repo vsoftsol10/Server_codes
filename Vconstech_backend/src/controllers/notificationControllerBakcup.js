@@ -2,24 +2,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// ✅ Helper: normalize role checks (handles 'Admin', 'ADMIN', 'Site_Engineer', 'SITE_ENGINEER', 'ENGINEER')
-// Engineer JWT payload: { id: engineer.id (Int), role: 'Site_Engineer', type: 'engineer', companyId }
-// Admin JWT payload:    { userId: user.id (UUID), role: 'Admin', companyId }
-// So for engineers: req.user.id is the Engineer.id Int we need for Notification.engineerId
-const isAdmin = (role) => ['ADMIN', 'SUPERVISOR'].includes(role?.toUpperCase()?.trim());
-const isEngineer = (role) => ['ENGINEER', 'SITE_ENGINEER'].includes(role?.toUpperCase()?.trim());
-
 export const getNotifications = async (req, res) => {
   try {
-    // ✅ FIX: engineerId (Int) takes priority for engineers; userId is fallback
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
+    const userId = req.user?.id || req.user?.userId;
+    const userRole = req.user?.role; // Get user role from token
     
-    console.log('🔔 getNotifications called');
-    console.log('   Raw user from token:', req.user);
-    console.log('   Resolved userId:', userId);
-    console.log('   Role:', userRole);
-
     if (!userId) {
       return res.status(400).json({ 
         success: false,
@@ -29,40 +16,33 @@ export const getNotifications = async (req, res) => {
 
     const { unreadOnly } = req.query;
 
-    // ✅ FIX: Case-insensitive role check
+    // ✅ BUILD WHERE CLAUSE BASED ON ROLE
     let where = {};
     
-    if (isAdmin(userRole)) {
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
+      // Admins see notifications meant for them
       where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
+    } else if (userRole === 'ENGINEER' || userRole === 'SITE_ENGINEER') {
+      // Engineers see their own notifications
       where.engineerId = parseInt(userId);
       where.recipientRole = 'ENGINEER';
-    } else {
-      // Unknown role — return empty to avoid leaking data
-      console.warn('⚠️ Unknown role in getNotifications:', userRole);
-      return res.json({ 
-        success: true,
-        count: 0,
-        unreadCount: 0,
-        notifications: []
-      });
     }
 
     if (unreadOnly === 'true') {
       where.read = false;
     }
 
-    console.log('   Prisma where clause:', where);
-
     const notifications = await prisma.notification.findMany({
       where,
       orderBy: { date: 'desc' },
       take: 50,
       include: {
+        // ✅ Include engineer details for admin view
         engineer: {
           select: {
             id: true,
             name: true,
+            email: true
           }
         }
       }
@@ -71,9 +51,9 @@ export const getNotifications = async (req, res) => {
       return [];
     });
 
-    // ✅ FIX: Unread count uses same normalized role check
+    // ✅ COUNT UNREAD BASED ON ROLE
     let unreadWhere = { read: false };
-    if (isAdmin(userRole)) {
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
       unreadWhere.recipientRole = 'ADMIN';
     } else {
       unreadWhere.engineerId = parseInt(userId);
@@ -86,8 +66,6 @@ export const getNotifications = async (req, res) => {
       console.error('Prisma notification count error:', err);
       return 0;
     });
-
-    console.log(`   Found ${notifications.length} notifications, ${unreadCount} unread`);
 
     res.json({ 
       success: true,
@@ -108,7 +86,7 @@ export const getNotifications = async (req, res) => {
 export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
+    const userId = req.user?.id || req.user?.userId;
     const userRole = req.user?.role;
 
     if (!userId) {
@@ -129,10 +107,10 @@ export const markAsRead = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Case-insensitive permission check
+    // ✅ AUTHORIZATION: Check if user has permission to mark as read
     const hasPermission = 
-      (isAdmin(userRole) && notification.recipientRole === 'ADMIN') ||
-      (isEngineer(userRole) && notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
+      (userRole === 'ADMIN' && notification.recipientRole === 'ADMIN') ||
+      (notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
 
     if (!hasPermission) {
       return res.status(403).json({ 
@@ -163,7 +141,7 @@ export const markAsRead = async (req, res) => {
 
 export const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
+    const userId = req.user?.id || req.user?.userId;
     const userRole = req.user?.role;
 
     if (!userId) {
@@ -173,12 +151,12 @@ export const markAllAsRead = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Case-insensitive role check
+    // ✅ BUILD WHERE BASED ON ROLE
     let where = { read: false };
     
-    if (isAdmin(userRole)) {
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
       where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
+    } else {
       where.engineerId = parseInt(userId);
       where.recipientRole = 'ENGINEER';
     }
@@ -206,7 +184,7 @@ export const markAllAsRead = async (req, res) => {
 export const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
+    const userId = req.user?.id || req.user?.userId;
     const userRole = req.user?.role;
 
     if (!userId) {
@@ -227,10 +205,10 @@ export const deleteNotification = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Case-insensitive permission check
+    // ✅ AUTHORIZATION CHECK
     const hasPermission = 
-      (isAdmin(userRole) && notification.recipientRole === 'ADMIN') ||
-      (isEngineer(userRole) && notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
+      (userRole === 'ADMIN' && notification.recipientRole === 'ADMIN') ||
+      (notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
 
     if (!hasPermission) {
       return res.status(403).json({ 
@@ -259,7 +237,7 @@ export const deleteNotification = async (req, res) => {
 
 export const clearReadNotifications = async (req, res) => {
   try {
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
+    const userId = req.user?.id || req.user?.userId;
     const userRole = req.user?.role;
 
     if (!userId) {
@@ -269,12 +247,12 @@ export const clearReadNotifications = async (req, res) => {
       });
     }
 
-    // ✅ FIX: Case-insensitive role check
+    // ✅ BUILD WHERE BASED ON ROLE
     let where = { read: true };
     
-    if (isAdmin(userRole)) {
+    if (userRole === 'ADMIN' || userRole === 'SUPERVISOR') {
       where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
+    } else {
       where.engineerId = parseInt(userId);
       where.recipientRole = 'ENGINEER';
     }

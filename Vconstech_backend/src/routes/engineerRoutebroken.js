@@ -45,7 +45,7 @@ const upload = multer({
 });
 
 // ============================================
-// ENGINEER LOGIN ENDPOINT
+// ENGINEER LOGIN ENDPOINT (NEW)
 // ============================================
 router.post('/login', async (req, res) => {
   try {
@@ -53,6 +53,7 @@ router.post('/login', async (req, res) => {
 
     console.log('🔐 Engineer login attempt:', { username });
 
+    // Validation
     if (!username || !password) {
       return res.status(400).json({ 
         success: false,
@@ -60,14 +61,22 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Find engineer by username
     const engineer = await prisma.engineer.findFirst({
-      where: { username },
+      where: {
+        username: username
+      },
       include: {
         company: {
-          select: { id: true, name: true }
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     });
+
+    console.log('📋 Engineer found:', engineer ? 'Yes' : 'No');
 
     if (!engineer) {
       return res.status(401).json({ 
@@ -76,6 +85,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Check if engineer has credentials set
     if (!engineer.password) {
       return res.status(401).json({ 
         success: false,
@@ -83,7 +93,12 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    console.log('🔒 Password hash exists:', !!engineer.password);
+
+    // Verify password
     const isPasswordValid = await bcrypt.compare(password, engineer.password);
+
+    console.log('🔑 Password valid:', isPasswordValid);
 
     if (!isPasswordValid) {
       return res.status(401).json({ 
@@ -92,29 +107,15 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ✅ FIX: JWT payload now includes all fields that backend controllers expect.
-    //
-    // WHY THIS MATTERS FOR NOTIFICATIONS:
-    //   - Notification.engineerId is an Int (Engineer.id)
-    //   - notificationController reads: req.user?.engineerId || req.user?.id || req.user?.userId
-    //   - materialRequestController reads: req.user?.engineerId || req.user?.id || req.user?.userId
-    //   - Both resolve to engineer.id (Int) correctly via req.user.id OR req.user.engineerId
-    //
-    // WHY role: 'SITE_ENGINEER' (uppercase):
-    //   - notificationController uses isEngineer() which checks .toUpperCase()
-    //   - So 'Site_Engineer' would also work now, but UPPERCASE is the standard
-    //   - getMyRequests, my-projects etc. check: req.user.type !== 'engineer' || role !== 'Site_Engineer'
-    //   - type: 'engineer' handles those checks — role casing doesn't matter for them
+    // Generate JWT token with type: 'engineer'
     const token = jwt.sign(
       { 
-        id: engineer.id,           // ✅ Engineer.id (Int) — used by notification & request controllers
-        engineerId: engineer.id,   // ✅ Explicit alias — belt-and-suspenders for all controllers
-        userId: engineer.id,       // ✅ Alias — some controllers fall back to req.user.userId
+        id: engineer.id,
         username: engineer.username,
         name: engineer.name,
         companyId: engineer.companyId,
-        role: 'SITE_ENGINEER',     // ✅ UPPERCASE — matches isEngineer() check in notificationController
-        type: 'engineer'           // ✅ Kept — used by my-projects and my-profile guards
+        role: 'Site_Engineer',
+        type: 'engineer'  // ✅ CRITICAL: This tells middleware it's an engineer
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
@@ -122,6 +123,7 @@ router.post('/login', async (req, res) => {
 
     console.log('✅ Token generated for engineer:', engineer.name);
 
+    // Return success response
     res.json({
       success: true,
       message: 'Login successful',
@@ -151,7 +153,8 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
   try {
     console.log('🔍 Fetching projects for engineer:', req.user);
 
-    if (req.user.type !== 'engineer' && req.user.role !== 'SITE_ENGINEER') {
+    // Check if the user is an engineer
+    if (req.user.type !== 'engineer' && req.user.role !== 'Site_Engineer') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied. This endpoint is for engineers only.' 
@@ -161,20 +164,33 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
     const engineerId = req.user.id;
     const companyId = req.user.companyId;
 
+    console.log('Engineer ID:', engineerId);
+    console.log('Company ID:', companyId);
+
+    // Try different possible schema structures
     let projects = [];
     
     try {
+      // Attempt 1: Many-to-many relationship with 'engineers' field
       projects = await prisma.project.findMany({
         where: {
           companyId: companyId,
           engineers: {
-            some: { id: engineerId }
+            some: {
+              id: engineerId
+            }
           }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: {
+          createdAt: 'desc'
+        }
       });
+      console.log('✅ Method 1 worked: Found projects via engineers relation');
     } catch (error1) {
+      console.log('⚠️ Method 1 failed, trying alternative...');
+      
       try {
+        // Attempt 2: Direct field like 'engineerId' or 'assignedEngineerId'
         projects = await prisma.project.findMany({
           where: {
             companyId: companyId,
@@ -184,24 +200,37 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
               { assignedToId: engineerId }
             ]
           },
-          orderBy: { createdAt: 'desc' }
+          orderBy: {
+            createdAt: 'desc'
+          }
         });
+        console.log('✅ Method 2 worked: Found projects via direct field');
       } catch (error2) {
+        console.log('⚠️ Method 2 failed, trying join table...');
+        
+        // Attempt 3: Through a join table
         const engineerWithProjects = await prisma.engineer.findUnique({
           where: { id: engineerId },
           include: {
             projects: {
-              where: { companyId: companyId },
-              orderBy: { createdAt: 'desc' }
+              where: {
+                companyId: companyId
+              },
+              orderBy: {
+                createdAt: 'desc'
+              }
             }
           }
         });
         
         if (engineerWithProjects) {
           projects = engineerWithProjects.projects || [];
+          console.log('✅ Method 3 worked: Found projects via engineer relation');
         }
       }
     }
+
+    console.log(`✅ Found ${projects.length} projects for engineer ${req.user.name}`);
 
     res.json({ 
       success: true,
@@ -212,6 +241,9 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error fetching engineer projects:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch assigned projects',
@@ -223,7 +255,8 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
 // Get engineer's own profile
 router.get('/my-profile', authenticateToken, async (req, res) => {
   try {
-    if (req.user.type !== 'engineer' && req.user.role !== 'SITE_ENGINEER') {
+    // Check if the user is an engineer
+    if (req.user.type !== 'engineer' && req.user.role !== 'Site_Engineer') {
       return res.status(403).json({ 
         success: false,
         error: 'Access denied. This endpoint is for engineers only.' 
@@ -243,7 +276,10 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
         username: true,
         createdAt: true,
         company: {
-          select: { id: true, name: true }
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     });
@@ -255,7 +291,10 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({ success: true, engineer });
+    res.json({ 
+      success: true,
+      engineer 
+    });
 
   } catch (error) {
     console.error('Error fetching engineer profile:', error);
@@ -269,6 +308,7 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
 // ============================================
 // ADMIN ROUTES (Protected)
 // ============================================
+// Add this to auth.routes.js
 
 router.get('/me', authenticateToken, async (req, res) => {
   try {
@@ -290,13 +330,22 @@ router.get('/me', authenticateToken, async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ success: true, error: 'User not found' });
+      return res.status(404).json({
+        success: true,
+        error: 'User not found'
+      });
     }
 
-    res.json({ success: true, user });
+    res.json({
+      success: true,
+      user
+    });
   } catch (error) {
     console.error('Error fetching user:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch user data' });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch user data'
+    });
   }
 });
 
@@ -304,8 +353,12 @@ router.get('/me', authenticateToken, async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const engineers = await prisma.engineer.findMany({
-      where: { companyId: req.user.companyId },
-      orderBy: { createdAt: 'desc' },
+      where: {
+        companyId: req.user.companyId
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
       select: {
         id: true,
         name: true,
@@ -315,17 +368,27 @@ router.get('/', authenticateToken, async (req, res) => {
         address: true,
         profileImage: true,
         username: true,
-        plainPassword: true,
+        plainPassword: true,// Don't send password hash to frontend
         createdAt: true,
         updatedAt: true,
-        _count: { select: { projects: true } }
+        _count: {
+          select: {
+            projects: true
+          }
+        }
       }
     });
 
-    res.json({ success: true, engineers });
+    res.json({ 
+      success: true,
+      engineers 
+    });
   } catch (error) {
     console.error('Error fetching engineers:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch engineers' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch engineers' 
+    });
   }
 });
 
@@ -348,7 +411,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         address: true,
         profileImage: true,
         username: true,
-        plainPassword: true,
+        plainPassword: true,  // ✅ EXPLICITLY SELECT THIS
         createdAt: true,
         updatedAt: true,
         projects: {
@@ -363,13 +426,30 @@ router.get('/:id', authenticateToken, async (req, res) => {
     });
 
     if (!engineer) {
-      return res.status(404).json({ success: false, error: 'Engineer not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Engineer not found' 
+      });
     }
 
-    res.json({ success: true, engineer });
+    // ✅ DEBUG: Log what we're returning
+    console.log('=== GET ENGINEER DEBUG ===');
+    console.log('Engineer ID:', engineer.id);
+    console.log('Engineer Name:', engineer.name);
+    console.log('Has plainPassword:', !!engineer.plainPassword);
+    console.log('plainPassword value:', engineer.plainPassword ? '***EXISTS***' : 'NULL/UNDEFINED');
+    console.log('========================');
+
+    res.json({ 
+      success: true,
+      engineer 
+    });
   } catch (error) {
     console.error('Error fetching engineer:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch engineer' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to fetch engineer' 
+    });
   }
 });
 
@@ -378,15 +458,35 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
   try {
     const { name, phone, alternatePhone, empId, address, username, password } = req.body;
 
+    console.log('=== CREATE ENGINEER REQUEST ===');
+    console.log('Headers:', {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'Bearer ***' : 'MISSING'
+    });
+    console.log('Body fields:', Object.keys(req.body));
+    console.log('Body values:', {
+      name: name || 'MISSING',
+      phone: phone || 'MISSING',
+      alternatePhone: alternatePhone || 'empty',
+      empId: empId || 'MISSING',
+      address: address || 'MISSING',
+      username: username || 'MISSING',
+      password: password ? '***' : 'MISSING',
+      hasFile: !!req.file
+    });
+    console.log('================================');
+
+
     const missingFields = [];
-    if (!name?.trim()) missingFields.push('name');
-    if (!phone?.trim()) missingFields.push('phone');
-    if (!empId?.trim()) missingFields.push('empId');
-    if (!address?.trim()) missingFields.push('address');
-    if (!username?.trim()) missingFields.push('username');
+    if (!name || !name.trim()) missingFields.push('name');
+    if (!phone || !phone.trim()) missingFields.push('phone');
+    if (!empId || !empId.trim()) missingFields.push('empId');
+    if (!address || !address.trim()) missingFields.push('address');
+    if (!username || !username.trim()) missingFields.push('username');
     if (!password) missingFields.push('password');
 
     if (missingFields.length > 0) {
+      console.log('Missing fields:', missingFields);
       return res.status(400).json({ 
         success: false,
         error: `Missing required fields: ${missingFields.join(', ')}`,
@@ -394,60 +494,126 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
       });
     }
 
+    // Validation
+    if (!name || !phone || !empId || !address || !username || !password) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name, phone, employee ID, address, username, and password are required' 
+      });
+    }
+
+    // Validate phone number format
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phone)) {
-      return res.status(400).json({ success: false, error: 'Phone number must be 10 digits' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Phone number must be 10 digits' 
+      });
     }
 
+    // Validate alternate phone if provided
     if (alternatePhone && !phoneRegex.test(alternatePhone)) {
-      return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Alternate phone number must be 10 digits' 
+      });
     }
 
+    // Check if employee ID already exists in company
     const existingEngineer = await prisma.engineer.findFirst({
-      where: { empId, companyId: req.user.companyId }
+      where: {
+        empId: empId,
+        companyId: req.user.companyId
+      }
     });
 
     if (existingEngineer) {
-      return res.status(400).json({ success: false, error: 'Employee ID already exists' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Employee ID already exists' 
+      });
     }
 
+    // Validate username if provided
     if (username) {
+      // Validate username
       if (username.length < 4) {
-        return res.status(400).json({ success: false, error: 'Username must be at least 4 characters' });
-      }
-      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-        return res.status(400).json({ success: false, error: 'Username can only contain letters, numbers, and underscores' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username must be at least 4 characters' 
+        });
       }
 
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username can only contain letters, numbers, and underscores' 
+        });
+      }
+
+      // Check if username already exists in company
       const existingUsername = await prisma.engineer.findFirst({
-        where: { username, companyId: req.user.companyId }
+        where: {
+          username: username,
+          companyId: req.user.companyId
+        }
       });
+
       if (existingUsername) {
-        return res.status(400).json({ success: false, error: 'Username already exists in your company' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username already exists in your company' 
+        });
+      }
+
+      // If username is provided, password must be provided
+      if (!password) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Password is required when username is provided' 
+        });
       }
 
       if (password.length < 6) {
-        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Password must be at least 6 characters' 
+        });
       }
     }
 
-    const admin = await prisma.user.findUnique({
+     const admin = await prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { companyId: true, package: true, customMembers: true }
+      select: {
+        companyId: true,
+        package: true,
+        customMembers: true
+      }
     });
 
+    // Determine the member limit based on package
     let memberLimit;
-    if (admin.package === 'Classic') memberLimit = 5;
-    else if (admin.package === 'Pro') memberLimit = 10;
-    else if (admin.package === 'Premium') memberLimit = admin.customMembers;
-    else {
-      return res.status(400).json({ success: false, error: 'Invalid package configuration. Please contact support.' });
+    if (admin.package === 'Classic') {
+      memberLimit = 5;
+    } else if (admin.package === 'Pro') {
+      memberLimit = 10;
+    } else if (admin.package === 'Premium') {
+      memberLimit = admin.customMembers;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid package configuration. Please contact support.'
+      });
     }
 
+    // Count existing engineers in the company
     const existingEngineersCount = await prisma.engineer.count({
-      where: { companyId: req.user.companyId }
+      where: {
+        companyId: req.user.companyId
+      }
     });
 
+    // Check if limit is reached
     if (existingEngineersCount >= memberLimit) {
       return res.status(400).json({
         success: false,
@@ -455,38 +621,65 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
       });
     }
 
+    console.log(`✅ Package check passed: ${existingEngineersCount}/${memberLimit} engineers`);
+    // ✅ END OF NEW SECTION
+
+    // Hash password if provided
     let hashedPassword = null;
     if (password && username) {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    // Get profile image path if uploaded
     const profileImagePath = req.file ? `/uploads/engineers/${req.file.filename}` : null;
 
+    // Create engineer
     const engineer = await prisma.engineer.create({
       data: {
-        name, empId, phone,
+        name,
+        empId,
+        phone,
         alternatePhone: alternatePhone || null,
         address,
         profileImage: profileImagePath,
-        username,
+        username: username,
         password: hashedPassword,
-        plainPassword: password,
+        plainPassword: password,  // ✅ STORE PLAIN PASSWORD
         companyId: req.user.companyId
       },
       select: {
-        id: true, name: true, empId: true, phone: true,
-        alternatePhone: true, address: true, profileImage: true,
-        username: true, createdAt: true, updatedAt: true
+        id: true,
+        name: true,
+        empId: true,
+        phone: true,
+        alternatePhone: true,
+        address: true,
+        profileImage: true,
+        username: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
-    res.status(201).json({ success: true, message: 'Engineer added successfully', engineer });
+    res.status(201).json({ 
+      success: true,
+      message: 'Engineer added successfully',
+      engineer 
+    });
   } catch (error) {
     console.error('Error creating engineer:', error);
+    
+    // Delete uploaded file if there was an error
     if (req.file) {
-      fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error deleting file:', err);
+      });
     }
-    res.status(500).json({ success: false, error: 'Failed to create engineer' });
+
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create engineer' 
+    });
   }
 });
 
@@ -496,96 +689,175 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
     const { id } = req.params;
     const { name, phone, alternatePhone, empId, address, username, password } = req.body;
 
+    // Check if engineer exists and belongs to user's company
     const existingEngineer = await prisma.engineer.findFirst({
-      where: { id: parseInt(id), companyId: req.user.companyId }
+      where: {
+        id: parseInt(id),
+        companyId: req.user.companyId
+      }
     });
 
     if (!existingEngineer) {
-      return res.status(404).json({ success: false, error: 'Engineer not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Engineer not found' 
+      });
     }
 
+    // Validation
     if (!name || !phone || !empId || !address) {
-      return res.status(400).json({ success: false, error: 'Name, phone, employee ID, and address are required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Name, phone, employee ID, and address are required' 
+      });
     }
 
+    // Validate phone number format
     const phoneRegex = /^\d{10}$/;
     if (!phoneRegex.test(phone)) {
-      return res.status(400).json({ success: false, error: 'Phone number must be 10 digits' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Phone number must be 10 digits' 
+      });
     }
 
+    // Validate alternate phone if provided
     if (alternatePhone && !phoneRegex.test(alternatePhone)) {
-      return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Alternate phone number must be 10 digits' 
+      });
     }
 
+    // Check if employee ID already exists (excluding current engineer)
     const duplicateEngineer = await prisma.engineer.findFirst({
-      where: { empId, companyId: req.user.companyId, NOT: { id: parseInt(id) } }
+      where: {
+        empId: empId,
+        companyId: req.user.companyId,
+        NOT: {
+          id: parseInt(id)
+        }
+      }
     });
 
     if (duplicateEngineer) {
-      return res.status(400).json({ success: false, error: 'Employee ID already exists' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Employee ID already exists' 
+      });
     }
 
+    // Validate username if provided
     if (username) {
       if (username.length < 4) {
-        return res.status(400).json({ success: false, error: 'Username must be at least 4 characters' });
-      }
-      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-        return res.status(400).json({ success: false, error: 'Username can only contain letters, numbers, and underscores' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username must be at least 4 characters' 
+        });
       }
 
+      if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username can only contain letters, numbers, and underscores' 
+        });
+      }
+
+      // Check if username already exists (excluding current engineer)
       const duplicateUsername = await prisma.engineer.findFirst({
-        where: { username, companyId: req.user.companyId, NOT: { id: parseInt(id) } }
+        where: {
+          username: username,
+          companyId: req.user.companyId,
+          NOT: {
+            id: parseInt(id)
+          }
+        }
       });
+
       if (duplicateUsername) {
-        return res.status(400).json({ success: false, error: 'Username already exists in your company' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Username already exists in your company' 
+        });
       }
     }
 
-    let hashedPassword = existingEngineer.password;
-    let plainPasswordToStore = existingEngineer.plainPassword;
+    // Hash password if new password provided
+    let hashedPassword = existingEngineer.password; // Keep existing password
+    let plainPasswordToStore = existingEngineer.plainPassword; // Keep existing plain password
     
     if (password) {
       if (password.length < 6) {
-        return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+        return res.status(400).json({ 
+          success: false,
+          error: 'Password must be at least 6 characters' 
+        });
       }
       hashedPassword = await bcrypt.hash(password, 10);
-      plainPasswordToStore = password;
+      plainPasswordToStore = password;  // ✅ UPDATE PLAIN PASSWORD
     }
 
+    // Get profile image path if uploaded
     let profileImagePath = existingEngineer.profileImage;
     if (req.file) {
+      // Delete old image if exists
       if (existingEngineer.profileImage) {
         const oldImagePath = path.join(process.cwd(), existingEngineer.profileImage);
-        if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
       }
       profileImagePath = `/uploads/engineers/${req.file.filename}`;
     }
 
+    // Update engineer
     const engineer = await prisma.engineer.update({
       where: { id: parseInt(id) },
       data: {
-        name, empId, phone,
+        name,
+        empId,
+        phone,
         alternatePhone: alternatePhone || null,
         address,
         profileImage: profileImagePath,
         username: username || null,
         password: hashedPassword,
-        plainPassword: plainPasswordToStore
+        plainPassword: plainPasswordToStore  // ✅ UPDATE PLAIN PASSWORD
       },
       select: {
-        id: true, name: true, empId: true, phone: true,
-        alternatePhone: true, address: true, profileImage: true,
-        username: true, plainPassword: true, createdAt: true, updatedAt: true
+        id: true,
+        name: true,
+        empId: true,
+        phone: true,
+        alternatePhone: true,
+        address: true,
+        profileImage: true,
+        username: true,
+        plainPassword: true,  // ✅ RETURN PLAIN PASSWORD
+        createdAt: true,
+        updatedAt: true
       }
     });
 
-    res.json({ success: true, message: 'Engineer updated successfully', engineer });
+    res.json({ 
+      success: true,
+      message: 'Engineer updated successfully',
+      engineer 
+    });
   } catch (error) {
     console.error('Error updating engineer:', error);
+    
+    // Delete uploaded file if there was an error
     if (req.file) {
-      fs.unlink(req.file.path, (err) => { if (err) console.error('Error deleting file:', err); });
+      fs.unlink(req.file.path, (err) => {
+        if (err) console.error('Error deleting file:', err);
+      });
     }
-    res.status(500).json({ success: false, error: 'Failed to update engineer' });
+
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update engineer' 
+    });
   }
 });
 
@@ -594,25 +866,44 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Check if engineer exists and belongs to user's company
     const engineer = await prisma.engineer.findFirst({
-      where: { id: parseInt(id), companyId: req.user.companyId }
+      where: {
+        id: parseInt(id),
+        companyId: req.user.companyId
+      }
     });
 
     if (!engineer) {
-      return res.status(404).json({ success: false, error: 'Engineer not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Engineer not found' 
+      });
     }
 
+    // Delete profile image if exists
     if (engineer.profileImage) {
       const imagePath = path.join(process.cwd(), engineer.profileImage);
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
     }
 
-    await prisma.engineer.delete({ where: { id: parseInt(id) } });
+    // Delete engineer
+    await prisma.engineer.delete({
+      where: { id: parseInt(id) }
+    });
 
-    res.json({ success: true, message: 'Engineer deleted successfully' });
+    res.json({ 
+      success: true,
+      message: 'Engineer deleted successfully' 
+    });
   } catch (error) {
     console.error('Error deleting engineer:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete engineer' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to delete engineer' 
+    });
   }
 });
 

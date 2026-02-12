@@ -17,8 +17,8 @@ import LabourManagement from "./pages/Employee/LabourManagement";
 import AdminLabourManagemet from "./pages/Interiors/AdminLabourManagemet";
 import CreateUser from "./pages/SuperAdmin/CreateUser";
 import SuperLogin from "./pages/SuperAdmin/Superlogin";
-import Billing from '/src/pages/Interiors/Billing.jsx';
-import Profile from "./pages/Interiors/Profile";
+import Billing from "./pages/Interiors/Billing";
+// import Billing from './pages/Interiors/Billing';
 
 function App() {
 
@@ -31,7 +31,6 @@ function App() {
       <Route path="/contract" element={<ContractManagement/>} />
       <Route path="/financial" element={<FinancialManagement/>} />
       <Route path="/file-managememt" element={<FileManagement/>} />
-      <Route path="/profile" element={<Profile/>} />
       <Route path="/financial-management/billing" element={<Billing />} />
       <Route path="/financial-management" element={<FinancialManagement/>} />
       <Route path="/labor-managememt" element={<AdminLabourManagemet/>} />

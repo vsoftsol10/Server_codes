@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export const createBill = async (req, res) => {
   try {
     const {
+      billType,
       billNumber,
       billDate,
       dueDate,
@@ -37,13 +38,13 @@ export const createBill = async (req, res) => {
       previousBills,
       remarks,
       termsAndConditions,
+      status,
     } = req.body;
 
     const companyId = req.user.companyId;
     const createdBy = req.user.userId;
 
-    console.log('User object:', req.user);
-    console.log('Created by:', createdBy);
+    console.log('Creating bill:', { billNumber, billType, status });
 
     // Validate required fields
     if (!billNumber || !billDate || !clientName || !projectName) {
@@ -90,90 +91,78 @@ export const createBill = async (req, res) => {
     const retentionAmount = (totalWithTax * parseFloat(retention || 0)) / 100;
     
     const netPayable = totalWithTax - tdsAmount - retentionAmount - 
-      parseFloat(advancePaid || 0) - parseFloat(previousBills || 0);
+      parseFloat(advancePaid || 0) + parseFloat(previousBills || 0);
 
     const billData = {
       billId: billNumber,
+      billType: billType || 'invoice',
       billDate: new Date(billDate),
       dueDate: dueDate ? new Date(dueDate) : null,
       
-      // Company info
       companyName,
       companyAddress,
       companyGST,
       companyPhone,
       companyEmail,
       
-      // Client info
       clientName,
       clientAddress,
       clientGST,
       clientPhone,
       clientEmail,
       
-      // Project info
       projectId: projectId ? parseInt(projectId) : null,
       projectName,
       projectLocation,
       workOrderNo,
       
-      // Additional charges
       labourCharges: parseFloat(labourCharges || 0),
       transportCharges: parseFloat(transportCharges || 0),
       otherCharges: parseFloat(otherCharges || 0),
       otherChargesDescription,
       
-      // Tax percentages
       cgstPercent: parseFloat(cgst || 0),
       sgstPercent: parseFloat(sgst || 0),
       igstPercent: parseFloat(igst || 0),
       tdsPercent: parseFloat(tds || 0),
       retentionPercent: parseFloat(retention || 0),
       
-      // Calculated amounts
       cgstAmount,
       sgstAmount,
       igstAmount,
       tdsAmount,
       retentionAmount,
       
-      // Payment info
       advancePaid: parseFloat(advancePaid || 0),
       previousBills: parseFloat(previousBills || 0),
       
-      // Totals
       subtotal,
       grossAmount,
       totalWithTax,
       netPayable,
       
-      // Additional info
       remarks,
       termsAndConditions,
       
-      // Metadata
       companyId,
-      status: 'DRAFT',
+      status: status || 'open',
       createdBy: createdBy,
-      updatedAt: new Date(),
 
-      // Create bill items
       BillItem: {
         create: items
           .filter(item => item.description && item.description.trim() !== '')
           .map((item, index) => ({
             sno: item.sno || index + 1,
             description: item.description,
-            unit: item.unit,
+            HSN: item.HSN || "",
+            unit: item.unit || "Nos",
             quantity: parseFloat(item.quantity || 0),
             rate: parseFloat(item.rate || 0),
             amount: parseFloat(item.amount || 0),
-            updatedAt: new Date(),
           })),
       },
     };
 
-    // Create bill with items
     const bill = await prisma.bill.create({
       data: billData,
       include: {
@@ -217,19 +206,11 @@ export const getAllBills = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // ✅ FIXED: Changed lowercase 'project' and 'creator' to their correct Prisma relation names
     const [bills, total] = await Promise.all([
       prisma.bill.findMany({
         where,
         include: {
-          BillItem: { orderBy: { sno: 'asc' } },
-          // ✅ Use the correct relation name from your Prisma schema
-          // Change 'project' to 'Project' if that's the relation name
-          // Change 'creator' to 'User' if that's the relation name
-          ...(projectId && {
-            Project: { select: { id: true, name: true, projectId: true } }
-          }),
-          User: { select: { id: true, name: true, email: true } }
+          BillItem: { orderBy: { sno: 'asc' } }
         },
         orderBy: { createdAt: 'desc' },
         take: parseInt(limit),
@@ -267,10 +248,7 @@ export const getBillById = async (req, res) => {
     const bill = await prisma.bill.findFirst({
       where: { id: parseInt(id), companyId },
       include: {
-        BillItem: { orderBy: { sno: 'asc' } },
-        // ✅ Use correct relation names
-        Project: true,
-        User: { select: { id: true, name: true, email: true } }
+        BillItem: { orderBy: { sno: 'asc' } }
       }
     });
 
@@ -298,8 +276,7 @@ export const getBillsByProject = async (req, res) => {
     const bills = await prisma.bill.findMany({
       where: { projectId: parseInt(projectId), companyId },
       include: {
-        BillItem: { orderBy: { sno: 'asc' } },
-        User: { select: { id: true, name: true, email: true } }
+        BillItem: { orderBy: { sno: 'asc' } }
       },
       orderBy: { billDate: 'desc' }
     });
@@ -307,9 +284,9 @@ export const getBillsByProject = async (req, res) => {
     const summary = {
       totalBills: bills.length,
       totalBilled: bills.reduce((sum, bill) => sum + bill.netPayable, 0),
-      paidBills: bills.filter(b => b.status === 'PAID').length,
-      pendingBills: bills.filter(b => b.status === 'SENT' || b.status === 'DRAFT').length,
-      overdueBills: bills.filter(b => b.status === 'OVERDUE').length,
+      paidBills: bills.filter(b => b.status === 'paid').length,
+      pendingBills: bills.filter(b => b.status === 'sent' || b.status === 'open').length,
+      overdueBills: bills.filter(b => b.status === 'overdue').length,
     };
 
     res.json({ success: true, bills, summary });
@@ -330,9 +307,9 @@ export const updateBillStatus = async (req, res) => {
     const { status } = req.body;
     const companyId = req.user.companyId;
 
-    const validStatuses = ['DRAFT', 'SENT', 'PAID', 'PARTIALLY_PAID', 'OVERDUE', 'CANCELLED'];
+    const validStatuses = ['draft', 'open', 'sent', 'paid', 'overdue'];
     
-    if (!validStatuses.includes(status)) {
+    if (!validStatuses.includes(status.toLowerCase())) {
       return res.status(400).json({
         success: false,
         error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
@@ -341,7 +318,7 @@ export const updateBillStatus = async (req, res) => {
 
     const bill = await prisma.bill.updateMany({
       where: { id: parseInt(id), companyId },
-      data: { status, updatedAt: new Date() }
+      data: { status: status.toLowerCase() }
     });
 
     if (bill.count === 0) {
@@ -365,7 +342,42 @@ export const updateBill = async (req, res) => {
     const { id } = req.params;
     const companyId = req.user.companyId;
     
-    // Check if bill exists
+    const {
+      billType,
+      billNumber,
+      billDate,
+      dueDate,
+      companyName,
+      companyAddress,
+      companyGST,
+      companyPhone,
+      companyEmail,
+      clientName,
+      clientAddress,
+      clientGST,
+      clientPhone,
+      clientEmail,
+      projectName,
+      projectLocation,
+      workOrderNo,
+      projectId,
+      items,
+      labourCharges,
+      transportCharges,
+      otherCharges,
+      otherChargesDescription,
+      cgst,
+      sgst,
+      igst,
+      tds,
+      retention,
+      advancePaid,
+      previousBills,
+      remarks,
+      termsAndConditions,
+      status,
+    } = req.body;
+    
     const existingBill = await prisma.bill.findFirst({
       where: { id: parseInt(id), companyId }
     });
@@ -374,8 +386,111 @@ export const updateBill = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Bill not found' });
     }
 
-    // Update logic here (simplified for now)
-    res.json({ success: true, message: 'Update endpoint ready' });
+    // Calculate totals
+    const subtotal = items.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    
+    const grossAmount = subtotal + 
+      parseFloat(labourCharges || 0) + 
+      parseFloat(transportCharges || 0) + 
+      parseFloat(otherCharges || 0);
+    
+    const cgstAmount = (grossAmount * parseFloat(cgst || 0)) / 100;
+    const sgstAmount = (grossAmount * parseFloat(sgst || 0)) / 100;
+    const igstAmount = (grossAmount * parseFloat(igst || 0)) / 100;
+    
+    const totalWithTax = grossAmount + cgstAmount + sgstAmount + igstAmount;
+    
+    const tdsAmount = (totalWithTax * parseFloat(tds || 0)) / 100;
+    const retentionAmount = (totalWithTax * parseFloat(retention || 0)) / 100;
+    
+    const netPayable = totalWithTax - tdsAmount - retentionAmount - 
+      parseFloat(advancePaid || 0) + parseFloat(previousBills || 0);
+
+    // Delete existing items
+    await prisma.billItem.deleteMany({
+      where: { billId: parseInt(id) }
+    });
+
+    // Update bill
+    const updatedBill = await prisma.bill.update({
+      where: { id: parseInt(id) },
+      data: {
+        billType: billType || existingBill.billType,
+        billDate: billDate ? new Date(billDate) : existingBill.billDate,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        
+        companyName,
+        companyAddress,
+        companyGST,
+        companyPhone,
+        companyEmail,
+        
+        clientName,
+        clientAddress,
+        clientGST,
+        clientPhone,
+        clientEmail,
+        
+        projectId: projectId ? parseInt(projectId) : null,
+        projectName,
+        projectLocation,
+        workOrderNo,
+        
+        labourCharges: parseFloat(labourCharges || 0),
+        transportCharges: parseFloat(transportCharges || 0),
+        otherCharges: parseFloat(otherCharges || 0),
+        otherChargesDescription,
+        
+        cgstPercent: parseFloat(cgst || 0),
+        sgstPercent: parseFloat(sgst || 0),
+        igstPercent: parseFloat(igst || 0),
+        tdsPercent: parseFloat(tds || 0),
+        retentionPercent: parseFloat(retention || 0),
+        
+        cgstAmount,
+        sgstAmount,
+        igstAmount,
+        tdsAmount,
+        retentionAmount,
+        
+        advancePaid: parseFloat(advancePaid || 0),
+        previousBills: parseFloat(previousBills || 0),
+        
+        subtotal,
+        grossAmount,
+        totalWithTax,
+        netPayable,
+        
+        remarks,
+        termsAndConditions,
+        status: status || existingBill.status,
+
+        BillItem: {
+          create: items
+            .filter(item => item.description && item.description.trim() !== '')
+            .map((item, index) => ({
+              sno: item.sno || index + 1,
+              description: item.description,
+              HSN: item.HSN || "",
+              unit: item.unit || "Nos",
+              quantity: parseFloat(item.quantity || 0),
+              rate: parseFloat(item.rate || 0),
+              amount: parseFloat(item.amount || 0),
+            })),
+        },
+      },
+      include: {
+        BillItem: {
+          orderBy: { sno: 'asc' }
+        },
+      },
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Bill updated successfully',
+      bill: updatedBill
+    });
   } catch (error) {
     console.error('Error updating bill:', error);
     res.status(500).json({ 

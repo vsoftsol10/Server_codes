@@ -103,21 +103,26 @@ export const useBillingActions = ({
   };
 
   // Handle item changes
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...formData.items];
-    updatedItems[index][field] = value;
-
-    if (field === "quantity" || field === "rate") {
-      updatedItems[index].amount =
-        parseFloat(updatedItems[index].quantity || 0) *
-        parseFloat(updatedItems[index].rate || 0);
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      items: updatedItems,
-    }));
+// Handle item changes
+const handleItemChange = (index, field, value) => {
+  const updatedItems = [...formData.items];
+  updatedItems[index] = {
+    ...updatedItems[index],
+    [field]: value
   };
+
+  // Calculate amount when quantity or rate changes
+  if (field === "quantity" || field === "rate") {
+    const qty = parseFloat(updatedItems[index].quantity) || 0;
+    const rate = parseFloat(updatedItems[index].rate) || 0;
+    updatedItems[index].amount = qty * rate;
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    items: updatedItems,
+  }));
+};
 
   // Add item
   const addItem = () => {

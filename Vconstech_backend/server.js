@@ -10,7 +10,7 @@ import authRoutes from './src/routes/authRoute.js';
 import projectRoutes from './src/routes/projectRoute.js';
 import engineerRoutes from './src/routes/engineerRoute.js';
 import userRoute from './src/routes/userRoute.js';
-
+import clientRoutes from './src/routes/ClientRoutes.js';
 //SuperAdmin Routes
 import superAdminRoutes from './src/routes/superadminRoute.js';
 
@@ -67,6 +67,7 @@ app.use('/api/daily-progress', dailyprogressRoutes);
 // app.use('/api/projects', projectRoutes);
 app.use('/api/engineers', engineerRoutes);
 app.use('/api/users', userRoute);
+app.use('/api/clients', clientRoutes);
 
 console.log('\n🔍 Checking /api/users routes:');
 if (userRoute && userRoute.stack) {

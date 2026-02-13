@@ -31,7 +31,7 @@ router.get('/project/:projectId', getBillsByProject);
 router.put('/:id', updateBill);
 
 // Update bill status only
-router.patch('/:id/status', updateBillStatus);
+router.patch('/:id', updateBillStatus);
 
 // Delete a bill
 router.delete('/:id', deleteBill);

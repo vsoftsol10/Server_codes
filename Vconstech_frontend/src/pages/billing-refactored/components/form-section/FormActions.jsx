@@ -21,12 +21,12 @@ const FormActions = ({
         Save {activeTab === 'invoice' ? 'Invoice' : 'Quotation'}
       </button>
 
-      <button
+     {/* <button
         onClick={handleSaveAsDraft}
         className="px-6 py-2 bg-gray-500 text-white font-bold text-xl rounded-lg hover:bg-gray-600 transition-all duration-200 shadow-lg hover:shadow-2xl transform hover:scale-105"
       >
         Save as Draft
-      </button>
+      </button>  */}
     </div>
   );
 };

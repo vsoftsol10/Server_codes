@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 // ========== CREATE CLIENT ==========
 export const createClient = async (req, res) => {
   try {
-    const { clientName, clientAddress, clientGST, clientPhone, clientEmail } = req.body;
+    const { clientName, companyName, clientAddress, clientGST, clientPhone, clientEmail } = req.body;
     const companyId = req.user.companyId;
 
     if (!clientName) {
@@ -19,6 +19,7 @@ export const createClient = async (req, res) => {
       data: {
         companyId,
         clientName,
+        companyName:companyName || "",
         clientAddress: clientAddress || "",
         clientGST: clientGST || "",
         clientPhone: clientPhone || "",

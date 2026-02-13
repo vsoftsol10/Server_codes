@@ -18,6 +18,7 @@ import AdminLabourManagemet from "./pages/Interiors/AdminLabourManagemet";
 import CreateUser from "./pages/SuperAdmin/CreateUser";
 import SuperLogin from "./pages/SuperAdmin/Superlogin";
 import Billing from "./pages/Interiors/Billing";
+import Profile from "./pages/Interiors/Profile";
 // import Billing from './pages/Interiors/Billing';
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
       <Route path="/employee/labour-management" element={<LabourManagement/>} />
       <Route path="/SuperAdmin/login" element={<SuperLogin/>} />
       <Route path="/SuperAdmin/CreateUser" element={<CreateUser/>} />
+      <Route path="/profile" element={<Profile/>} />
     </Routes>
   );
 }

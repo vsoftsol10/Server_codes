@@ -1,7 +1,5 @@
 import { printBill } from '../utils/printBill';
 
-
-
 export const useBillingActions = ({
   formData,
   setFormData,
@@ -19,7 +17,7 @@ export const useBillingActions = ({
   setNewClient,
   activeTab,
 }) => {
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   // Fetch bills
   const fetchBills = async () => {
@@ -48,7 +46,9 @@ export const useBillingActions = ({
   const fetchClients = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/clients`, {
+      const companyId = localStorage.getItem('companyId');
+      
+      const response = await fetch(`${API_URL}/clients?companyId=${companyId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -85,6 +85,7 @@ export const useBillingActions = ({
       setClientSuggestions(filtered);
       setShowClientSuggestions(true);
     } else {
+      setClientSuggestions([]);
       setShowClientSuggestions(false);
     }
   };
@@ -94,6 +95,7 @@ export const useBillingActions = ({
     setFormData(prev => ({
       ...prev,
       clientName: client.clientName,
+      companyName: client.companyName || '',
       clientAddress: client.clientAddress || '',
       clientGST: client.clientGST || '',
       clientPhone: client.clientPhone || '',
@@ -103,26 +105,25 @@ export const useBillingActions = ({
   };
 
   // Handle item changes
-// Handle item changes
-const handleItemChange = (index, field, value) => {
-  const updatedItems = [...formData.items];
-  updatedItems[index] = {
-    ...updatedItems[index],
-    [field]: value
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: value
+    };
+
+    // Calculate amount when quantity or rate changes
+    if (field === "quantity" || field === "rate") {
+      const qty = parseFloat(updatedItems[index].quantity) || 0;
+      const rate = parseFloat(updatedItems[index].rate) || 0;
+      updatedItems[index].amount = qty * rate;
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      items: updatedItems,
+    }));
   };
-
-  // Calculate amount when quantity or rate changes
-  if (field === "quantity" || field === "rate") {
-    const qty = parseFloat(updatedItems[index].quantity) || 0;
-    const rate = parseFloat(updatedItems[index].rate) || 0;
-    updatedItems[index].amount = qty * rate;
-  }
-
-  setFormData((prev) => ({
-    ...prev,
-    items: updatedItems,
-  }));
-};
 
   // Add item
   const addItem = () => {
@@ -217,7 +218,7 @@ const handleItemChange = (index, field, value) => {
       const token = localStorage.getItem('token');
       const billData = {
         ...formData,
-        status: isDraft ? 'draft' : formData.status
+        status: isDraft ? 'DRAFT' : 'SENT'
       };
 
       const response = await fetch(`${API_URL}/bills`, {
@@ -254,7 +255,7 @@ const handleItemChange = (index, field, value) => {
       const token = localStorage.getItem('token');
       const billData = {
         ...formData,
-        status: isDraft ? 'draft' : formData.status
+        status: isDraft ? 'DRAFT' : 'SENT'
       };
 
       const response = await fetch(`${API_URL}/bills/${editingBill._id || editingBill.id}`, {
@@ -325,7 +326,7 @@ const handleItemChange = (index, field, value) => {
       previousBills: 0,
       remarks: "",
       termsAndConditions: "",
-      status: "open",
+      status: "SENT",
     });
   };
 
@@ -373,17 +374,11 @@ const handleItemChange = (index, field, value) => {
       previousBills: bill.previousBills || 0,
       remarks: bill.remarks || "",
       termsAndConditions: bill.termsAndConditions || "",
-      status: bill.status || "open",
+      status: bill.status || "SENT",
     });
     
     setShowEditModal(true);
   };
-
-  // Print bill
-  // const handlePrintBill = (bill) => {
-  //   // Implementation remains the same as original
-  //   // ... (keeping the original print logic)
-  // };
 
   // Delete bill
   const handleDeleteBill = async (billId) => {
@@ -445,51 +440,61 @@ const handleItemChange = (index, field, value) => {
     }
   };
 
-  // Add client
-  const handleAddClient = async () => {
-    if (!newClient.clientName) {
-      alert('Please enter client name');
-      return;
-    }
+// Add client
+const handleAddClient = async () => {
+  if (!newClient.clientName || newClient.clientName.trim() === '') {
+    alert('Please enter client name');
+    return;
+  }
 
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/clients`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newClient)
+  try {
+    const token = localStorage.getItem('token');
+    const companyId = localStorage.getItem('companyId');
+    
+    const response = await fetch(`${API_URL}/clients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        ...newClient,
+        companyId
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Add to local clients list
+      setClients(prev => [...prev, data.client]);
+
+      // Reset new client form
+      setNewClient({
+        clientName: '',
+        companyName: '',
+        clientAddress: '',
+        clientGST: '',
+        clientPhone: '',
+        clientEmail: ''
       });
 
-      const data = await response.json();
+      // Close modal
+      setShowClientModal(false);
 
-      if (response.ok && data.success) {
-        alert('✅ Client added successfully!');
-        fetchClients();
-        setShowClientModal(false);
-        
-        setNewClient({
-          clientName: "",
-          clientAddress: "",
-          clientGST: "",
-          clientPhone: "",
-          clientEmail: "",
-        });
-      } else {
-        alert(`❌ Error: ${data.error || 'Failed to add client'}`);
-      }
-    } catch (error) {
-      console.error('Error adding client:', error);
-      alert('❌ Failed to add client. Please try again.');
+      alert('✅ Client added successfully! You can now select it from the dropdown.');
+    } else {
+      alert(`❌ Error: ${data.error || 'Failed to add client'}`);
     }
-  };
-
+  } catch (error) {
+    console.error('Error adding client:', error);
+    alert('❌ Failed to add client. Please try again.');
+  }
+};
 
   const handlePrintBill = (bill) => {
-  printBill(bill);
-};
+    printBill(bill);
+  };
 
   return {
     fetchBills,

@@ -3,9 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -441,6 +440,7 @@ model Client {
   clientEmail   String?  @db.VarChar(255)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
+  companyName   String?  @db.VarChar(255)
   company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId])

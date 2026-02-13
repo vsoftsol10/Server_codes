@@ -37,37 +37,37 @@ const InfoField = ({
       <div className="w-10 h-10 rounded-lg bg-[#ffbe2a] flex items-center justify-center">
         <Icon className="w-5 h-5 text-black" />
       </div>
-      {isEditing && editable ? (
-        field === "address" ? (
-          <textarea
-            value={editedUser[field] || ""}
-            onChange={(e) =>
-              setEditedUser({ ...editedUser, [field]: e.target.value })
-            }
-            className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-            rows={3}
-          />
-        ) : (
-          <input
-            type={
-              field === "email"
-                ? "email"
-                : field === "phoneNumber"
-                  ? "tel"
-                  : "text"
-            }
-            value={editedUser[field] || ""}
-            onChange={(e) =>
-              setEditedUser({ ...editedUser, [field]: e.target.value })
-            }
-            className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#ffbe2a] outline-none"
-          />
-        )
-      ) : (
-        <p className="flex-1 text-gray-900 font-medium">
-          {value || "Not provided"}
-        </p>
-      )}
+    {isEditing && editable ? (
+  field === "address" ? (
+    <textarea
+      value={editedUser[field] || ""}
+      onChange={(e) =>
+        setEditedUser({ ...editedUser, [field]: e.target.value })
+      }
+      className="flex-1 min-w-0 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#ffbe2a] outline-none text-sm"
+      rows={3}
+    />
+  ) : (
+    <input
+      type={
+        field === "email"
+          ? "email"
+          : field === "phoneNumber"
+            ? "tel"
+            : "text"
+      }
+      value={editedUser[field] || ""}
+      onChange={(e) =>
+        setEditedUser({ ...editedUser, [field]: e.target.value })
+      }
+      className="flex-1 min-w-0 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#ffbe2a] outline-none text-sm"
+    />
+  )
+) : (
+  <p className="flex-1 min-w-0 text-gray-900 font-medium break-words text-sm">
+    {value || "Not provided"}
+  </p>
+)}
     </div>
   </div>
 );
@@ -592,17 +592,18 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* ✅ NEW: Company Logo Section (Admin Only) */}
-              {userInfo.role === "Admin" && (
-                <div className="border-t border-gray-200 p-8">
-                  <h3 className="text-xl font-bold text-gray-900 mb-6">
-                    Company Logo
-                  </h3>
+            
+ {/* ✅ NEW: Company Logo Section (Admin Only) */}
+{userInfo.role === "Admin" && (
+  <div className="border-t border-gray-200 p-4 sm:p-6 lg:p-8">
+    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 sm:mb-6">
+      Company Logo
+    </h3>
 
-                  <div className="flex flex-col md:flex-row gap-6 items-start">
-                    {/* Current Logo Display */}
-                    <div className="flex-shrink-0">
-                      <div className="w-48 h-48 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
+    <div className="flex flex-col md:flex-row gap-4 sm:gap-6 items-start">
+      {/* Current Logo Display */}
+      <div className="flex-shrink-0 w-full md:w-auto">
+        <div className="w-full max-w-[200px] h-48 sm:w-48 sm:h-48 mx-auto md:mx-0 border-2 border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">
                         {logoPreview ? (
                           <img
                             src={logoPreview}
@@ -623,61 +624,59 @@ const Profile = () => {
                         )}
                       </div>
                     </div>
+{/* Upload Controls */}
+<div className="flex-1 w-full">
+  <div className="space-y-4">
+    <div>
+      <label className="block text-sm font-semibold text-gray-700 mb-2">
+        Upload New Logo
+      </label>
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleLogoChange}
+        className="block w-full text-xs sm:text-sm text-gray-500
+          file:mr-2 sm:file:mr-4 file:py-2 file:px-3 sm:file:px-4
+          file:rounded-lg file:border-0
+          file:text-xs sm:file:text-sm file:font-semibold
+          file:bg-[#ffbe2a] file:text-black
+          hover:file:bg-[#ffa500]
+          cursor-pointer"
+      />
+      <p className="mt-2 text-xs sm:text-sm text-gray-500">
+        Accepted formats: JPG, PNG, GIF, WebP (Max 5MB)
+      </p>
+    </div>
 
-                    {/* Upload Controls */}
-                    <div className="flex-1">
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Upload New Logo
-                          </label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleLogoChange}
-                            className="block w-full text-sm text-gray-500
-                              file:mr-4 file:py-2 file:px-4
-                              file:rounded-lg file:border-0
-                              file:text-sm file:font-semibold
-                              file:bg-[#ffbe2a] file:text-black
-                              hover:file:bg-[#ffa500]
-                              cursor-pointer"
-                          />
-                          <p className="mt-2 text-sm text-gray-500">
-                            Accepted formats: JPG, PNG, GIF, WebP (Max 5MB)
-                          </p>
-                        </div>
-
-                        {logoFile && (
-                          <div className="flex gap-3">
-                            <button
-                              onClick={handleLogoUpload}
-                              disabled={uploadingLogo}
-                              className="flex items-center gap-2 px-6 py-3 bg-[#ffbe2a] text-black font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50"
-                            >
-                              <Upload className="w-4 h-4" />
-                              {uploadingLogo ? "Uploading..." : "Upload Logo"}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setLogoFile(null);
-                                setLogoPreview(null);
-                              }}
-                              disabled={uploadingLogo}
-                              className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+    {logoFile && (
+      <div className="flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={handleLogoUpload}
+          disabled={uploadingLogo}
+          className="flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-[#ffbe2a] text-black font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 text-sm"
+        >
+          <Upload className="w-4 h-4" />
+          {uploadingLogo ? "Uploading..." : "Upload Logo"}
+        </button>
+        <button
+          onClick={() => {
+            setLogoFile(null);
+            setLogoPreview(null);
+          }}
+          disabled={uploadingLogo}
+          className="px-4 sm:px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all disabled:opacity-50 text-sm"
+        >
+          Cancel
+        </button>
+      </div>
+    )}
+  </div>
+</div>
                   </div>
                 </div>
               )}
-
-              {/* Security Section */}
-              <div className="border-t border-gray-200 p-8">
+{/* Security Section */}
+<div className="border-t border-gray-200 p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">

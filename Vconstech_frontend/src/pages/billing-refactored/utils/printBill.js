@@ -1,4 +1,4 @@
-// printBill.js - Utility for printing bills/invoices
+// printBill.js - Clean Version
 
 export const printBill = (bill) => {
   if (!bill) {
@@ -31,6 +31,21 @@ export const printBill = (bill) => {
   const dueDate = formatDate(bill.dueDate);
   const billType = bill.billType || 'invoice';
   const documentTitle = billType === 'quotation' ? 'QUOTATION' : 'TAX INVOICE';
+  
+  // Try multiple possible locations for the logo
+  const companyLogo = bill.company?.logo || 
+                      bill.companyLogo || 
+                      bill.user?.company?.logo || 
+                      null;
+  
+  // Get API base URL
+  let API_BASE_URL = 'http://localhost:5000';
+  
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
+    API_BASE_URL = import.meta.env.VITE_API_URL.replace('/api', '');
+  } else if (typeof process !== 'undefined' && process.env?.VITE_API_URL) {
+    API_BASE_URL = process.env.VITE_API_URL.replace('/api', '');
+  }
 
   // Calculate amounts
   const subtotal = items.reduce(
@@ -116,49 +131,68 @@ export const printBill = (bill) => {
         }
         
         .logo-section {
-          flex: 1;
+          flex: 0 0 auto;
         }
         
         .logo-placeholder {
           width: 120px;
           height: 120px;
-          border: 2px dashed #ccc;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #999;
-          font-size: 12px;
-          text-align: center;
-          padding: 10px;
-          background: #f9f9f9;
+          overflow: hidden;
+        }
+        
+        .logo-placeholder img {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
         }
         
         .header-center {
-          flex: 2;
+          flex: 1;
           text-align: center;
+          padding: 0 20px;
         }
         
-        .header h1 {
+        .header-center h1 {
           font-size: 32px;
           color: #333;
-          margin-bottom: 15px;
+          margin-bottom: 10px;
           letter-spacing: 2px;
+          font-weight: 700;
         }
         
-        .bill-info {
+        .header-right {
+          flex: 0 0 auto;
+          text-align: right;
+          min-width: 200px;
+        }
+        
+        .bill-details {
+          background: #f9f9f9;
+          padding: 15px;
+          border-left: 4px solid #ffbe2a;
+          border-radius: 4px;
+        }
+        
+        .bill-details p {
+          margin: 8px 0;
+          font-size: 13px;
+          color: #555;
           display: flex;
-          justify-content: space-around;
-          margin-top: 15px;
-          gap: 20px;
+          justify-content: space-between;
+          gap: 15px;
         }
         
-        .bill-info p {
-          font-size: 14px;
-          color: #666;
-        }
-        
-        .bill-info strong {
+        .bill-details strong {
           color: #333;
+          font-weight: 600;
+          min-width: 80px;
+        }
+        
+        .bill-details .value {
+          color: #000;
           font-weight: 600;
         }
         
@@ -310,7 +344,10 @@ export const printBill = (bill) => {
           font-size: 12px;
           color: #555;
           line-height: 1.6;
-          white-space: pre-line;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          word-break: break-word;
+          overflow-wrap: break-word;
         }
         
         .footer {
@@ -328,13 +365,12 @@ export const printBill = (bill) => {
           margin-bottom: 20px;
         }
         
-       .signature-box {
-       margin-top: 100px;
-  width: 250px;
-  margin-left: auto;   /* 🔥 This pushes it to right */
-  text-align: center;
-}
-
+        .signature-box {
+          margin-top: 100px;
+          width: 250px;
+          margin-left: auto;
+          text-align: center;
+        }
         
         .signature-line {
           border-top: 2px solid #333;
@@ -385,16 +421,33 @@ export const printBill = (bill) => {
         <div class="header">
           <div class="logo-section">
             <div class="logo-placeholder">
-              Company Logo
+              ${companyLogo ? 
+                `<img src="${API_BASE_URL}${companyLogo}" alt="Company Logo" />` : 
+                ''
+              }
             </div>
           </div>
           
           <div class="header-center">
             <h1>${documentTitle}</h1>
-            <div class="bill-info">
-              <p><strong>${billType === 'quotation' ? 'Quote' : 'Bill'} No:</strong> ${billNumber}</p>
-              <p><strong>Date:</strong> ${billDate}</p>
-              ${dueDate !== 'N/A' && billType === 'invoice' ? `<p><strong>Due Date:</strong> ${dueDate}</p>` : ''}
+          </div>
+          
+          <div class="header-right">
+            <div class="bill-details">
+              <p>
+                <strong>${billType === 'quotation' ? 'Quote No:' : 'Invoice No:'}</strong>
+                <span class="value">${billNumber}</span>
+              </p>
+              <p>
+                <strong>Date:</strong>
+                <span class="value">${billDate}</span>
+              </p>
+              ${billType === 'invoice' && dueDate !== 'N/A' ? `
+              <p>
+                <strong>Due Date:</strong>
+                <span class="value">${dueDate}</span>
+              </p>
+              ` : ''}
             </div>
           </div>
         </div>
@@ -431,21 +484,23 @@ export const printBill = (bill) => {
             <tr>
               <th style="width: 50px;">S.No</th>
               <th>Description of Work</th>
+              <th style="width: 80px;">HSN/SAC</th>
               <th style="width: 80px;">Unit</th>
-              <th style="width: 100px;">Quantity</th>
-              <th style="width: 120px;">Rate</th>
-              <th class="text-right" style="width: 130px;">Amount</th>
+              <th style="width: 80px;" class="text-right">Qty</th>
+              <th style="width: 100px;" class="text-right">Rate</th>
+              <th style="width: 120px;" class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${items.map((item, idx) => `
+            ${items.map((item, index) => `
               <tr>
-                <td class="text-center">${idx + 1}</td>
+                <td class="text-center">${index + 1}</td>
                 <td>${item.description || 'N/A'}</td>
+                <td class="text-center">${item.HSN || '-'}</td>
                 <td class="text-center">${item.unit || 'Nos'}</td>
-                <td class="text-center">${Number(item.quantity || 0).toFixed(2)}</td>
+                <td class="text-right">${Number(item.quantity || 0).toFixed(2)}</td>
                 <td class="text-right">₹ ${Number(item.rate || 0).toFixed(2)}</td>
-                <td class="text-right"><strong>₹ ${Number(item.amount || 0).toFixed(2)}</strong></td>
+                <td class="text-right">₹ ${Number(item.amount || 0).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -500,35 +555,50 @@ export const printBill = (bill) => {
             <td style="color: #fff;"><strong>Total with Tax</strong></td>
             <td style="color: #fff; text-align: right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
           </tr>
-          ${tdsPercent > 0 ? `
-            <tr style="color: #d32f2f;">
-              <td class="label">Less: TDS (${tdsPercent}%)</td>
-              <td class="value">- ₹ ${tds.toFixed(2)}</td>
+
+          ${billType === 'invoice' ? `
+            ${tdsPercent > 0 ? `
+              <tr style="color: #d32f2f;">
+                <td class="label">Less: TDS (${tdsPercent}%)</td>
+                <td class="value">- ₹ ${tds.toFixed(2)}</td>
+              </tr>
+            ` : ''}
+            ${retentionPercent > 0 ? `
+              <tr style="color: #d32f2f;">
+                <td class="label">Less: Retention (${retentionPercent}%)</td>
+                <td class="value">- ₹ ${retention.toFixed(2)}</td>
+              </tr>
+            ` : ''}
+            ${bill.advancePaid > 0 ? `
+              <tr style="color: #d32f2f;">
+                <td class="label">Less: Advance Paid</td>
+                <td class="value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td>
+              </tr>
+            ` : ''}
+            ${bill.previousBills > 0 ? `
+              <tr style="color: #2e7d32;">
+                <td class="label">Add: Previous Bills</td>
+                <td class="value">+ ₹ ${Number(bill.previousBills).toFixed(2)}</td>
+              </tr>
+            ` : ''}
+            <tr class="net-payable-row">
+              <td><strong>NET PAYABLE AMOUNT</strong></td>
+              <td style="text-align: right;"><strong>₹ ${netPayable.toFixed(2)}</strong></td>
             </tr>
-          ` : ''}
-          ${retentionPercent > 0 ? `
-            <tr style="color: #d32f2f;">
-              <td class="label">Less: Retention (${retentionPercent}%)</td>
-              <td class="value">- ₹ ${retention.toFixed(2)}</td>
+          ` : `
+            <tr class="net-payable-row">
+              <td><strong>TOTAL QUOTED AMOUNT</strong></td>
+              <td style="text-align: right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
             </tr>
-          ` : ''}
-          ${bill.advancePaid > 0 ? `
-            <tr style="color: #d32f2f;">
-              <td class="label">Less: Advance Paid</td>
-              <td class="value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td>
-            </tr>
-          ` : ''}
-          ${bill.previousBills > 0 && billType === 'invoice' ? `
-            <tr style="color: #2e7d32;">
-              <td class="label">Add: Previous Bills</td>
-              <td class="value">+ ₹ ${Number(bill.previousBills).toFixed(2)}</td>
-            </tr>
-          ` : ''}
-          <tr class="net-payable-row">
-            <td><strong>${billType === 'quotation' ? 'TOTAL QUOTED AMOUNT' : 'NET PAYABLE AMOUNT'}</strong></td>
-            <td style="text-align: right;"><strong>₹ ${netPayable.toFixed(2)}</strong></td>
-          </tr>
+          `}
         </table>
+
+        ${billType === 'quotation' && bill.advancePaid > 0 ? `
+          <div class="additional-info" style="margin-top: 20px; background: #e3f2fd; border-left: 4px solid #2196f3;">
+            <h4 style="color: #1565c0;">Payment Information</h4>
+            <p style="font-size: 14px; color: #333;"><strong>Advance to be Paid:</strong> ₹ ${Number(bill.advancePaid).toFixed(2)}</p>
+          </div>
+        ` : ''}
 
         ${bill.remarks ? `
           <div class="additional-info">
@@ -544,11 +614,9 @@ export const printBill = (bill) => {
           </div>
         ` : ''}
 
-       
-          <div class="signature-box " >
-            <div class="signature-line"></div>
-            <div class="signature-label">Authorized Signature</div>
-          </div>
+        <div class="signature-box">
+          <div class="signature-line"></div>
+          <div class="signature-label">Authorized Signature</div>
         </div>
 
         <div class="footer">

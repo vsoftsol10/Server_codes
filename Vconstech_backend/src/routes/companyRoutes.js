@@ -5,6 +5,7 @@ import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
+
 // GET /api/companies/:id - Get company by ID
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
@@ -16,6 +17,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         error: 'Access denied. You can only view your own company.' 
       });
     }
+    
     const company = await prisma.company.findUnique({
       where: { id },
       select: { 
@@ -25,14 +27,19 @@ router.get('/:id', authenticateToken, async (req, res) => {
         updatedAt: true
       }
     });
+    
     if (!company) {
       return res.status(404).json({ error: 'Company not found' });
+    }
+    
     res.json(company);
   } catch (error) {
     console.error('Error fetching company:', error);
     res.status(500).json({ 
       error: 'Failed to fetch company',
       details: error.message 
+    });
   }
 });
+
 export default router;

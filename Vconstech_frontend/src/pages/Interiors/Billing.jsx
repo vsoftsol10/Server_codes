@@ -117,25 +117,27 @@ const Billing = () => {
         <SidePannel />
       </aside>
 
-      <div className="pt-20 pl-16 md:pl-64">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex items-center gap-3 mb-2">
-                <FileText className="w-8 h-8 text-[#ffbe2a]" />
-                <h1 className="text-3xl font-bold text-gray-800">Billing Management</h1>
-              </div>
-              <p className="text-gray-600">Generate professional invoices and quotations</p>
-            </div>
+<div className="pt-20 pl-16 md:pl-64">
+  <div className="p-4 sm:p-6 lg:p-8 min-w-0">
+    <div className="w-full">
+      {/* Header */}
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6 w-full">
+        <div className="flex items-center gap-3 mb-2">
+          <FileText className="w-8 h-8 text-[#ffbe2a]" />
+          <h1 className="text-3xl font-bold text-gray-800">Billing Management</h1>
+        </div>
+        <p className="text-gray-600">Generate professional invoices and quotations</p>
+      </div>
 
-            {/* Tabs Section */}
-            <BillingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <div className="w-full">
+        <BillingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      </div>
 
             {/* Billing Form */}
-            <BillingForm
-              formData={formData}
-              activeTab={activeTab}
+          <div className="w-full">
+        <BillingForm
+          formData={formData}
+          activeTab={activeTab}
               handleInputChange={handleInputChange}
               handleClientNameChange={handleClientNameChange}
               selectClient={selectClient}
@@ -157,10 +159,12 @@ const Billing = () => {
               setShowClientSuggestions={setShowClientSuggestions}
               setShowClientModal={setShowClientModal}
             />
+            </div>
 
             {/* Bills List Section */}
-            <BillsListSection
-              activeSection={activeSection}
+      <div className="w-full">
+        <BillsListSection
+          activeSection={activeSection}
               setActiveSection={setActiveSection}
               bills={bills}
               loading={loading}
@@ -177,6 +181,7 @@ const Billing = () => {
               handleDeleteBill={handleDeleteBill}
               handleUpdateStatus={handleUpdateStatus}
             />
+            </div>
           </div>
         </div>
       </div>

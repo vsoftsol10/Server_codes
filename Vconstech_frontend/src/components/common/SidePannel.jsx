@@ -72,8 +72,8 @@ const SidePannel = () => {
       name: "Financial Management", 
       icon: financialIcon,
       submenu: [
-        { name: "Financial Management", path: "/financial-management",icon: financialIcon, },
-        { name: "Billing", path: "/financial-management/billing",icon: billing, }
+        { name: "Financial Management", path: "/financial-management", icon: financialIcon },
+        { name: "Billing", path: "/financial-management/billing", icon: billing }
       ]
     },
     { name: "Contract Management", path: "/contract", icon: contractIcon },
@@ -135,34 +135,35 @@ const SidePannel = () => {
 
   return (
     <>
-      {/* Sidebar */}
-      <div className="fixed top-20 md:w-64 w-16 border-r border-gray-300 min-h-screen bg-white overflow-y-auto">      
-        <div className="pt-6 flex flex-col">
+      {/* Sidebar - Now with proper scrolling */}
+      <div className="fixed top-20 md:w-68 w-16 border-r border-gray-300 bg-white h-[calc(100vh-5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 overflow-x-hidden">      
+        <div className="pt-6 flex flex-col pb-6">
           {sidebarLinks.map((item, index) => (
             <div key={index}>
               <button
-                onClick={() => handleItemClick(index, item.path, item.submenu)}
-                className={`flex items-center py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
-                  ${activeIndex === index
-                    ? "border-l-4 bg-[#ffbe2a] border-black text-black font-semibold"
-                    : "hover:bg-black/5 text-black"
-                  }
-                  ${item.name === "Logout" ? "mt-4" : ""}`}
-              >
-                <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                  {item.icon}
-                </div>
-                <p className="md:block hidden text-base whitespace-nowrap flex-1">{item.name}</p>
-                {item.submenu && (
-                  <div className="md:block hidden">
-                    {expandedMenus[index] ? (
-                      <ChevronDown size={18} />
-                    ) : (
-                      <ChevronRight size={18} />
-                    )}
-                  </div>
-                )}
-              </button>
+  onClick={() => handleItemClick(index, item.path, item.submenu)}
+  className={`flex items-center w-8 py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
+    ${
+  activeIndex === index || (item.submenu && item.submenu.some(sub => location.pathname === sub.path))
+    ? "border-l-4 bg-[#ffbe2a] border-black text-black font-semibold"
+    : "hover:bg-black/5 text-black"
+}
+    ${item.name === "Logout" ? "mt-4" : ""}`}
+>
+  <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
+    {item.icon}
+  </div>
+  <p className="md:block hidden text-base whitespace-nowrap flex-1">{item.name}</p>
+  {item.submenu && (
+    <div className={`md:block hidden ${activeIndex === index ? '' : ''}`}>
+      {expandedMenus[index] ? (
+        <ChevronDown size={18} />
+      ) : (
+        <ChevronRight size={18} />
+      )}
+    </div>
+  )}
+</button>
 
               {/* Submenu */}
               {item.submenu && expandedMenus[index] && (
@@ -171,15 +172,15 @@ const SidePannel = () => {
                     <button
                       key={subIndex}
                       onClick={() => handleSubmenuClick(index, subItem.path)}
-                      className={`flex items-center py-3 pl-16 pr-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
+                      className={`flex items-center py-3 pl-16 pr-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full 
                         ${location.pathname === subItem.path
                           ? "bg-[#ffbe2a]/50 text-black font-semibold border-l-4 border-black"
                           : "hover:bg-black/5 text-gray-700"
                         }`}
                     >
                       <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                  {subItem.icon}
-                </div>
+                        {subItem.icon}
+                      </div>
                       <p className="text-sm">{subItem.name}</p>
                     </button>
                   ))}

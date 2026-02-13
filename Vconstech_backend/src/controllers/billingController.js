@@ -210,7 +210,15 @@ export const getAllBills = async (req, res) => {
       prisma.bill.findMany({
         where,
         include: {
-          BillItem: { orderBy: { sno: 'asc' } }
+          BillItem: { orderBy: { sno: 'asc' } },
+          // ✅ Include company data with logo
+          companies: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
         take: parseInt(limit),
@@ -219,9 +227,20 @@ export const getAllBills = async (req, res) => {
       prisma.bill.count({ where })
     ]);
 
+    // ✅ Transform bills to include company at bill level
+    const billsData = bills.map(bill => ({
+      ...bill,
+      items: bill.BillItem,
+      company: {
+        id: bill.companies?.id,
+        name: bill.companies?.name || bill.companyName,
+        logo: bill.companies?.logo,
+      }
+    }));
+
     res.json({
       success: true,
-      bills,
+      bills: billsData,  // ✅ Send transformed bills
       pagination: {
         total,
         page: parseInt(page),
@@ -248,7 +267,15 @@ export const getBillById = async (req, res) => {
     const bill = await prisma.bill.findFirst({
       where: { id: parseInt(id), companyId },
       include: {
-        BillItem: { orderBy: { sno: 'asc' } }
+        BillItem: { orderBy: { sno: 'asc' } },
+        // ✅ Include company data with logo
+        companies: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,  // ✅ This is the important field
+          }
+        }
       }
     });
 
@@ -256,7 +283,18 @@ export const getBillById = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Bill not found' });
     }
 
-    res.json({ success: true, bill });
+    // ✅ Transform the response to include company at bill level
+    const billData = {
+      ...bill,
+      items: bill.BillItem,  // Rename BillItem to items for frontend
+      company: {
+        id: bill.companies?.id,
+        name: bill.companies?.name || bill.companyName,
+        logo: bill.companies?.logo,  // ✅ Logo is now available
+      }
+    };
+
+    res.json({ success: true, bill: billData });
   } catch (error) {
     console.error('Error fetching bill:', error);
     res.status(500).json({ 
@@ -267,6 +305,7 @@ export const getBillById = async (req, res) => {
   }
 };
 
+
 // ========== GET BILLS BY PROJECT ==========
 export const getBillsByProject = async (req, res) => {
   try {
@@ -276,20 +315,39 @@ export const getBillsByProject = async (req, res) => {
     const bills = await prisma.bill.findMany({
       where: { projectId: parseInt(projectId), companyId },
       include: {
-        BillItem: { orderBy: { sno: 'asc' } }
+        BillItem: { orderBy: { sno: 'asc' } },
+        // ✅ Include company data with logo
+        companies: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          }
+        }
       },
       orderBy: { billDate: 'desc' }
     });
 
+    // ✅ Transform bills
+    const billsData = bills.map(bill => ({
+      ...bill,
+      items: bill.BillItem,
+      company: {
+        id: bill.companies?.id,
+        name: bill.companies?.name || bill.companyName,
+        logo: bill.companies?.logo,
+      }
+    }));
+
     const summary = {
-      totalBills: bills.length,
-      totalBilled: bills.reduce((sum, bill) => sum + bill.netPayable, 0),
-      paidBills: bills.filter(b => b.status === 'paid').length,
-      pendingBills: bills.filter(b => b.status === 'sent' || b.status === 'open').length,
-      overdueBills: bills.filter(b => b.status === 'overdue').length,
+      totalBills: billsData.length,
+      totalBilled: billsData.reduce((sum, bill) => sum + bill.netPayable, 0),
+      paidBills: billsData.filter(b => b.status === 'paid').length,
+      pendingBills: billsData.filter(b => b.status === 'sent' || b.status === 'open').length,
+      overdueBills: billsData.filter(b => b.status === 'overdue').length,
     };
 
-    res.json({ success: true, bills, summary });
+    res.json({ success: true, bills: billsData, summary });
   } catch (error) {
     console.error('Error fetching project bills:', error);
     res.status(500).json({ 

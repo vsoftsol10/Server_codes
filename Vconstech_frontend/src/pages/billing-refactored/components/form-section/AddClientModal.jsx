@@ -6,7 +6,7 @@ const AddClientModal = ({
   setShowClientModal,
   newClient,
   setNewClient,
-  handleAddClient,
+  handleAddClient
 }) => {
   if (!showClientModal) return null;
 
@@ -31,9 +31,22 @@ const AddClientModal = ({
               </label>
               <input
                 type="text"
-                value={newClient.clientName}
+                value={newClient.clientName || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientName: e.target.value }))}
                 placeholder="Client/Company Name"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={newClient.companyName || ''}
+                onChange={(e) => setNewClient(prev => ({ ...prev, companyName: e.target.value }))}
+                placeholder="Company Name"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
               />
             </div>
@@ -43,7 +56,7 @@ const AddClientModal = ({
                 Client Address
               </label>
               <textarea
-                value={newClient.clientAddress}
+                value={newClient.clientAddress || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientAddress: e.target.value }))}
                 rows="3"
                 placeholder="Full Address"
@@ -57,7 +70,7 @@ const AddClientModal = ({
               </label>
               <input
                 type="text"
-                value={newClient.clientGST}
+                value={newClient.clientGST || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientGST: e.target.value }))}
                 placeholder="29XXXXXXXXXXXXX"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
@@ -70,7 +83,7 @@ const AddClientModal = ({
               </label>
               <input
                 type="tel"
-                value={newClient.clientPhone}
+                value={newClient.clientPhone || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientPhone: e.target.value }))}
                 placeholder="+91 XXXXX XXXXX"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
@@ -83,7 +96,7 @@ const AddClientModal = ({
               </label>
               <input
                 type="email"
-                value={newClient.clientEmail}
+                value={newClient.clientEmail || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientEmail: e.target.value }))}
                 placeholder="client@example.com"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"

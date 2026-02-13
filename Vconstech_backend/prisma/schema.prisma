@@ -264,6 +264,7 @@ model Company {
   updatedAt DateTime   @updatedAt
   logo      String?
   Bill      Bill[]
+  clients   Client[]
   labours   Labour[]
   materials Material[]
   projects  Project[]
@@ -394,11 +395,12 @@ model Bill {
   netPayable              Float
   remarks                 String?
   termsAndConditions      String?
-  status                  BillStatus @default(DRAFT)
+  status                  String     @default("DRAFT") @db.VarChar(50)
   companyId               String
   createdBy               String?
   createdAt               DateTime   @default(now())
-  updatedAt               DateTime
+  updatedAt               DateTime   @updatedAt
+  billType                String?    @default("invoice") @db.VarChar(50)
   companies               Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   User                    User?      @relation(fields: [createdBy], references: [id])
   Project                 Project?   @relation(fields: [projectId], references: [id])
@@ -421,11 +423,28 @@ model BillItem {
   rate        Float
   amount      Float
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @updatedAt
+  HSN         String?  @db.VarChar(50)
   Bill        Bill     @relation(fields: [billId], references: [id], onDelete: Cascade)
 
   @@index([billId])
   @@index([sno])
+}
+
+model Client {
+  id            Int      @id @default(autoincrement())
+  companyId     String   @db.VarChar(255)
+  clientName    String   @db.VarChar(255)
+  clientAddress String?
+  clientGST     String?  @db.VarChar(50)
+  clientPhone   String?  @db.VarChar(20)
+  clientEmail   String?  @db.VarChar(255)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([clientName])
 }
 
 enum ProjectMaterialStatus {

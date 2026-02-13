@@ -9,7 +9,7 @@ const PaymentDetails = ({ formData, activeTab, handleInputChange }) => {
       <div className="grid md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Advance Paid (₹)
+            {activeTab === 'invoice' ? 'Advance Paid (₹)' : 'Advance to be Paid (₹)'}
           </label>
           <input
             type="number"

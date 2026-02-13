@@ -35,23 +35,30 @@ const BillsListSection = ({
     }
   };
 
-  // Filter bills based on active section and search
-  const filteredBills = bills.filter(bill => {
-    // Filter by section
-    let sectionMatch = true;
-    if (activeSection === 'invoice') {
-      sectionMatch = bill.billType === 'invoice' && bill.status !== 'draft';
-    } else if (activeSection === 'quotation') {
-      sectionMatch = bill.billType === 'quotation' && bill.status !== 'draft';
-    } else if (activeSection === 'draft') {
-      sectionMatch = bill.status === 'draft';
-    }
 
-    // Filter by search term
-    const searchMatch = searchTerm === '' || 
-      (bill.billNumber && bill.billNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (bill.clientName && bill.clientName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (bill.projectName && bill.projectName.toLowerCase().includes(searchTerm.toLowerCase()));
+// Filter bills based on active section and search
+const filteredBills = bills.filter(bill => {
+  const type = (bill.billType || '').trim().toLowerCase();
+  const status = (bill.status || '').trim().toLowerCase();
+
+  let sectionMatch = true;
+
+  if (activeSection === 'invoice') {
+    sectionMatch = type === 'invoice' && status !== 'draft';
+  } 
+  else if (activeSection === 'quotation') {
+    sectionMatch = type === 'quotation' && status !== 'draft';
+  } 
+  else if (activeSection === 'draft') {
+    sectionMatch = status === 'draft';
+  }
+  // activeSection === 'all' keeps sectionMatch = true
+
+  const searchMatch =
+    searchTerm === '' ||
+    (bill.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bill.clientName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (bill.projectName || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filter by date
     let dateMatch = true;
@@ -80,36 +87,50 @@ const BillsListSection = ({
     return sectionMatch && searchMatch && dateMatch;
   });
 
+
+
+
   return (
     <div className="bg-white rounded-lg shadow-md mb-6">
-      {/* Section Tabs */}
-      <div className="border-b border-gray-200 px-6">
-        <div className="flex space-x-8">
-          {['all', 'invoice', 'quotation', 'draft'].map(section => (
-            <button
-              key={section}
-              onClick={() => setActiveSection(section)}
-              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                activeSection === section
-                  ? 'border-[#ffbe2a] text-[#ffbe2a]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {section.charAt(0).toUpperCase() + section.slice(1)}
-              <span className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded-full">
-                {section === 'all' 
-                  ? bills.length 
-                  : section === 'invoice'
-                  ? bills.filter(b => b.billType === 'invoice' && b.status !== 'draft').length
-                  : section === 'quotation'
-                  ? bills.filter(b => b.billType === 'quotation' && b.status !== 'draft').length
-                  : bills.filter(b => b.status === 'draft').length
-                }
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
+{/* Section Tabs */}
+<div className="border-b border-gray-200 px-6">
+  <div className="flex space-x-8">
+    {['all', 'invoice', 'quotation', 'draft'].map(section => (
+      <button
+        key={section}
+        onClick={() => setActiveSection(section)}
+        className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+          activeSection === section
+            ? 'border-[#ffbe2a] text-[#ffbe2a]'
+            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+        }`}
+      >
+        {section.charAt(0).toUpperCase() + section.slice(1)}
+
+        <span className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded-full">
+  {section === 'all'
+    ? bills.length
+
+    : section === 'invoice'
+    ? bills.filter(b =>
+        (b.billType || '').toLowerCase() === 'invoice' && 
+        (b.status || '').toLowerCase() !== 'draft'
+      ).length
+
+    : section === 'quotation'
+    ? bills.filter(b =>
+        (b.billType || '').toLowerCase() === 'quotation' && 
+        (b.status || '').toLowerCase() !== 'draft'
+      ).length
+
+    : bills.filter(b =>
+        (b.status || '').toLowerCase() === 'draft'
+      ).length}
+</span>
+      </button>
+    ))}
+  </div>
+</div>
 
       {/* Search and Filter Bar */}
       <div className="p-6 border-b border-gray-200">

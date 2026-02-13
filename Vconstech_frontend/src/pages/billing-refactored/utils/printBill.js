@@ -328,10 +328,13 @@ export const printBill = (bill) => {
           margin-bottom: 20px;
         }
         
-        .signature-box {
-          text-align: center;
-          width: 200px;
-        }
+       .signature-box {
+       margin-top: 100px;
+  width: 250px;
+  margin-left: auto;   /* 🔥 This pushes it to right */
+  text-align: center;
+}
+
         
         .signature-line {
           border-top: 2px solid #333;
@@ -495,7 +498,7 @@ export const printBill = (bill) => {
           ` : ''}
           <tr class="total-row">
             <td style="color: #fff;"><strong>Total with Tax</strong></td>
-            <td style="color: #fff;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
+            <td style="color: #fff; text-align: right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
           </tr>
           ${tdsPercent > 0 ? `
             <tr style="color: #d32f2f;">
@@ -523,7 +526,7 @@ export const printBill = (bill) => {
           ` : ''}
           <tr class="net-payable-row">
             <td><strong>${billType === 'quotation' ? 'TOTAL QUOTED AMOUNT' : 'NET PAYABLE AMOUNT'}</strong></td>
-            <td><strong>₹ ${netPayable.toFixed(2)}</strong></td>
+            <td style="text-align: right;"><strong>₹ ${netPayable.toFixed(2)}</strong></td>
           </tr>
         </table>
 
@@ -541,12 +544,8 @@ export const printBill = (bill) => {
           </div>
         ` : ''}
 
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-label">Client Signature</div>
-          </div>
-          <div class="signature-box">
+       
+          <div class="signature-box " >
             <div class="signature-line"></div>
             <div class="signature-label">Authorized Signature</div>
           </div>

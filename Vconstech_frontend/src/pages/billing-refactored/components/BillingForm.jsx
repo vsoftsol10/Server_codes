@@ -32,17 +32,16 @@ const BillingForm = ({
   setShowClientSuggestions,
   setShowClientModal,
 }) => {
+  
+  // Handle form submission with validation
+  const handleSubmit = (e) => {
+    e.preventDefault(); // Prevent default form submission that clears data
+    handleGenerateBill(false); // false means not a draft
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <form onSubmit={handleGenerateBill}>
-
-        {/* Bill Information Section
-
-        <BillInformation
-          formData={formData}
-          handleInputChange={handleInputChange}
-          activeTab={activeTab}
-        /> */}
+      <form onSubmit={handleSubmit}>
 
         {/* Client Information Section */}
         <ClientInformation
@@ -57,8 +56,9 @@ const BillingForm = ({
         />
 
         <CompanyInformation
-        formData ={formData}
-         handleInputChange={handleInputChange}/>
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
 
         {/* Project Information */}
         <div className="mb-8">
@@ -68,7 +68,7 @@ const BillingForm = ({
           <div className="grid md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Project Name
+                Project Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -108,37 +108,35 @@ const BillingForm = ({
           </div>
         </div>
 
-        {/* Bill Items Table - Add your items table here */}
-        {/* ... */}
         <BillInformation 
-        formData={formData}
-        handleInputChange={handleInputChange}
-        activeTab={activeTab}/>
+          formData={formData}
+          handleInputChange={handleInputChange}
+          activeTab={activeTab}
+        />
         
-<PaymentDetails
-formData={formData} activeTab={activeTab} handleInputChange={handleInputChange}/>
+        <PaymentDetails
+          formData={formData} 
+          activeTab={activeTab} 
+          handleInputChange={handleInputChange}
+        />
 
-
-       <BillItems
-  formData={formData}
-  activeTab={activeTab}
-  handleItemChange={handleItemChange}
-  addItem={addItem}
-  removeItem={removeItem}
-/>
+        <BillItems
+          formData={formData}
+          activeTab={activeTab}
+          handleItemChange={handleItemChange}
+          addItem={addItem}
+          removeItem={removeItem}
+        />
  
- <TaxAndDeductions 
- formData={formData}
- handleInputChange={handleInputChange}
- />
-
+        <TaxAndDeductions 
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
 
         <AdditionalInfo
           formData={formData}
-           handleInputChange={handleInputChange} 
-           />
-
-
+          handleInputChange={handleInputChange} 
+        />
 
         {/* Bill Summary Section */}
         <BillSummary
@@ -154,14 +152,19 @@ formData={formData} activeTab={activeTab} handleInputChange={handleInputChange}/
           calculateRetention={calculateRetention}
           calculateNetPayable={calculateNetPayable}
         />
-         
 
-         
-        {/* Submit Button */}
-        <div className="flex justify-end">
+        {/* Submit Buttons */}
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => handleGenerateBill(true)}
+            className="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-600 transition-colors"
+          >
+            Save as Draft
+          </button>
           <button
             type="submit"
-            className="bg-[#ffbe2a] text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+            className="bg-[#ffbe2a] text-black px-8 py-3 rounded-lg font-semibold hover:bg-[#e5ab26] transition-colors"
           >
             Generate {activeTab === 'invoice' ? 'Invoice' : 'Quotation'}
           </button>

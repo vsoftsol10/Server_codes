@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { FileText } from "lucide-react";
-import Navbar from '../../components/common/Navbar';
-import SidePannel from '../../components/common/SidePannel';
+import Navbar from "../../components/common/Navbar";
+import SidePannel from "../../components/common/SidePannel";
 import BillingTabs from "../billing-refactored/components/BillingTabs";
 import BillingForm from "../billing-refactored/components/BillingForm";
 import BillsListSection from "../billing-refactored/components/BillsListSection";
 import AddClientModal from "../billing-refactored/components/form-section/AddClientModal";
 import EditBillModal from "../billing-refactored/components/EditBillModal";
-import { useBillingState } from '../billing-refactored/hooks/useBillingState';
-import { useBillingActions } from '../billing-refactored/hooks/useBillingActions';
-
+import { useBillingState } from "../billing-refactored/hooks/useBillingState";
+import { useBillingActions } from "../billing-refactored/hooks/useBillingActions";
 
 const Billing = () => {
   // State management
@@ -93,22 +92,57 @@ const Billing = () => {
     activeTab,
   });
 
+  // Fetch company data
+  const fetchCompanyData = async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('token');
+
+      if (!userId || !token) return;
+
+      const response = await fetch(`${API_URL}/users/profile/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        setFormData((prev) => ({
+          ...prev,
+          companyName: data.user.company?.name || '',
+          companyGST: data.user.gstNumber || '',
+          companyAddress: data.user.address || '',
+          companyPhone: data.user.phoneNumber || '',
+          companyEmail: data.user.email || '',
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching company data:', error);
+    }
+  };
+
   // Fetch data on mount
   useEffect(() => {
     fetchBills();
     fetchClients();
+    fetchCompanyData(); // Add this line
   }, []);
 
   // Update billType when tab changes
   useEffect(() => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      billType: activeTab
+      billType: activeTab,
     }));
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
+
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <Navbar />
       </nav>
@@ -117,70 +151,74 @@ const Billing = () => {
         <SidePannel />
       </aside>
 
-<div className="pt-20 pl-16 md:pl-64">
-  <div className="p-4 sm:p-6 lg:p-8 min-w-0">
-    <div className="w-full">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6 w-full">
-        <div className="flex items-center gap-3 mb-2">
-          <FileText className="w-8 h-8 text-[#ffbe2a]" />
-          <h1 className="text-3xl font-bold text-gray-800">Billing Management</h1>
-        </div>
-        <p className="text-gray-600">Generate professional invoices and quotations</p>
-      </div>
+      <div className="pt-20 pl-16 md:pl-64">
+        <div className="p-4 sm:p-6 lg:p-8 min-w-0">
+          <div className="w-full">
+            {/* Header */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6 w-full">
+              <div className="flex items-center gap-3 mb-2">
+                <FileText className="w-8 h-8 text-[#ffbe2a]" />
+                <h1 className="text-3xl font-bold text-gray-800">
+                  Billing Management
+                </h1>
+              </div>
+              <p className="text-gray-600">
+                Generate professional invoices and quotations
+              </p>
+            </div>
 
             <div className="w-full">
-        <BillingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-      </div>
+              <BillingTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            </div>
 
             {/* Billing Form */}
-          <div className="w-full">
-        <BillingForm
-          formData={formData}
-          activeTab={activeTab}
-              handleInputChange={handleInputChange}
-              handleClientNameChange={handleClientNameChange}
-              selectClient={selectClient}
-              handleItemChange={handleItemChange}
-              addItem={addItem}
-              removeItem={removeItem}
-              calculateSubtotal={calculateSubtotal}
-              calculateGrossAmount={calculateGrossAmount}
-              calculateCGST={calculateCGST}
-              calculateSGST={calculateSGST}
-              calculateIGST={calculateIGST}
-              calculateTotalWithTax={calculateTotalWithTax}
-              calculateTDS={calculateTDS}
-              calculateRetention={calculateRetention}
-              calculateNetPayable={calculateNetPayable}
-              handleGenerateBill={handleGenerateBill}
-              clientSuggestions={clientSuggestions}
-              showClientSuggestions={showClientSuggestions}
-              setShowClientSuggestions={setShowClientSuggestions}
-              setShowClientModal={setShowClientModal}
-            />
+            <div className="w-full">
+              <BillingForm
+                formData={formData}
+                activeTab={activeTab}
+                handleInputChange={handleInputChange}
+                handleClientNameChange={handleClientNameChange}
+                selectClient={selectClient}
+                handleItemChange={handleItemChange}
+                addItem={addItem}
+                removeItem={removeItem}
+                calculateSubtotal={calculateSubtotal}
+                calculateGrossAmount={calculateGrossAmount}
+                calculateCGST={calculateCGST}
+                calculateSGST={calculateSGST}
+                calculateIGST={calculateIGST}
+                calculateTotalWithTax={calculateTotalWithTax}
+                calculateTDS={calculateTDS}
+                calculateRetention={calculateRetention}
+                calculateNetPayable={calculateNetPayable}
+                handleGenerateBill={handleGenerateBill}
+                clientSuggestions={clientSuggestions}
+                showClientSuggestions={showClientSuggestions}
+                setShowClientSuggestions={setShowClientSuggestions}
+                setShowClientModal={setShowClientModal}
+              />
             </div>
 
             {/* Bills List Section */}
-      <div className="w-full">
-        <BillsListSection
-          activeSection={activeSection}
-              setActiveSection={setActiveSection}
-              bills={bills}
-              loading={loading}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              dateFilter={dateFilter}
-              setDateFilter={setDateFilter}
-              customDateRange={customDateRange}
-              setCustomDateRange={setCustomDateRange}
-              showFilterDropdown={showFilterDropdown}
-              setShowFilterDropdown={setShowFilterDropdown}
-              handleEditBill={handleEditBill}
-              handlePrintBill={handlePrintBill}
-              handleDeleteBill={handleDeleteBill}
-              handleUpdateStatus={handleUpdateStatus}
-            />
+            <div className="w-full">
+              <BillsListSection
+                activeSection={activeSection}
+                setActiveSection={setActiveSection}
+                bills={bills}
+                loading={loading}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                dateFilter={dateFilter}
+                setDateFilter={setDateFilter}
+                customDateRange={customDateRange}
+                setCustomDateRange={setCustomDateRange}
+                showFilterDropdown={showFilterDropdown}
+                setShowFilterDropdown={setShowFilterDropdown}
+                handleEditBill={handleEditBill}
+                handlePrintBill={handlePrintBill}
+                handleDeleteBill={handleDeleteBill}
+                handleUpdateStatus={handleUpdateStatus}
+              />
             </div>
           </div>
         </div>
@@ -207,6 +245,13 @@ const Billing = () => {
         removeItem={removeItem}
         handleUpdateBill={handleUpdateBill}
         resetForm={resetForm}
+        // Add these missing props
+        handleClientNameChange={handleClientNameChange}
+        selectClient={selectClient}
+        clientSuggestions={clientSuggestions}
+        showClientSuggestions={showClientSuggestions}
+        setShowClientSuggestions={setShowClientSuggestions}
+        setShowClientModal={setShowClientModal}
       />
     </div>
   );

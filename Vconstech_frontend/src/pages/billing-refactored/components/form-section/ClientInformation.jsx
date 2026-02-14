@@ -13,19 +13,19 @@ const ClientInformation = ({
 }) => {
   return (
     <div className="mb-8">
-      <div className="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-800 pb-2 border-b-2 border-[#ffbe2a]">
-          Client Information
-        </h2>
-        <button 
-          type="button"
-          onClick={() => setShowClientModal(true)}
-          className="text-sm font-semibold text-black bg-[#ffbe2a] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Client
-        </button>
-      </div>
+      <div className="flex flex-col sm:flex-row gap-3 mb-4 items-start sm:items-center justify-between pb-2 border-b-2 border-[#ffbe2a]">
+  <h2 className="text-xl font-bold text-gray-800">
+    Client Information
+  </h2>
+  <button 
+    type="button"
+    onClick={() => setShowClientModal(true)}
+    className="text-sm font-semibold text-black bg-[#ffbe2a] px-4 py-2 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2"
+  >
+    <Plus className="w-4 h-4" />
+    Add New Client
+  </button>
+</div>
       <div className="grid md:grid-cols-2 gap-6">
         <div className="relative">
           <label className="block text-sm font-semibold text-gray-700 mb-2">

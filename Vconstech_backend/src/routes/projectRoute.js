@@ -63,7 +63,7 @@ const checkProjectAccess = async (req, res, next) => {
     }
 
     // ✅ ENGINEERS: Only have access to ASSIGNED projects
-    if (userRole === 'Site_Engineer') {
+    if (userRole === 'SITE_ENGINEER') {
       const project = await prisma.project.findFirst({
         where: {
           id: projectId,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+// Add to the imports at the top
 import {
   User,
   Mail,
@@ -14,7 +15,8 @@ import {
   X,
   Upload,
   Image,
-} from "lucide-react"; // ✅ Add Upload and Image icons
+  FileText, // Add this icon for GST
+} from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import SidePannel from "../../components/common/SidePannel";
 
@@ -236,60 +238,61 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    setError("");
-    setSuccess("");
+  setSaving(true);
+  setError("");
+  setSuccess("");
 
-    try {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-      const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
+  try {
+    const API_URL =
+      import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
 
-      const response = await fetch(`${API_URL}/users/profile/${userId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: editedUser.name,
-          email: editedUser.email,
-          phoneNumber: editedUser.phoneNumber,
-          city: editedUser.city,
-          address: editedUser.address,
-          companyName: editedUser.companyName,
-        }),
-      });
+    const response = await fetch(`${API_URL}/users/profile/${userId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: editedUser.name,
+        email: editedUser.email,
+        phoneNumber: editedUser.phoneNumber,
+        city: editedUser.city,
+        address: editedUser.address,
+        gstNumber: editedUser.gstNumber, // ✅ Add this line
+        companyName: editedUser.companyName,
+      }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success) {
-        setUserInfo(data.user);
-        setEditedUser(data.user);
-        setIsEditing(false);
-        setSuccess("Profile updated successfully!");
+    if (data.success) {
+      setUserInfo(data.user);
+      setEditedUser(data.user);
+      setIsEditing(false);
+      setSuccess("Profile updated successfully!");
 
-        localStorage.setItem("userName", data.user.name);
-        localStorage.setItem("userEmail", data.user.email);
-        if (data.user.company?.name) {
-          localStorage.setItem("companyName", data.user.company.name);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("userEmail", data.user.email);
+      if (data.user.company?.name) {
+        localStorage.setItem("companyName", data.user.company.name);
 
-          // ✅ IMPORTANT: Dispatch custom event to notify Navbar
-          window.dispatchEvent(new Event("companyNameUpdated"));
-        }
-
-        setTimeout(() => setSuccess(""), 3000);
-      } else {
-        setError(data.error || "Failed to update profile");
+        // ✅ IMPORTANT: Dispatch custom event to notify Navbar
+        window.dispatchEvent(new Event("companyNameUpdated"));
       }
-    } catch (err) {
-      console.error("Update error:", err);
-      setError("An error occurred while updating your profile");
-    } finally {
-      setSaving(false);
+
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(data.error || "Failed to update profile");
     }
-  };
+  } catch (err) {
+    console.error("Update error:", err);
+    setError("An error occurred while updating your profile");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -506,77 +509,88 @@ const Profile = () => {
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <InfoField
-                    icon={User}
-                    label="Full Name"
-                    value={userInfo.name}
-                    editable={true}
-                    field="name"
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  <InfoField
-                    icon={Mail}
-                    label="Email Address"
-                    value={userInfo.email}
-                    editable={true}
-                    field="email"
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  <InfoField
-                    icon={Phone}
-                    label="Phone Number"
-                    value={userInfo.phoneNumber}
-                    editable={true}
-                    field="phoneNumber"
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  <InfoField
-                    icon={MapPin}
-                    label="City"
-                    value={userInfo.city}
-                    editable={true}
-                    field="city"
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  <InfoField
-                    icon={Building}
-                    label="Company"
-                    value={userInfo.company?.name}
-                    editable={true}
-                    field="companyName"
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  <InfoField
-                    icon={Package}
-                    label="Package"
-                    value={userInfo.package}
-                    editable={false}
-                    isEditing={isEditing}
-                    editedUser={editedUser}
-                    setEditedUser={setEditedUser}
-                  />
-                  {userInfo.package === "Premium" && userInfo.customMembers && (
-                    <InfoField
-                      icon={Users}
-                      label="Site Engineers"
-                      value={userInfo.customMembers}
-                      editable={false}
-                      isEditing={isEditing}
-                      editedUser={editedUser}
-                      setEditedUser={setEditedUser}
-                    />
-                  )}
-                </div>
+  <InfoField
+    icon={User}
+    label="Full Name"
+    value={userInfo.name}
+    editable={true}
+    field="name"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  <InfoField
+    icon={Mail}
+    label="Email Address"
+    value={userInfo.email}
+    editable={true}
+    field="email"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  <InfoField
+    icon={Phone}
+    label="Phone Number"
+    value={userInfo.phoneNumber}
+    editable={true}
+    field="phoneNumber"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  <InfoField
+    icon={MapPin}
+    label="City"
+    value={userInfo.city}
+    editable={true}
+    field="city"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  {/* ✅ NEW: GST Number Field */}
+  <InfoField
+    icon={FileText}
+    label="GST Number"
+    value={userInfo.gstNumber}
+    editable={true}
+    field="gstNumber"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  <InfoField
+    icon={Building}
+    label="Company"
+    value={userInfo.company?.name}
+    editable={true}
+    field="companyName"
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  <InfoField
+    icon={Package}
+    label="Package"
+    value={userInfo.package}
+    editable={false}
+    isEditing={isEditing}
+    editedUser={editedUser}
+    setEditedUser={setEditedUser}
+  />
+  {userInfo.package === "Premium" && userInfo.customMembers && (
+    <InfoField
+      icon={Users}
+      label="Site Engineers"
+      value={userInfo.customMembers}
+      editable={false}
+      isEditing={isEditing}
+      editedUser={editedUser}
+      setEditedUser={setEditedUser}
+    />
+  )}
+</div>
 
                 <div className="mt-6">
                   <InfoField

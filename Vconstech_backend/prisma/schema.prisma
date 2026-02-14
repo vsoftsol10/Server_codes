@@ -21,6 +21,7 @@ model User {
   address            String              @default("")
   package            String?
   customMembers      Int?
+  gstNumber          String             @default("")
   Bill               Bill[]
   uploadedFiles      File[]
   projectAssignments ProjectAssignment[]

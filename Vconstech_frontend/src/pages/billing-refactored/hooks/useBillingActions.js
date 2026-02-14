@@ -65,13 +65,14 @@ export const useBillingActions = ({
   };
 
   // Handle input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  
+  setFormData(prev => ({
+    ...prev,
+    [name]: value === '' ? 0 : parseFloat(value) || 0
+  }));
+};
 
   // Handle client name input with autocomplete
   const handleClientNameChange = (e) => {

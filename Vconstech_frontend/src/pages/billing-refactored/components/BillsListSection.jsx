@@ -19,6 +19,8 @@ const BillsListSection = ({
   handleDeleteBill,
   handleUpdateStatus,
 }) => {
+  const [statusFilter, setStatusFilter] = React.useState('all');
+  const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
   
   // Helper function for status colors
   const getStatusColor = (status) => {
@@ -84,7 +86,13 @@ const filteredBills = bills.filter(bill => {
       }
     }
 
-    return sectionMatch && searchMatch && dateMatch;
+    // Filter by status
+    let statusMatch = true;
+    if (statusFilter !== 'all') {
+      statusMatch = status === statusFilter.toLowerCase();
+    }
+
+    return sectionMatch && searchMatch && dateMatch && statusMatch;
   });
 
 
@@ -99,10 +107,10 @@ const filteredBills = bills.filter(bill => {
       <button
         key={section}
         onClick={() => setActiveSection(section)}
-        className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+        className={`py-4 px-2 border-b-2 font-extrabold text-sm transition-colors ${
           activeSection === section
             ? 'border-[#ffbe2a] text-[#ffbe2a]'
-            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            : 'border-transparent text-black hover:text-gray-700 hover:border-gray-300'
         }`}
       >
         {section.charAt(0).toUpperCase() + section.slice(1)}
@@ -147,7 +155,80 @@ const filteredBills = bills.filter(bill => {
             />
           </div>
 
-          {/* Filter Dropdown */}
+          {/* Status Filter Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="w-5 h-5 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">
+                {statusFilter === 'all' ? 'All Status' :
+                 statusFilter === 'open' ? 'Open' :
+                 statusFilter === 'sent' ? 'Sent' :
+                 statusFilter === 'paid' ? 'Paid' :
+                 'Draft'}
+              </span>
+            </button>
+
+            {showStatusDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  >
+                    All Status
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('open');
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-yellow-500"></span>
+                    Open
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('sent');
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Sent
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('paid');
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                    Paid
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('draft');
+                      setShowStatusDropdown(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-gray-500"></span>
+                    Draft
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Date Filter Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
@@ -239,6 +320,48 @@ const filteredBills = bills.filter(bill => {
             </div>
           </div>
         )}
+
+        {/* Active Filters Display */}
+        {(statusFilter !== 'all' || dateFilter !== 'all') && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {statusFilter !== 'all' && (
+              <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                <span>Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}</span>
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className="hover:bg-blue-100 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            {dateFilter !== 'all' && (
+              <div className="flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-sm">
+                <span>
+                  Date: {dateFilter === 'today' ? 'Today' :
+                         dateFilter === 'week' ? 'This Week' :
+                         dateFilter === 'month' ? 'This Month' :
+                         'Custom'}
+                </span>
+                <button
+                  onClick={() => setDateFilter('all')}
+                  className="hover:bg-purple-100 rounded-full p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <button
+              onClick={() => {
+                setStatusFilter('all');
+                setDateFilter('all');
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              Clear all filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Bills Content */}
@@ -254,30 +377,32 @@ const filteredBills = bills.filter(bill => {
               No {activeSection === 'all' ? 'bills' : activeSection === 'draft' ? 'drafts' : activeSection + 's'} found
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              {searchTerm ? 'Try a different search term' : `Create your first ${activeSection === 'all' ? 'bill' : activeSection} using the form above`}
+              {searchTerm || statusFilter !== 'all' || dateFilter !== 'all' 
+                ? 'Try adjusting your filters or search term' 
+                : `Create your first ${activeSection === 'all' ? 'bill' : activeSection} using the form above`}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-yellow-400">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Bill #
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
+                    Bill Number
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-s font-extrabold text-black uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>

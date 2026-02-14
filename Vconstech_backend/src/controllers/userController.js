@@ -81,8 +81,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// ✅ NEW: Get user profile by ID
-// ✅ FIXED: Get user profile by ID
+// ✅ UPDATED: Get user profile by ID (includes GST number)
 export const getUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -97,7 +96,6 @@ export const getUserProfile = async (req, res) => {
       });
     }
 
-    // First, let's try without selecting logo
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -107,6 +105,7 @@ export const getUserProfile = async (req, res) => {
         phoneNumber: true,
         city: true,
         address: true,
+        gstNumber: true, // ✅ Added GST number
         role: true,
         package: true,
         customMembers: true,
@@ -116,7 +115,6 @@ export const getUserProfile = async (req, res) => {
           select: {
             id: true,
             name: true
-            // Temporarily removed logo
           }
         }
       }
@@ -131,7 +129,7 @@ export const getUserProfile = async (req, res) => {
       });
     }
 
-    // Now let's fetch company separately with logo
+    // Fetch company separately with logo
     if (user.companyId) {
       const company = await prisma.company.findUnique({
         where: { id: user.companyId }
@@ -162,13 +160,11 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// ✅ FIXED: Update user profile
-// ✅ FIXED: Update user profile
-// ✅ FIXED: Update user profile
+// ✅ UPDATED: Update user profile (includes GST number)
 export const updateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, email, phoneNumber, city, address, companyName } = req.body;
+    const { name, email, phoneNumber, city, address, gstNumber, companyName } = req.body; // ✅ Added gstNumber
 
     if (req.user.userId !== userId && req.user.role !== 'Admin') {
       return res.status(403).json({
@@ -202,6 +198,17 @@ export const updateUserProfile = async (req, res) => {
       });
     }
 
+    // ✅ Optional: Validate GST number format (15 characters alphanumeric)
+    if (gstNumber && gstNumber.trim() !== '') {
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstRegex.test(gstNumber)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid GST number format (e.g., 22AAAAA0000A1Z5)'
+        });
+      }
+    }
+
     // Check email uniqueness
     if (email !== req.user.email) {
       const existingUser = await prisma.user.findFirst({
@@ -219,23 +226,24 @@ export const updateUserProfile = async (req, res) => {
       }
     }
 
-    // ✅ FIX: Handle company name update properly
+    // Handle company name update properly
     let updateData = {
       name,
       email,
       phoneNumber,
       city,
       address,
+      gstNumber: gstNumber || '', // ✅ Added GST number to update data
       updatedAt: new Date()
     };
 
-    // ✅ Get current user to find their company
+    // Get current user to find their company
     const currentUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { companyId: true }
     });
 
-    // ✅ If companyName is provided and user has a company, UPDATE the existing company
+    // If companyName is provided and user has a company, UPDATE the existing company
     if (companyName && currentUser.companyId) {
       await prisma.company.update({
         where: { id: currentUser.companyId },
@@ -245,7 +253,7 @@ export const updateUserProfile = async (req, res) => {
         }
       });
     } 
-    // ✅ If companyName is provided but user has NO company, create one
+    // If companyName is provided but user has NO company, create one
     else if (companyName && !currentUser.companyId) {
       const newCompany = await prisma.company.create({
         data: { name: companyName }
@@ -264,6 +272,7 @@ export const updateUserProfile = async (req, res) => {
         phoneNumber: true,
         city: true,
         address: true,
+        gstNumber: true, // ✅ Include GST number in response
         role: true,
         package: true,
         customMembers: true,
@@ -299,7 +308,6 @@ export const changeUserPassword = async (req, res) => {
     const { userId } = req.params;
     const { currentPassword, newPassword } = req.body;
 
-    // ✅ FIX: Use req.user.userId instead of req.user.id
     if (req.user.userId !== userId) {
       return res.status(403).json({
         success: false,
@@ -370,6 +378,7 @@ export const changeUserPassword = async (req, res) => {
     });
   }
 };
+
 // ✅ NEW: Upload company logo (Admin only)
 export const uploadCompanyLogo = async (req, res) => {
   try {

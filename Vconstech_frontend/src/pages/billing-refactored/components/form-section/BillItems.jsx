@@ -105,7 +105,7 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
           <tbody>
             {formData.items.map((item, index) => (
               <tr key={index} className="border-b">
-                <td className="px-3 py-3 border text-center font-semibold">
+                <td className="px-3 py-3 border text-center font-semibold align-top">
                   {item.sno}
                 </td>
                 <td className="px-3 py-3 border">
@@ -113,17 +113,24 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     value={item.description || ""}
                     onChange={(e) => handleChange(index, "description", e.target.value)}
                     placeholder="Enter detailed work description..."
-                    rows="3"
-                    className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none resize-y ${
+                    className={`w-full px-2 py-1 border rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none resize-none overflow-hidden ${
                       errors[index]?.description ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    style={{minHeight: '60px'}}
+                    style={{
+                      minHeight: '60px',
+                      height: 'auto',
+                      fieldSizing: 'content'
+                    }}
+                    onInput={(e) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                   />
                   {errors[index]?.description && (
                     <p className="text-red-500 text-xs mt-1">{errors[index].description}</p>
                   )}
                 </td>
-                <td className="px-3 py-3 border">
+                <td className="px-3 py-3 border align-top">
                   <input
                     type="text"
                     value={item.HSN || ""}
@@ -132,7 +139,7 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
                   />
                 </td>
-                <td className="px-3 py-3 border">
+                <td className="px-3 py-3 border align-top">
                   <select
                     value={item.unit || "Nos"}
                     onChange={(e) => handleChange(index, "unit", e.target.value)}
@@ -143,7 +150,7 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     ))}
                   </select>
                 </td>
-                <td className="px-3 py-3 border">
+                <td className="px-3 py-3 border align-top">
                   <input
                     type="number"
                     value={item.quantity || ""}
@@ -159,7 +166,7 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     <p className="text-red-500 text-xs mt-1">{errors[index].quantity}</p>
                   )}
                 </td>
-                <td className="px-3 py-3 border">
+                <td className="px-3 py-3 border align-top">
                   <input
                     type="number"
                     value={item.rate || ""}
@@ -175,12 +182,12 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     <p className="text-red-500 text-xs mt-1">{errors[index].rate}</p>
                   )}
                 </td>
-                <td className="px-3 py-3 border">
+                <td className="px-3 py-3 border align-top">
                   <div className="flex items-center gap-1 text-gray-700 font-semibold">
                     ₹ {(parseFloat(item.amount) || 0).toFixed(2)}
                   </div>
                 </td>
-                <td className="px-3 py-3 border text-center">
+                <td className="px-3 py-3 border text-center align-top">
                   <button
                     type="button"
                     onClick={() => handleRemoveItem(index)}

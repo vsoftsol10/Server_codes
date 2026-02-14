@@ -42,7 +42,10 @@ const BillingForm = ({
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <form onSubmit={handleSubmit}>
-
+        <CompanyInformation
+          formData={formData}
+          handleInputChange={handleInputChange}
+        />
         {/* Client Information Section */}
         <ClientInformation
           formData={formData}
@@ -55,10 +58,7 @@ const BillingForm = ({
           setShowClientModal={setShowClientModal}
         />
 
-        <CompanyInformation
-          formData={formData}
-          handleInputChange={handleInputChange}
-        />
+
 
         {/* Project Information */}
         <div className="mb-8">

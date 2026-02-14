@@ -1,9 +1,13 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import BillInformation from './form-section/BillInformation';
+import CompanyInformation from './form-section/CompanyInformation';
 import ClientInformation from './form-section/ClientInformation';
 import ProjectInformation from './form-section/ProjectInformation';
 import BillItems from './form-section/BillItems';
+import TaxAndDeductions from './form-section/TaxAndDeductions';
+import AdditionalInfo from './form-section/AdditionalInfo';
+import PaymentDetails from './form-section/PaymentDetails';
 
 const EditBillModal = ({
   showEditModal,
@@ -55,6 +59,12 @@ const EditBillModal = ({
               activeTab={formData.billType}
             />
 
+            {/* Company Information */}
+            <CompanyInformation
+              formData={formData}
+              handleInputChange={handleInputChange}
+            />
+
             {/* Client Information */}
             <ClientInformation
               formData={formData}
@@ -80,6 +90,25 @@ const EditBillModal = ({
               handleItemChange={handleItemChange}
               addItem={addItem}
               removeItem={removeItem}
+            />
+
+            {/* Tax & Deductions */}
+            <TaxAndDeductions
+              formData={formData}
+              handleInputChange={handleInputChange}
+            />
+
+            {/* Payment Details */}
+            <PaymentDetails
+              formData={formData}
+              activeTab={formData.billType}
+              handleInputChange={handleInputChange}
+            />
+
+            {/* Additional Information */}
+            <AdditionalInfo
+              formData={formData}
+              handleInputChange={handleInputChange}
             />
           </div>
 

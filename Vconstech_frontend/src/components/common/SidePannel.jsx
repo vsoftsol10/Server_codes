@@ -68,14 +68,14 @@ const SidePannel = () => {
     { name: "Project Management", path: "/project", icon: projectIcon },
     { name: "Add Engineer", path: "/add-engineers", icon: addEngineerIcon },
     { name: "Material Management", path: "/material", icon: materialIcon },
-    { 
-      name: "Financial Management", 
-      icon: financialIcon,
-      submenu: [
-        { name: "Financial Management", path: "/financial-management", icon: financialIcon },
-        { name: "Billing", path: "/financial-management/billing", icon: billing }
-      ]
-    },
+{ 
+  name: "Financial Management", 
+  icon: financialIcon,
+  submenu: [
+    { name: "Financial Management", path: "/financial-management", icon: financialIcon },
+    { name: "Billing", path: "/financial-management/billing", icon: billing }
+  ]
+},
     { name: "Contract Management", path: "/contract", icon: contractIcon },
     { name: "File Management", path: "/file-managememt", icon: fileIcon },
     { name: "Labour Management", path: "/labor-managememt", icon: laborManagementIcon },
@@ -105,19 +105,19 @@ const SidePannel = () => {
     }
   }, [location.pathname]);
 
-  const handleItemClick = (index, path, hasSubmenu) => {
-    if (path === "/") {
-      // Show confirmation popup for logout
-      setShowLogoutModal(true);
-    } else if (hasSubmenu) {
-      // Toggle submenu
-      setExpandedMenus(prev => ({ ...prev, [index]: !prev[index] }));
-      setActiveIndex(index);
-    } else {
-      setActiveIndex(index);
-      navigate(path);
-    }
-  };
+const handleItemClick = (index, path, hasSubmenu) => {
+  if (path === "/") {
+    // Show confirmation popup for logout
+    setShowLogoutModal(true);
+  } else if (hasSubmenu) {
+    // Toggle submenu - works on both mobile and desktop
+    setExpandedMenus(prev => ({ ...prev, [index]: !prev[index] }));
+    setActiveIndex(index);
+  } else {
+    setActiveIndex(index);
+    navigate(path);
+  }
+};
 
   const handleSubmenuClick = (parentIndex, path) => {
     setActiveIndex(parentIndex);
@@ -136,13 +136,13 @@ const SidePannel = () => {
   return (
     <>
       {/* Sidebar - Now with proper scrolling */}
-      <div className="fixed top-20 md:w-68 w-16 border-r border-gray-300 bg-white h-[calc(100vh-5rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 overflow-x-hidden">      
+      <div className="fixed top-20 left-0 md:w-68 w-16 hover:w-64 border-r border-gray-300 bg-white h-[calc(100vh-5rem)] md:overflow-y-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 overflow-x-hidden transition-all duration-300 z-50 group">      
         <div className="pt-6 flex flex-col pb-6">
           {sidebarLinks.map((item, index) => (
             <div key={index}>
               <button
   onClick={() => handleItemClick(index, item.path, item.submenu)}
-  className={`flex items-center w-8 py-4 px-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full
+  className={`flex items-center py-4 px-3 md:px-6 gap-2 md:gap-3 transition-colors duration-200 text-left cursor-pointer w-full
     ${
   activeIndex === index || (item.submenu && item.submenu.some(sub => location.pathname === sub.path))
     ? "border-l-4 bg-[#ffbe2a] border-black text-black font-semibold"
@@ -153,9 +153,9 @@ const SidePannel = () => {
   <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
     {item.icon}
   </div>
-  <p className="md:block hidden text-base whitespace-nowrap flex-1">{item.name}</p>
+  <p className="hidden group-hover:block md:block text-sm md:text-base whitespace-nowrap flex-1">{item.name}</p>
   {item.submenu && (
-    <div className={`md:block hidden ${activeIndex === index ? '' : ''}`}>
+    <div className="hidden group-hover:block md:block flex-shrink-0">
       {expandedMenus[index] ? (
         <ChevronDown size={18} />
       ) : (
@@ -165,27 +165,27 @@ const SidePannel = () => {
   )}
 </button>
 
-              {/* Submenu */}
-              {item.submenu && expandedMenus[index] && (
-                <div className="md:block hidden bg-gray-50">
-                  {item.submenu.map((subItem, subIndex) => (
-                    <button
-                      key={subIndex}
-                      onClick={() => handleSubmenuClick(index, subItem.path)}
-                      className={`flex items-center py-3 pl-16 pr-6 gap-3 transition-colors duration-200 text-left cursor-pointer w-full 
-                        ${location.pathname === subItem.path
-                          ? "bg-[#ffbe2a]/50 text-black font-semibold border-l-4 border-black"
-                          : "hover:bg-black/5 text-gray-700"
-                        }`}
-                    >
-                      <div className="w-6 h-6 flex items-center justify-center flex-shrink-0">
-                        {subItem.icon}
-                      </div>
-                      <p className="text-sm">{subItem.name}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
+{/* Submenu */}
+{item.submenu && expandedMenus[index] && (
+  <div className="block bg-gray-50">
+    {item.submenu.map((subItem, subIndex) => (
+      <button
+        key={subIndex}
+        onClick={() => handleSubmenuClick(index, subItem.path)}
+        className={`flex items-center justify-center py-3 pl-10 md:pl-16 pr-3 md:pr-6 gap-2 md:gap-3 transition-colors duration-200 text-left cursor-pointer w-full 
+          ${location.pathname === subItem.path
+            ? "bg-[#ffbe2a]/50 text-black font-semibold border-l-4 border-black"
+            : "hover:bg-black/5 text-gray-700"
+          }`}
+      >
+        <div className="w-4 h-4 md:w-6 md:h-6 flex items-center justify-center flex-shrink-0">
+          {subItem.icon}
+        </div>
+        <p className="text-[10px] md:text-sm block whitespace-nowrap overflow-hidden text-ellipsis">{subItem.name}</p>
+      </button>
+    ))}
+  </div>
+)}
             </div>
           ))}
         </div>

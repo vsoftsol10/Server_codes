@@ -413,7 +413,7 @@ const handleEditProject = (project) => {
                 Project Management
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                Manage and track all your interior design projects
+                Manage and track all your projects
               </p>
             </div>
             <div className="flex gap-2">

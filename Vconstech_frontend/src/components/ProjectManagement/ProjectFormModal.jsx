@@ -174,7 +174,10 @@ const ProjectFormModal = ({
         ".rvt",
         ".ifc",
         ".pdf",
-        ".docx"
+        ".docx",
+        ".png",
+        ".jpg",
+        ".jpeg",
       ];
       const fileExtension = "." + file.name.split(".").pop().toLowerCase();
 
@@ -595,7 +598,7 @@ const ProjectFormModal = ({
             </div>
 
             {/* Upload 3D Design File */}
-            {/* <div className="sm:col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Upload 3D Design File (Optional)
               </label>
@@ -646,7 +649,7 @@ const ProjectFormModal = ({
                   </div>
                 )}
               </div>
-            </div> */}
+            </div>
 
             {/* Project Description */}
             <div className="sm:col-span-2">

@@ -283,7 +283,7 @@ const Navbar = () => {
                     <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                       <h3 className="font-semibold text-slate-900">Notifications</h3>
                       {unreadCount > 0 && (
-                        <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        <button onClick={markAllAsRead} className="text-xs text-yellow-600 hover:text-yellow-800 font-medium">
                           Mark all read
                         </button>
                       )}
@@ -308,7 +308,7 @@ const Navbar = () => {
                                 </div>
                                 <div className="flex gap-1 flex-shrink-0">
                                   {!n.read && (
-                                    <button onClick={() => markNotificationAsRead(n.id)} className="p-1 text-blue-600 hover:text-blue-800 text-xs" title="Mark as read">✓</button>
+                                    <button onClick={() => markNotificationAsRead(n.id)} className="p-1 text-yellow-600 hover:text-yellow-800 text-xs" title="Mark as read">✓</button>
                                   )}
                                   <button onClick={() => deleteNotification(n.id)} className="p-1 text-red-600 hover:text-red-800" title="Delete">
                                     <X size={14} />

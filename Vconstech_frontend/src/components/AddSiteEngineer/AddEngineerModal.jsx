@@ -207,7 +207,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -219,7 +219,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2  `}
                       placeholder="Enter full name"
                     />
                   </div>
@@ -228,7 +228,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Phone Number <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -240,7 +240,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 `}
                       placeholder="10-digit number"
                       maxLength="10"
                     />
@@ -250,7 +250,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Alternate Phone */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Alternate Phone Number
                   </label>
                   <div className="relative">
@@ -262,7 +262,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="alternatePhone"
                       value={formData.alternatePhone}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.alternatePhone ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.alternatePhone ? 'border-red-500' : 'border-gray-300'} rounded-lg `}
                       placeholder="10-digit number (optional)"
                       maxLength="10"
                     />
@@ -272,7 +272,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Employee ID */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Employee ID <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -284,7 +284,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="empId"
                       value={formData.empId}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.empId ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.empId ? 'border-red-500' : 'border-gray-300'} rounded-lg `}
                       placeholder="Enter employee ID"
                     />
                   </div>
@@ -293,7 +293,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Address */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Address <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -305,7 +305,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       value={formData.address}
                       onChange={handleInputChange}
                       rows="3"
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.address ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.address ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 `}
                       placeholder="Address of the Engineer"
                     />
                   </div>
@@ -321,7 +321,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Username */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Username <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -333,7 +333,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="username"
                       value={formData.username}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 `}
                       placeholder="Enter username"
                     />
                   </div>
@@ -342,7 +342,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -354,7 +354,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-10 py-2 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-10 py-2 border  ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 `}
                       placeholder="Enter password"
                     />
                     <button
@@ -370,7 +370,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
 
                 {/* Confirm Password */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
                     Confirm Password <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
@@ -382,7 +382,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
-                      className={`block w-full pl-10 pr-10 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                      className={`block w-full pl-10 pr-10 py-2 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-lg  `}
                       placeholder="Confirm password"
                     />
                     <button
@@ -405,14 +405,14 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 bg-yellow-500  text-white py-3 px-6 rounded-lg font-extrabold hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isSubmitting ? 'Adding Engineer...' : 'Add Engineer'}
           </button>
           <button
             type="button"
             onClick={handleClose}
-            className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+            className="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg font-extrabold hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
           >
             Cancel
           </button>

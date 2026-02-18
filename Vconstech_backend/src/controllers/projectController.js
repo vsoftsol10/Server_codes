@@ -282,43 +282,25 @@ export const updateProject = async (req, res) => {
     const { id } = req.params;
     const companyId = req.user.companyId;
     const {
-      name,
-      clientName,
-      projectType,
-      budget,
-      description,
-      startDate,
-      endDate,
-      location,
-      status,
-      assignedUserId
+      name, clientName, projectType, budget, quotationAmount,
+      description, startDate, endDate, location, status,
+      assignedUserId, actualProgress
     } = req.body;
 
     console.log('Updating project with data:', req.body);
 
-    // Check if project exists and belongs to user's company
     const existingProject = await prisma.project.findFirst({
-      where: {
-        id: parseInt(id),
-        companyId
-      }
+      where: { id: parseInt(id), companyId }
     });
 
     if (!existingProject) {
-      return res.status(404).json({
-        error: 'Project not found'
-      });
+      return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Verify assigned engineer if provided
     if (assignedUserId) {
       const assignedEngineer = await prisma.engineer.findFirst({
-        where: {
-          id: parseInt(assignedUserId),
-          companyId: req.user.companyId
-        }
+        where: { id: parseInt(assignedUserId), companyId: req.user.companyId }
       });
-
       if (!assignedEngineer) {
         return res.status(400).json({
           error: 'Invalid Engineer selected or engineer does not belong to your company'
@@ -326,7 +308,7 @@ export const updateProject = async (req, res) => {
       }
     }
 
-    // Build update data object
+    // ✅ Declare updateData FIRST, then populate it
     const updateData = {};
 
     if (name !== undefined) updateData.name = name;
@@ -342,35 +324,34 @@ export const updateProject = async (req, res) => {
       updateData.assignedEngineerId = assignedUserId ? parseInt(assignedUserId) : null;
     }
 
+    // ✅ Now these work because updateData exists
+    if (actualProgress !== undefined) {
+      const progress = parseInt(actualProgress);
+      if (!isNaN(progress) && progress >= 0 && progress <= 100) {
+        updateData.actualProgress = progress;
+      }
+    }
+
+    if (quotationAmount !== undefined) {
+      updateData.quotationAmount = quotationAmount ? parseFloat(quotationAmount) : null;
+    }
+
     const updatedProject = await prisma.project.update({
       where: { id: parseInt(id) },
       data: updateData,
       include: {
         assignedEngineer: {
-          select: {
-            id: true,
-            name: true,
-            empId: true,
-            phone: true,
-            alternatePhone: true
-          }
+          select: { id: true, name: true, empId: true, phone: true, alternatePhone: true }
         }
       }
     });
 
     console.log('Project updated successfully:', updatedProject);
-
-    res.json({
-      message: 'Project updated successfully',
-      project: updatedProject
-    });
+    res.json({ message: 'Project updated successfully', project: updatedProject });
 
   } catch (error) {
     console.error('Update project error:', error);
-    res.status(500).json({
-      error: 'Failed to update project',
-      details: error.message
-    });
+    res.status(500).json({ error: 'Failed to update project', details: error.message });
   }
 };
 
@@ -429,7 +410,7 @@ export const updateProjectProgress = async (req, res) => {
     // ✅ AUTHORIZATION CHECK
     // Admin: Can update any project
     // Site Engineer: Can ONLY update assigned projects
-    if (userRole === 'Site_Engineer') {
+    if (userRole === 'SITE_ENGINEER') {
       if (project.assignedEngineerId !== userId) {
         console.log('❌ Engineer not assigned to this project');
         return res.status(403).json({
@@ -439,7 +420,7 @@ export const updateProjectProgress = async (req, res) => {
         });
       }
       console.log('✅ Engineer is assigned to this project');
-    } else if (userRole === 'Admin') {
+    } else if (userRole === 'ADMIN') {
       console.log('✅ Admin has access to all projects');
     } else {
       return res.status(403).json({

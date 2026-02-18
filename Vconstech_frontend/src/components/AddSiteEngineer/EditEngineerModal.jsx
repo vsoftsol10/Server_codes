@@ -227,7 +227,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
               
               {/* Name */}
               <div className="mb-4">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="name" className="block text-sm font-extrabold text-gray-700 mb-1">
                   Full Name *
                 </label>
                 <input
@@ -236,9 +236,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border ${
+                  className={`w-full px-4 py-2 border text-gray-600 font-medium ${
                     errors.name ? 'border-red-500' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } rounded-lg focus:border-transparent`}
                   placeholder="Enter full name"
                   disabled={isSubmitting}
                 />
@@ -247,7 +247,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
               {/* Employee ID */}
               <div className="mb-4">
-                <label htmlFor="empId" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="empId" className="block text-sm font-extrabold text-gray-700 mb-1">
                   Employee ID *
                 </label>
                 <input
@@ -256,9 +256,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                   name="empId"
                   value={formData.empId}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 border ${
+                  className={`w-full px-4 py-2 border text-gray-600 font-medium ${
                     errors.empId ? 'border-red-500' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } rounded-lg  focus:border-transparent`}
                   placeholder="Enter employee ID"
                   disabled={isSubmitting}
                 />
@@ -268,7 +268,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
               {/* Phone Numbers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="phone" className="block text-sm font-extrabold text-gray-700 mb-1">
                     Phone Number *
                   </label>
                   <input
@@ -277,9 +277,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border ${
+                    className={`w-full px-4 py-2 border text-gray-600 font-medium ${
                       errors.phone ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg  focus:border-transparent`}
                     placeholder="10 digit number"
                     maxLength="10"
                     disabled={isSubmitting}
@@ -288,7 +288,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                 </div>
 
                 <div>
-                  <label htmlFor="alternatePhone" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="alternatePhone" className="block text-sm font-extrabold text-gray-700 mb-1">
                     Alternate Phone
                   </label>
                   <input
@@ -297,9 +297,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     name="alternatePhone"
                     value={formData.alternatePhone}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border ${
+                    className={`w-full px-4 py-2 border text-gray-600 font-medium ${
                       errors.alternatePhone ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg  focus:border-transparent`}
                     placeholder="10 digit number (optional)"
                     maxLength="10"
                     disabled={isSubmitting}
@@ -312,7 +312,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
               {/* Address */}
               <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="address" className="block text-sm font-extrabold text-gray-700 mb-1">
                   Address *
                 </label>
                 <textarea
@@ -321,9 +321,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                   value={formData.address}
                   onChange={handleChange}
                   rows="3"
-                  className={`w-full px-4 py-2 border ${
+                  className={`w-full px-4 py-2 border text-gray-600 font-medium ${
                     errors.address ? 'border-red-500' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                  } rounded-lg  focus:border-transparent`}
                   placeholder="Enter full address"
                   disabled={isSubmitting}
                 />
@@ -338,7 +338,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
               
               {/* Username */}
               <div className="mb-4">
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="username" className="block text-sm font-extrabold text-gray-700 mb-1">
                   Username *
                 </label>
                 <div className="relative">
@@ -351,9 +351,9 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-4 py-2 border ${
+                    className={`w-full pl-10 pr-4 py-2 border text-gray-600 font-medium ${
                       errors.username ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg  focus:border-transparent`}
                     placeholder="Enter username"
                     disabled={isSubmitting}
                   />
@@ -363,7 +363,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
               {/* Password */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="password" className="block text-sm font-extrabold text-gray-700 mb-1">
                   Password *
                 </label>
                 <div className="relative">
@@ -376,16 +376,16 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full pl-10 pr-20 py-2 border ${
+                    className={`w-full pl-10 pr-20 py-2 border text-gray-600 font-medium ${
                       errors.password ? 'border-red-500' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+                    } rounded-lg  focus:border-transparent`}
                     placeholder="Enter password"
                     disabled={isSubmitting}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-yellow-600 hover:text-yellow-800"
                   >
                     {showPassword ? "Hide" : "Show"}
                   </button>

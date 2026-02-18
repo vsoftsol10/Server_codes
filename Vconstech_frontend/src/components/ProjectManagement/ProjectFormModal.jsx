@@ -243,7 +243,7 @@ const ProjectFormModal = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Project Name */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Project Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -258,7 +258,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.name ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter project name"
@@ -274,7 +274,7 @@ const ProjectFormModal = ({
             {/* Project ID (only for new projects) */}
             {!project.id && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-extrabold text-gray-700 mb-2">
                   Project ID <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -289,7 +289,7 @@ const ProjectFormModal = ({
                       });
                     }
                   }}
-                  className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                     validationErrors.projectId
                       ? "border-red-500"
                       : "border-gray-300"
@@ -307,7 +307,7 @@ const ProjectFormModal = ({
 
             {/* Client Name */}
             <div className={!project.id ? "" : "sm:col-span-2"}>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Client Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -322,7 +322,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.client ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="Enter client name"
@@ -337,13 +337,13 @@ const ProjectFormModal = ({
 
             {/* Project Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Project Type
               </label>
               <select
                 value={project.type || "Residential"}
                 onChange={(e) => onChange({ ...project, type: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               >
                 <option value="Residential">Residential</option>
@@ -356,7 +356,7 @@ const ProjectFormModal = ({
             {/* Status (only for existing projects) */}
            {project.id && (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
+    <label className="block text-sm font-extrabold text-gray-700 mb-2">
       Actual Progress (%)
     </label>
     <div className="space-y-2">
@@ -383,7 +383,7 @@ const ProjectFormModal = ({
               onChange({ ...project, progress: val });
             }
           }}
-          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="w-20 px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           disabled={loading}
         />
         <span className="text-sm text-gray-600">
@@ -399,7 +399,7 @@ const ProjectFormModal = ({
 
             {/* Budget */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Budget (₹)
               </label>
               <input
@@ -414,7 +414,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.budget ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="e.g., 150000"
@@ -430,7 +430,7 @@ const ProjectFormModal = ({
 
             {/* Quotation Amount */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Quotation Amount (₹)
               </label>
               <input
@@ -445,7 +445,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.quotationAmount ? "border-red-500" : "border-gray-300"
                 }`}
                 placeholder="e.g., 150000"
@@ -464,7 +464,7 @@ const ProjectFormModal = ({
 
             {/* Start Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Start Date
               </label>
               <input
@@ -479,14 +479,14 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 disabled={loading}
               />
             </div>
 
             {/* End Date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 End Date
               </label>
               <input
@@ -501,7 +501,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.endDate
                     ? "border-red-500"
                     : "border-gray-300"
@@ -517,7 +517,7 @@ const ProjectFormModal = ({
 
             {/* Project Location */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Project Location <span className="text-red-500">*</span>
               </label>
               <input
@@ -532,7 +532,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.location
                     ? "border-red-500"
                     : "border-gray-300"
@@ -549,7 +549,7 @@ const ProjectFormModal = ({
 
             {/* Assign Site Engineer */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Assign Site Engineer{" "}
                 {!project.id && <span className="text-red-500">*</span>}
               </label>
@@ -564,7 +564,7 @@ const ProjectFormModal = ({
                     });
                   }
                 }}
-                className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
                   validationErrors.assignedEmployee
                     ? "border-red-500"
                     : "border-gray-300"
@@ -599,10 +599,10 @@ const ProjectFormModal = ({
 
             {/* Upload 3D Design File */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Upload 3D Design File (Optional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-blue-500 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-yellow-500 transition-colors">
                 {!filePreview ? (
                   <label className="cursor-pointer block">
                     <input
@@ -653,7 +653,7 @@ const ProjectFormModal = ({
 
             {/* Project Description */}
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Project Description
               </label>
               <textarea
@@ -662,7 +662,7 @@ const ProjectFormModal = ({
                 onChange={(e) =>
                   onChange({ ...project, description: e.target.value })
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
+                className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
                 placeholder="Describe the project..."
                 disabled={loading}
               ></textarea>
@@ -680,7 +680,7 @@ const ProjectFormModal = ({
           </button>
           <button
             onClick={handleSubmit}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full sm:w-auto px-4 py-2 bg-yellow-600 text-white rounded-lg  disabled:bg-yellow-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             disabled={loading || (employees.length === 0 && !project.id)}
             type="button"
           >

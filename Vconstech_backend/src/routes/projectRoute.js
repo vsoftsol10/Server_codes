@@ -13,7 +13,8 @@ import {
 } from '../controllers/projectController.js';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddlewares.js';
 import { upload } from '../config/multerConfig.js';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';import { validateProjectCreate, validateProjectUpdate } from '../middlewares/projectMiddleware.js';
+
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -42,7 +43,7 @@ const checkProjectAccess = async (req, res, next) => {
     console.log('========================================');
 
     // ✅ ADMINS: Have access to ALL projects in their company
-    if (userRole === 'Admin') {
+    if (userRole === 'ADMIN') {
       const project = await prisma.project.findFirst({
         where: {
           id: projectId,
@@ -182,5 +183,9 @@ router.get('/:id/files/:fileId/download', checkProjectAccess, downloadProjectFil
 
 // Delete file - Admin (any project) or Assigned Engineer (only assigned projects)
 router.delete('/:id/files/:fileId', checkProjectAccess, deleteProjectFile);
+
+
+router.post('/', authorizeRole('Admin'), validateProjectCreate, createProject);
+router.put('/:id', authorizeRole('Admin'), validateProjectUpdate, updateProject);
 
 export default router;

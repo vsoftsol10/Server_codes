@@ -134,7 +134,7 @@ const ProjectCard = ({ project, onView, onEdit, onDelete, getStatusColor, getSta
 
   return (
     <>
-      <div className="p-3 sm:p-4 lg:p-6 hover:bg-gray-50 transition-colors">
+      <div className="p-3 sm:p-4 lg:p-6  hover:bg-gray-50 transition-colors">
         <div className="flex items-start justify-between mb-3 sm:mb-4">
           
           <div className="flex-1 min-w-0">
@@ -289,14 +289,14 @@ const ProjectCard = ({ project, onView, onEdit, onDelete, getStatusColor, getSta
         )}
 
         {/* Progress Section */}
-        <div className="mb-3 sm:mb-4 p-3 bg-yellow-100 rounded-lg border border-blue-100">
+        <div className="mb-3 sm:mb-4 p-3  rounded-lg border border-yellow-600">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1">
               <Percent className="w-3 h-3 sm:w-4 sm:h-4" />
               Actual Progress
             </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm sm:text-base font-bold text-black">{actualProgress}%</span>
+              <span className="text-sm sm:text-base  font-bold text-black">{actualProgress}%</span>
               {canUpdateProgress() && !showProgressSlider && (
                 <button
                   onClick={() => {

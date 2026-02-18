@@ -69,7 +69,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading daily updates...</p>
           </div>
         </div>
@@ -81,10 +81,10 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-yellow-300 to-yellow-400">
           <div>
             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <MessageSquare className="w-6 h-6 text-blue-600" />
+              <MessageSquare className="w-6 h-6 text-black-600" />
               Daily Progress Updates
             </h2>
             <p className="text-sm text-gray-600 mt-1">{projectName}</p>
@@ -104,7 +104,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
               <p className="text-red-600 mb-4">{error}</p>
               <button
                 onClick={fetchDailyUpdates}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700"
               >
                 Retry
               </button>
@@ -122,12 +122,12 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
               {updates.map((update) => (
                 <div
                   key={update.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors"
+                  className="border border-gray-200 rounded-lg overflow-hidden hover:border-yellow-300 transition-colors"
                 >
                   {/* Update Header */}
                   <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                      <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-semibold">
                         {update.engineers.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
                       <div>
@@ -145,7 +145,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
                     {(update.workDone || update.challenges || update.nextSteps) && (
                       <button
                         onClick={() => toggleExpand(update.id)}
-                        className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium flex items-center gap-1"
                       >
                         {expandedUpdate === update.id ? (
                           <>
@@ -188,7 +188,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
                         
                         {update.nextSteps && (
                           <div>
-                            <h4 className="text-xs font-semibold text-blue-700 uppercase mb-1">→ Next Steps</h4>
+                            <h4 className="text-xs font-semibold text-yellow-700 uppercase mb-1">→ Next Steps</h4>
                             <p className="text-gray-900 whitespace-pre-wrap">{update.nextSteps}</p>
                           </div>
                         )}

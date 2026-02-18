@@ -17,9 +17,11 @@ h1, h2, h3, .heading {
 
 body, p, span, .text {
   font-family: var(--font-body);
-  font-weight: 400;
+  font-weight: 600;
   line-height: 1.7;
 }
+
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);

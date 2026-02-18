@@ -464,33 +464,33 @@ const AddEngineers = () => {
                               )}
                             </div> */}
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium  text-gray-700">
                                 {engineer.name}
                               </div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm font-medium  text-gray-900">
                             {engineer.empId}
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm font-medium  text-gray-900">
                             {engineer.phone}
                           </div>
                           {engineer.alternatePhone && (
-                            <div className="text-sm text-gray-500">
+                            <div className="text-sm font-medium  text-gray-500">
                               {engineer.alternatePhone}
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 max-w-xs truncate">
+                          <div className="text-sm font-medium  text-gray-900 max-w-xs truncate">
                             {engineer.address}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold">
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => handleEdit(engineer)}

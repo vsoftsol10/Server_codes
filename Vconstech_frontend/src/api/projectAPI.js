@@ -197,18 +197,19 @@ updateProject: async (id, projectData, file = null) => {
   
   const result = await handleResponse(response);
   
-  if (file && result.project) {
-    try {
-      console.log('Uploading new file for project:', result.project.id);
-      await projectAPI.uploadFile(result.project.id, file);
-      console.log('File uploaded successfully');
-    } catch (err) {
-      console.error('File upload failed:', err);
-      throw new Error(`Project updated but file upload failed: ${err.error || err.message}`);
-    }
+  if (file) {
+  const projectId = result.project?.id || id; // fallback to the id param
+  try {
+    console.log('Uploading new file for project:', projectId);
+    await projectAPI.uploadFile(projectId, file);
+    console.log('File uploaded successfully');
+  } catch (err) {
+    console.error('File upload failed:', err);
+    throw new Error(`Project updated but file upload failed: ${err.error || err.message}`);
   }
-  
-  return result;
+}
+
+return result;
 },
 
   // Update project status

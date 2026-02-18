@@ -35,11 +35,11 @@ const RecentFiles = ({
           {recentFiles.map((file) => (
             <div 
               key={file.id} 
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors cursor-pointer"
+              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-yellow-300 transition-colors cursor-pointer"
               onClick={() => onViewFile(file)}
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-2 bg-blue-100 rounded text-2xl flex-shrink-0">
+                <div className="p-2 bg-yellow-100 rounded text-2xl flex-shrink-0">
                   {getFileIcon(file.fileName)}
                 </div>
                 <div className="min-w-0 flex-1">

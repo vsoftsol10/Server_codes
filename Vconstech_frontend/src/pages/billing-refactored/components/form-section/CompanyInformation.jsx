@@ -9,9 +9,9 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
   useEffect(() => {
     // Only fetch if we haven't fetched yet and company fields are empty or have invalid values
     const hasInvalidData = 
-      !formData.companyName || 
-      formData.companyName === '0' || 
-      formData.companyName === 0 ||
+  !formData.adminCompanyName ||    // ← CHANGE THIS
+  formData.adminCompanyName === '0' || 
+  formData.adminCompanyName === 0 ||
       !formData.companyEmail || 
       formData.companyEmail === '0' ||
       formData.companyEmail === 0;
@@ -47,7 +47,7 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
       if (data.success && data.user) {
         // Update formData with fetched company information
         const companyData = {
-          companyName: data.user.company?.name || '',
+          adminCompanyName: data.user.company?.name || '',
           companyGST: data.user.gstNumber || '',
           companyAddress: data.user.address || '',
           companyPhone: data.user.phoneNumber || '',
@@ -55,18 +55,12 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
         };
 
         // Call handleInputChange for each field to update parent state
-        Object.keys(companyData).forEach((key) => {
-          // Only update if the current value is invalid
-          const currentValue = formData[key];
-          if (!currentValue || currentValue === '0' || currentValue === 0) {
-            handleInputChange({
-              target: {
-                name: key,
-                value: companyData[key],
-              },
-            });
-          }
-        });
+        Object.entries(companyData).forEach(([key, value]) => {
+  const currentValue = formData[key];
+  if (!currentValue || currentValue === '0' || currentValue === 0) {
+    handleInputChange({ target: { name: key, value } });
+  }
+});
       } else {
         setFetchError('Failed to load company information');
       }
@@ -117,8 +111,8 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
           </label>
           <input
             type="text"
-            name="companyName"
-            value={displayValue(formData.companyName)}
+            name="adminCompanyName"
+            value={formData.adminCompanyName}
             onChange={handleInputChange}
             placeholder="Your Company Name"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"

@@ -44,7 +44,7 @@ const EmployeeRequestTab = ({ requests }) => {
             </div>
           ) : (
             requests.map(request => (
-              <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+              <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:border-yellow-300 transition-colors">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">

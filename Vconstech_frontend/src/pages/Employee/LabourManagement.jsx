@@ -546,7 +546,7 @@ const LabourManagement = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openViewPaymentsModal(labour)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            className="p-2 text-black hover:bg-yellow-50 rounded-lg transition"
                             title="View Payments"
                           >
                             <Eye size={18} />

@@ -89,11 +89,11 @@ const BillSummary = ({
           </div>
         )}
         {formData.advancePaid > 0 && (
-          <div className="flex justify-between text-red-600">
-            <span className="pl-4">- Advance Paid:</span>
-            <span>₹ {parseFloat(formData.advancePaid).toFixed(2)}</span>
-          </div>
-        )}
+  <div className={`flex justify-between ${activeTab === 'quotation' ? 'text-green-600' : 'text-red-600'}`}>
+    <span className="pl-4">{activeTab === 'quotation' ? '+ Advance to be Paid:' : '- Advance Paid:'}</span>
+    <span>₹ {parseFloat(formData.advancePaid).toFixed(2)}</span>
+  </div>
+)}
         {formData.previousBills > 0 && activeTab === 'invoice' && (
           <div className="flex justify-between text-green-600">
             <span className="pl-4">+ Previous Bills:</span>

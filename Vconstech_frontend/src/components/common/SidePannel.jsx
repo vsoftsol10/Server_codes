@@ -239,7 +239,7 @@ const SidePannel = () => {
                     <button
                       key={subIndex}
                       onClick={() => handleSubmenuClick(index, subItem.path)}
-                      className={`flex items-center justify-center py-3 pl-10 md:pl-16 pr-3 md:pr-6 gap-2 md:gap-3 transition-colors duration-200 text-left cursor-pointer w-full 
+                      className={`flex items-center  py-3 pl-10 md:pl-12 pr-3 md:pr-6 gap-2 md:gap-3 transition-colors duration-200 text-left cursor-pointer w-full 
           ${
             location.pathname === subItem.path
               ? "bg-[#ffbe2a]/50 text-black font-semibold border-l-4 border-black"

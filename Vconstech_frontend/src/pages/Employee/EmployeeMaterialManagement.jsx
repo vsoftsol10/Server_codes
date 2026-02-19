@@ -557,7 +557,7 @@ const EmployeeMaterialManagement = () => {
                         key={notif.id}
                         onClick={() => markNotificationAsRead(notif.id)}
                         className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notif.read ? 'bg-blue-50' : ''
+                          !notif.read ? 'bg-yellow-50' : ''
                         }`}
                       >
                         <div className="flex items-start gap-2">
@@ -589,10 +589,10 @@ const EmployeeMaterialManagement = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+              className={`py-4 px-2 border-b-2 font-bold text-x transition-colors ${
                 activeTab === tab
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-yellow-600 text-yellow-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-yellow-300'
               }`}
             >
               {tab === 'my-requests' ? 'My Requests' : tab.charAt(0).toUpperCase() + tab.slice(1)}

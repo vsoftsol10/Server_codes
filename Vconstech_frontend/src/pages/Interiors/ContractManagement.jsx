@@ -163,13 +163,14 @@ export default function ContractManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16">
+       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <Navbar />
       </nav>
 
-      <aside className="bg-ambefixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
         <SidePannel />
       </aside>
+
 
       <div className="pt-25 pl-16 md:pl-64">
         <div className="p-4 sm:p-6 lg:p-8">

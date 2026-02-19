@@ -74,12 +74,10 @@ export const printBill = (bill) => {
   const tds = (totalWithTax * tdsPercent) / 100;
   const retention = (totalWithTax * retentionPercent) / 100;
 
-  const netPayable =
-    totalWithTax -
-    tds -
-    retention -
-    Number(bill?.advancePaid || 0) +
-    Number(bill?.previousBills || 0);
+  const advance = Number(bill?.advancePaid || 0);
+const netPayable = billType === 'quotation'
+  ? totalWithTax - tds - retention + advance + Number(bill?.previousBills || 0)
+  : totalWithTax - tds - retention - advance + Number(bill?.previousBills || 0);
 
   printWindow.document.write(`
     <!DOCTYPE html>
@@ -559,25 +557,25 @@ export const printBill = (bill) => {
           ${billType === 'invoice' ? `
             ${tdsPercent > 0 ? `
               <tr style="color: #d32f2f;">
-                <td class="label">Less: TDS (${tdsPercent}%)</td>
+                <td class="label">TDS (${tdsPercent}%)</td>
                 <td class="value">- ₹ ${tds.toFixed(2)}</td>
               </tr>
             ` : ''}
             ${retentionPercent > 0 ? `
               <tr style="color: #d32f2f;">
-                <td class="label">Less: Retention (${retentionPercent}%)</td>
+                <td class="label">Retention (${retentionPercent}%)</td>
                 <td class="value">- ₹ ${retention.toFixed(2)}</td>
               </tr>
             ` : ''}
             ${bill.advancePaid > 0 ? `
               <tr style="color: #d32f2f;">
-                <td class="label">Less: Advance Paid</td>
+                <td class="label">Advance Paid</td>
                 <td class="value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td>
               </tr>
             ` : ''}
             ${bill.previousBills > 0 ? `
               <tr style="color: #2e7d32;">
-                <td class="label">Add: Previous Bills</td>
+                <td class="label">Previous Bills</td>
                 <td class="value">+ ₹ ${Number(bill.previousBills).toFixed(2)}</td>
               </tr>
             ` : ''}

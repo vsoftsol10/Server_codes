@@ -176,7 +176,7 @@ const rejectedCount = materialRequests.filter(r => r.status?.toLowerCase() === '
               <p className="text-sm text-gray-600 mt-1">{currentDate}</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+              <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-semibold">
                 {employeeName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
               </div>
             </div>

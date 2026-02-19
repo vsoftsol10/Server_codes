@@ -113,7 +113,7 @@ const Billing = () => {
       if (data.success && data.user) {
         setFormData((prev) => ({
           ...prev,
-          companyName: data.user.company?.name || '',
+          adminCompanyName: data.user.company?.name || '',
           companyGST: data.user.gstNumber || '',
           companyAddress: data.user.address || '',
           companyPhone: data.user.phoneNumber || '',

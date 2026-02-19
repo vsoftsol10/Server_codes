@@ -22,7 +22,7 @@ const SuperNav = () => {
     setShowLogoutModal(false);
     
     // Navigate and reload
-    navigate("/");
+    navigate("/SuperAdmin/login");
     window.location.reload();
   };
 

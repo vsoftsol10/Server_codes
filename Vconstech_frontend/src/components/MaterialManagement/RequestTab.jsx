@@ -222,7 +222,7 @@ const RequestTab = () => {
                 onClick={() => setRequestStatusFilter(status)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                   requestStatusFilter === status
-                    ? "bg-blue-600 text-white"
+                    ? "bg-yellow-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -233,15 +233,15 @@ const RequestTab = () => {
         </div>
         
         {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <table className="min-w-full text-sm divide-y divide-gray-200">
+        <div className="hidden lg:block mx-2 overflow-x-auto">
+          <table className="min-w-full  divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 {["Engineer", "Project Name", "Material Requested", "Quantity", "Status", "Action"].map(
                   (header) => (
                     <th
                       key={header}
-                      className="px-4 lg:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider text-xs whitespace-nowrap"
+                      className="px-4 lg:px-6 py-3 text-left bg-yellow-500 font-sans text-black uppercase tracking-wider text-x whitespace-nowrap"
                     >
                       {header}
                     </th>
@@ -252,7 +252,7 @@ const RequestTab = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-4 lg:px-6 py-8 text-center text-gray-500 text-sm">
+                  <td colSpan="6" className="px-4 lg:px-6 py-8 text-center  text-gray-500 text-sm">
                     Loading...
                   </td>
                 </tr>
@@ -271,16 +271,16 @@ const RequestTab = () => {
                     key={request.id}
                     className="hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 font-medium text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.employee?.name || 'N/A'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.project?.name || request.projectName || 'N/A'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.name}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 whitespace-nowrap text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-600 font-medium whitespace-nowrap text-sm">
                       {request.quantity || 'N/A'} {request.unit}
                     </td>
                     <td className="px-4 lg:px-6 py-3">

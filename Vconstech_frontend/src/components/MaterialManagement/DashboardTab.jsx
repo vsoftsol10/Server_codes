@@ -277,24 +277,24 @@ const DashboardTab = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
-              <thead className="bg-gray-50">
+              <thead className="bg-yellow-500">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     Project
                   </th>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     Material
                   </th>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     Quantity
                   </th>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     User
                   </th>
-                  <th className="px-4 sm:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 sm:px-6 py-3 text-left font-bold text-black uppercase tracking-wider">
                     Remarks
                   </th>
                 </tr>
@@ -305,19 +305,19 @@ const DashboardTab = () => {
                     key={log.id}
                     className="hover:bg-gray-50 transition-colors duration-200"
                   >
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-900">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600">
                       {new Date(log.date).toLocaleDateString()}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-900">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600">
                       {log.projectName}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-900">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600">
                       {log.materialName}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-900">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600">
                       {log.quantity} {log.unit}
                     </td>
-                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-700">
+                    <td className="px-4 sm:px-6 py-3 whitespace-nowrap text-gray-600">
                       {log.userName}
                     </td>
                     <td className="px-4 sm:px-6 py-3 text-gray-600 break-words max-w-[200px]">

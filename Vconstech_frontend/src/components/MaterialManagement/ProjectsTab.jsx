@@ -288,7 +288,7 @@ const ProjectsTab = () => {
                 }}
                 onFocus={() => setIsDropdownOpen(true)}
                 placeholder={selectedProjectData ? `${selectedProjectData.name} - ${selectedProjectData.status}` : "Search projects..."}
-                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg  focus:border-transparent text-sm"
               />
               <svg
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none"
@@ -306,8 +306,8 @@ const ProjectsTab = () => {
                       <div
                         key={project.id}
                         onClick={() => handleProjectSelect(project.id)}
-                        className={`px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0 ${
-                          project.id === selectedProject ? "bg-blue-100" : ""
+                        className={`px-3 sm:px-4 py-2.5 sm:py-3 cursor-pointer hover:bg-yellow-50 transition-colors border-b border-gray-100 last:border-b-0 ${
+                          project.id === selectedProject ? "bg-yellow-50" : ""
                         }`}
                       >
                         <div className="flex items-center justify-between">
@@ -316,7 +316,7 @@ const ProjectsTab = () => {
                             <div className="text-xs text-gray-500 mt-0.5">{project.status}</div>
                           </div>
                           {project.id === selectedProject && (
-                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 ml-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           )}
@@ -360,7 +360,7 @@ const ProjectsTab = () => {
                 onClick={() => setStatusFilter(status)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
                   statusFilter === status
-                    ? "bg-blue-600 text-white"
+                    ? "bg-yellow-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -374,10 +374,10 @@ const ProjectsTab = () => {
           <table className="min-w-full text-sm divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Project Name", "Material", "Assigned", "Used", "Cost", "Status"].map((header) => (
+                {["Project Name", "Material", "Assigned", "Used", "Cost", ].map((header) => (
                   <th
                     key={header}
-                    className="px-4 lg:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider text-xs whitespace-nowrap"
+                    className="px-4 lg:px-6 py-3 text-left bg-yellow-500 font-bold text-black uppercase tracking-wider text-xs whitespace-nowrap"
                   >
                     {header}
                   </th>
@@ -400,22 +400,22 @@ const ProjectsTab = () => {
               ) : (
                 filteredProjectMaterials.map((pm) => (
                   <tr key={pm.id} className="hover:bg-gray-50 transition-colors duration-200">
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 font-medium text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 font-medium text-sm">
                       {pm.project?.name || 'N/A'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 text-sm">
                       {pm.material?.name || 'N/A'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 whitespace-nowrap text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 whitespace-nowrap text-sm">
                       {pm.assigned} {pm.material?.unit}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 whitespace-nowrap text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 whitespace-nowrap text-sm">
                       {pm.used} {pm.material?.unit}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 font-semibold whitespace-nowrap text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 font-semibold whitespace-nowrap text-sm">
                       ₹{((pm.material?.defaultRate || 0) * pm.used).toLocaleString()}
                     </td>
-                    <td className="px-4 lg:px-6 py-3">
+                    {/* <td className="px-4 lg:px-6 py-3">
                       <span
                         className={`inline-block px-2.5 py-1 text-xs font-medium rounded-full whitespace-nowrap ${
                           pm.status === "ACTIVE"
@@ -429,7 +429,7 @@ const ProjectsTab = () => {
                       >
                         {pm.status === "NOT_USED" ? "Not Used" : pm.status}
                       </span>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               )}
@@ -510,7 +510,7 @@ const ProjectsTab = () => {
                 {["Material Name", "Category", "Unit", "Default Rate", "Description"].map((header) => (
                   <th
                     key={header}
-                    className="px-4 lg:px-6 py-3 text-left font-medium text-gray-500 uppercase tracking-wider text-xs whitespace-nowrap"
+                    className="px-4 lg:px-6 py-3 text-left font-bold bg-yellow-500 text-black uppercase tracking-wider text-xs whitespace-nowrap"
                   >
                     {header}
                   </th>
@@ -533,19 +533,19 @@ const ProjectsTab = () => {
               ) : (
                 materials.map((material) => (
                   <tr key={material.id} className="hover:bg-gray-50 transition-colors duration-200">
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 font-medium text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 font-medium text-sm">
                       {material.name}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 text-sm">
                       {material.category || 'N/A'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 text-sm">
                       {material.unit}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-900 font-semibold whitespace-nowrap text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500  whitespace-nowrap text-sm">
                       ₹{material.defaultRate?.toLocaleString() || '0'}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 text-gray-600 text-sm">
+                    <td className="px-4 lg:px-6 py-3 text-gray-500 text-sm">
                       {material.description || 'No description'}
                     </td>
                   </tr>

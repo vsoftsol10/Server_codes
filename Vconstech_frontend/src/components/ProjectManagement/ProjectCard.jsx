@@ -217,7 +217,7 @@ const ProjectCard = ({ project, onView, onEdit, onDelete, getStatusColor, getSta
                 <button
                   onClick={loadBreakdown}
                   disabled={loadingBreakdown}
-                  className="text-blue-600 hover:text-blue-700 transition-colors"
+                  className="text-yellow-900 hover:text-yellow-700 transition-colors"
                   title="View spending breakdown"
                 >
                   <PieChart className="w-3 h-3" />
@@ -362,7 +362,7 @@ const ProjectCard = ({ project, onView, onEdit, onDelete, getStatusColor, getSta
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button onClick={() => onView(project)} className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+          <button onClick={() => onView(project)} className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-black hover:bg-gray-100 rounded-lg transition-colors">
             <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden xs:inline">View</span>
           </button>

@@ -65,12 +65,20 @@ export const useBillingActions = ({
   };
 
   // Handle input changes
+const numericFields = [
+  'labourCharges', 'transportCharges', 'otherCharges',
+  'cgst', 'sgst', 'igst', 'tds', 'retention', 
+  'advancePaid', 'previousBills', 'quoteNumber'
+];
+
 const handleInputChange = (e) => {
   const { name, value } = e.target;
   
   setFormData(prev => ({
     ...prev,
-    [name]: value === '' ? 0 : parseFloat(value) || 0
+    [name]: numericFields.includes(name)
+      ? (value === '' ? 0 : parseFloat(value) || 0)
+      : value  // text fields stay as strings
   }));
 };
 
@@ -194,14 +202,18 @@ const handleInputChange = (e) => {
   };
 
   const calculateNetPayable = () => {
-    const total = calculateTotalWithTax();
-    const tds = calculateTDS();
-    const retention = calculateRetention();
-    const advance = parseFloat(formData.advancePaid || 0);
-    const previous = parseFloat(formData.previousBills || 0);
-    
-    return total - tds - retention - advance + previous;
-  };
+  const total = calculateTotalWithTax();
+  const tds = calculateTDS();
+  const retention = calculateRetention();
+  const advance = parseFloat(formData.advancePaid || 0);
+  const previous = parseFloat(formData.previousBills || 0);
+
+  if (formData.billType === 'quotation') {
+    return total - tds - retention + advance + previous; // ← advance ADDED
+  } else {
+    return total - tds - retention - advance + previous; // ← advance SUBTRACTED
+  }
+};
 
   // Generate bill
   const handleGenerateBill = async (isDraft = false) => {
@@ -287,49 +299,50 @@ const handleInputChange = (e) => {
 
   // Reset form
   const resetForm = () => {
-    setFormData({
-      billType: activeTab,
-      billNumber: "",
-      billDate: "",
-      dueDate: "",
-      companyName: "",
-      companyAddress: "",
-      companyGST: "",
-      companyPhone: "",
-      companyEmail: "",
-      clientName: "",
-      clientAddress: "",
-      clientGST: "",
-      clientPhone: "",
-      clientEmail: "",
-      projectName: "",
-      projectLocation: "",
-      workOrderNo: "",
-      items: [{ 
-        sno: 1,
-        description: "", 
-        HSN: 0,
-        unit: "Nos", 
-        quantity: 0, 
-        rate: 0, 
-        amount: 0 
-      }],
-      labourCharges: 0,
-      transportCharges: 0,
-      otherCharges: 0,
-      otherChargesDescription: "",
-      cgst: 9,
-      sgst: 9,
-      igst: 0,
-      tds: 2,
-      retention: 0,
-      advancePaid: 0,
-      previousBills: 0,
-      remarks: "",
-      termsAndConditions: "",
-      status: "SENT",
-    });
-  };
+  setFormData(prev => ({
+    billType: activeTab,
+    billNumber: "",
+    billDate: "",
+    dueDate: "",
+    adminCompanyName: prev.adminCompanyName,  // ← CHANGED (preserve admin)
+    companyAddress: prev.companyAddress,
+    companyGST: prev.companyGST,
+    companyPhone: prev.companyPhone,
+    companyEmail: prev.companyEmail,
+    clientName: "",
+    clientAddress: "",
+    clientGST: "",
+    clientPhone: "",
+    clientEmail: "",
+    companyName: "",                          // ← reset client's company
+    projectName: "",
+    projectLocation: "",
+    workOrderNo: "",
+    items: [{ 
+      sno: 1,
+      description: "", 
+      HSN: 0,
+      unit: "Nos", 
+      quantity: 0, 
+      rate: 0, 
+      amount: 0 
+    }],
+    labourCharges: 0,
+    transportCharges: 0,
+    otherCharges: 0,
+    otherChargesDescription: "",
+    cgst: 9,
+    sgst: 9,
+    igst: 0,
+    tds: 2,
+    retention: 0,
+    advancePaid: 0,
+    previousBills: 0,
+    remarks: "",
+    termsAndConditions: "",
+    status: "SENT",
+  }));
+};
 
   // Edit bill
   const handleEditBill = (bill) => {

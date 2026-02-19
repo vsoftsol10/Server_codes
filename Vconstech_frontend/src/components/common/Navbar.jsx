@@ -300,7 +300,7 @@ const Navbar = () => {
                       ) : (
                         <div className="divide-y divide-gray-100">
                           {notifications.map((n) => (
-                            <div key={n.id} className={`p-4 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-blue-50' : ''}`}>
+                            <div key={n.id} className={`p-4 hover:bg-gray-50 transition-colors ${!n.read ? 'bg-yellow-50' : ''}`}>
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm ${!n.read ? 'font-semibold' : ''} text-slate-900`}>{n.message}</p>

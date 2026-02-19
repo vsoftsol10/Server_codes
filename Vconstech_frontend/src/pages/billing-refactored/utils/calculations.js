@@ -15,7 +15,12 @@ export const calculateTaxAmount = (grossAmount, taxRate) => {
   return (grossAmount * parseFloat(taxRate || 0)) / 100;
 };
 
-export const calculateNetPayable = (totalWithTax, deductions) => {
+export const calculateNetPayable = (totalWithTax, deductions, billType) => {
   const { tds, retention, advancePaid, previousBills } = deductions;
-  return totalWithTax - tds - retention - advancePaid + (previousBills || 0);
+  
+  const advance = parseFloat(advancePaid || 0);
+  
+  return billType === 'quotation'
+    ? totalWithTax - tds - retention + advance + (previousBills || 0)  // ← added for quotation
+    : totalWithTax - tds - retention - advance + (previousBills || 0); // ← subtracted for invoice
 };

@@ -84,67 +84,67 @@ const ProjectManagement = () => {
     }
   };
   const loadProjects = async () => {
-  try {
-    setLoading(true);
-    setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-    console.log("🔄 Fetching projects at:", new Date().toISOString());
+      console.log("🔄 Fetching projects at:", new Date().toISOString());
 
-    const enrichedProjects =
-      await costCalculationService.getAllProjectsWithSpent();
+      const enrichedProjects =
+        await costCalculationService.getAllProjectsWithSpent();
 
-    console.log("📦 Received enriched projects:", enrichedProjects.length);
-    console.log("📦 First project sample:", enrichedProjects[0]); // ✅ Add this to see the structure
+      console.log("📦 Received enriched projects:", enrichedProjects.length);
+      console.log("📦 First project sample:", enrichedProjects[0]); // ✅ Add this to see the structure
 
-    // Transform data to match frontend format
-    const transformedProjects = enrichedProjects.map((project) => {
-      console.log(`📋 Project ${project.projectId} - DB ID: ${project.id}`); // ✅ Add this
-      
-      return {
-        id: project.projectId,
-        dbId: project.id, // ✅ This is the database ID
-        name: project.name,
-        client: project.clientName,
-        type: project.projectType,
-        status: transformStatus(project.status),
-        progress: project.actualProgress || 0,
-        budget: project.budget || 0,
-        spent: project.spent || 0,
-        spentBreakdown: project.spentBreakdown,
-        startDate: project.startDate
-          ? new Date(project.startDate).toISOString().split("T")[0]
-          : "",
-        endDate: project.endDate
-          ? new Date(project.endDate).toISOString().split("T")[0]
-          : "",
-        location: project.location || "",
-        team: project.assignedEngineer ? [project.assignedEngineer.name] : [],
-        assignedEmployee: project.assignedEngineer
-          ? project.assignedEngineer.id.toString()
-          : "",
-        assignedEngineerName: project.assignedEngineer
-          ? project.assignedEngineer.name
-          : "",
-        assignedEngineerEmpId: project.assignedEngineer
-          ? project.assignedEngineer.empId
-          : "",
-        tasks: {
-          total: project._count?.materialUsed || 0,
-          completed: 0,
-        },
-        description: project.description || "",
-      };
-    });
+      // Transform data to match frontend format
+      const transformedProjects = enrichedProjects.map((project) => {
+        console.log(`📋 Project ${project.projectId} - DB ID: ${project.id}`); // ✅ Add this
 
-    console.log("✅ Setting projects with real calculated spent");
-    setProjects(transformedProjects);
-  } catch (err) {
-    console.error("Failed to load projects:", err);
-    setError(err.error || "Failed to load projects");
-  } finally {
-    setLoading(false);
-  }
-};
+        return {
+          id: project.projectId,
+          dbId: project.id, // ✅ This is the database ID
+          name: project.name,
+          client: project.clientName,
+          type: project.projectType,
+          status: transformStatus(project.status),
+          progress: project.actualProgress || 0,
+          budget: project.budget || 0,
+          spent: project.spent || 0,
+          spentBreakdown: project.spentBreakdown,
+          startDate: project.startDate
+            ? new Date(project.startDate).toISOString().split("T")[0]
+            : "",
+          endDate: project.endDate
+            ? new Date(project.endDate).toISOString().split("T")[0]
+            : "",
+          location: project.location || "",
+          team: project.assignedEngineer ? [project.assignedEngineer.name] : [],
+          assignedEmployee: project.assignedEngineer
+            ? project.assignedEngineer.id.toString()
+            : "",
+          assignedEngineerName: project.assignedEngineer
+            ? project.assignedEngineer.name
+            : "",
+          assignedEngineerEmpId: project.assignedEngineer
+            ? project.assignedEngineer.empId
+            : "",
+          tasks: {
+            total: project._count?.materialUsed || 0,
+            completed: 0,
+          },
+          description: project.description || "",
+        };
+      });
+
+      console.log("✅ Setting projects with real calculated spent");
+      setProjects(transformedProjects);
+    } catch (err) {
+      console.error("Failed to load projects:", err);
+      setError(err.error || "Failed to load projects");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Transform backend status to frontend format
   const transformStatus = (status) => {
@@ -243,7 +243,7 @@ const ProjectManagement = () => {
       !newProject.assignedEmployee
     ) {
       throw new Error(
-        "Please fill in all required fields (Name, ID, Client, Location, and Site Engineer)"
+        "Please fill in all required fields (Name, ID, Client, Location, and Site Engineer)",
       );
     }
 
@@ -277,75 +277,78 @@ const ProjectManagement = () => {
       alert(
         `Failed to create project: ${
           err.message || err.error || "Unknown error"
-        }`
+        }`,
       );
       throw err; // Re-throw so the modal can handle it
     }
   };
 
-const handleEditProject = (project) => {
-  // Transform project data for editing - include progress
-  const editData = {
-    ...project,
-    client: project.client,
-    status: project.status,
-    progress: project.progress || 0, // ✅ Ensure progress is included with default value
-  };
-  setEditingProject(editData);
-  setShowEditModal(true);
-};
-  const handleUpdateProject = async (file) => {
-  if (!editingProject.name || !editingProject.client) {
-    throw new Error("Please fill in all required fields");
-  }
-
-  try {
-    console.log("🔍 Editing project:", editingProject); // ✅ Add this debug log
-    console.log("🔍 Database ID being sent:", editingProject.dbId); // ✅ Add this debug log
-    
-    // ✅ Build projectData object, only include progress if it exists
-    const projectData = {
-      name: editingProject.name,
-      client: editingProject.client,
-      type: editingProject.type,
-      budget: editingProject.budget,
-      quotationAmount: editingProject.quotationAmount,
-      startDate: editingProject.startDate,
-      endDate: editingProject.endDate,
-      location: editingProject.location,
-      assignedEmployee: editingProject.assignedEmployee,
-      description: editingProject.description,
-      status: editingProject.status
-        ? transformStatusToBackend(editingProject.status)
-        : undefined,
+  const handleEditProject = (project) => {
+    // Transform project data for editing - include progress
+    const editData = {
+      ...project,
+      client: project.client,
+      status: project.status,
+      progress: project.progress || 0, // ✅ Ensure progress is included with default value
     };
-
-    // ✅ Only include progress if it's defined and valid
-    if (editingProject.progress !== undefined && editingProject.progress !== null) {
-      projectData.progress = editingProject.progress;
+    setEditingProject(editData);
+    setShowEditModal(true);
+  };
+  const handleUpdateProject = async (file) => {
+    if (!editingProject.name || !editingProject.client) {
+      throw new Error("Please fill in all required fields");
     }
 
-    console.log("📤 Updating project with data:", projectData);
+    try {
+      console.log("🔍 Editing project:", editingProject); // ✅ Add this debug log
+      console.log("🔍 Database ID being sent:", editingProject.dbId); // ✅ Add this debug log
 
-    await projectAPI.updateProject(editingProject.dbId, projectData, file);
+      // ✅ Build projectData object, only include progress if it exists
+      const projectData = {
+        name: editingProject.name,
+        client: editingProject.client,
+        type: editingProject.type,
+        budget: editingProject.budget,
+        quotationAmount: editingProject.quotationAmount,
+        startDate: editingProject.startDate,
+        endDate: editingProject.endDate,
+        location: editingProject.location,
+        assignedEmployee: editingProject.assignedEmployee,
+        description: editingProject.description,
+        status: editingProject.status
+          ? transformStatusToBackend(editingProject.status)
+          : undefined,
+      };
 
-    await loadProjects();
+      // ✅ Only include progress if it's defined and valid
+      if (
+        editingProject.progress !== undefined &&
+        editingProject.progress !== null
+      ) {
+        projectData.progress = editingProject.progress;
+      }
 
-    setShowEditModal(false);
-    setSelectedProject(null);
-    setEditingProject(null);
+      console.log("📤 Updating project with data:", projectData);
 
-    alert("Project updated successfully!");
-  } catch (err) {
-    console.error("❌ Update failed:", err);
-    throw err;
-  }
-};
+      await projectAPI.updateProject(editingProject.dbId, projectData, file);
+
+      await loadProjects();
+
+      setShowEditModal(false);
+      setSelectedProject(null);
+      setEditingProject(null);
+
+      alert("Project updated successfully!");
+    } catch (err) {
+      console.error("❌ Update failed:", err);
+      throw err;
+    }
+  };
 
   const handleDeleteProject = async (projectId) => {
     if (
       !window.confirm(
-        "Are you sure you want to delete this project? This action cannot be undone."
+        "Are you sure you want to delete this project? This action cannot be undone.",
       )
     ) {
       return;
@@ -568,17 +571,17 @@ const handleEditProject = (project) => {
               ) : (
                 filteredProjects.map((project) => (
                   <ProjectCard
-  key={project.id}
-  project={project}
-  onView={setSelectedProject}
-  onEdit={handleEditProject}
-  onDelete={handleDeleteProject}
-  getStatusColor={getStatusColor}
-  getStatusIcon={getStatusIcon}
-  onStatusChange={handleStatusChangeInline}
-  onProgressUpdate={handleProgressUpdate}
-  onDownloadReport={handleDownloadReport}  // ✅ Add this line
-/>
+                    key={project.id}
+                    project={project}
+                    onView={setSelectedProject}
+                    onEdit={handleEditProject}
+                    onDelete={handleDeleteProject}
+                    getStatusColor={getStatusColor}
+                    getStatusIcon={getStatusIcon}
+                    onStatusChange={handleStatusChangeInline}
+                    onProgressUpdate={handleProgressUpdate}
+                    onDownloadReport={handleDownloadReport} // ✅ Add this line
+                  />
                 ))
               )}
             </div>

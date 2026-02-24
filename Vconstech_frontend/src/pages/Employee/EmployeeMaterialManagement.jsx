@@ -1,268 +1,49 @@
-import { useState, useEffect } from 'react';
-import { Bell, Download } from 'lucide-react';
-import EmployeeMaterialsTab from '../../components/Employee/EmployeeMaterial/EmployeeMaterialsTab';
-import EmployeeProjectsTab from '../../components/Employee/EmployeeMaterial/EmployeeProjectsTab';
-import EmployeeRequestTab from '../../components/Employee/EmployeeMaterial/EmployeeRequestTab';
-import EmployeeModalMaterial from '../../components/Employee/EmployeeMaterial/EmployeeModalMaterial';
-import EmployeeMaterialForm from '../../components/Employee/EmployeeMaterial/EmployeeMaterialForm';
-import EmployeeNavbar from '../../components/Employee/EmployeeNavbar';
+import { useState } from "react";
+import EmployeeMaterialsTab from "../../components/Employee/EmployeeMaterial/EmployeeMaterialsTab";
+import EmployeeProjectsTab from "../../components/Employee/EmployeeMaterial/EmployeeProjectsTab";
+import EmployeeRequestTab from "../../components/Employee/EmployeeMaterial/EmployeeRequestTab";
+import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
+import { materialRequestAPI, usageLogAPI, notificationAPI } from "../../api/materialService";
 
-// Import API services
-import {
-  materialAPI,
-  projectMaterialAPI,
-  materialRequestAPI,
-  usageLogAPI,
-  notificationAPI,
-  projectAPI
-} from '../../api/materialService';
+import useEmployeeMaterialData from "../../hooks/Useemployeematerialdata";
+import NotificationsDropdown from "../../components/Employee/EmployeeMaterial/NotificationsDropdown";
+import AddMaterialModal from "../../components/Employee/EmployeeMaterial/AddMaterialModal";
+import AddProjectMaterialModal from "../../components/Employee/EmployeeMaterial/AddProjectMaterialModal";
+import LogUsageModal from "../../components/Employee/EmployeeMaterial/LogUsageModal";
+
+const TABS = ["materials", "projects", "my-requests"];
 
 const EmployeeMaterialManagement = () => {
-  // State management
-  const [materials, setMaterials] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [projectMaterials, setProjectMaterials] = useState([]);
-  const [usageLogs, setUsageLogs] = useState([]);
-  const [materialRequests, setMaterialRequests] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [categories, setCategories] = useState(['All']);
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  const [activeTab, setActiveTab] = useState('materials');
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All');
+  const {
+    materials, projects, usageLogs, materialRequests, notifications,
+    categories, selectedProject, setSelectedProject, loading, setLoading, error,
+    fetchProjectMaterials, fetchUsageLogs, fetchMaterialRequests, fetchNotifications,
+    getProjectMaterialsWithDetails, unreadCount, getSelectedMaterialRemaining,
+  } = useEmployeeMaterialData();
+
+  const [activeTab, setActiveTab] = useState("materials");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("All");
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [showAddProjectMaterial, setShowAddProjectMaterial] = useState(false);
   const [showUsageLog, setShowUsageLog] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [requestType, setRequestType] = useState('GLOBAL');
 
-  const [newMaterial, setNewMaterial] = useState({
-    name: '',
-    category: 'Paint',
-    unit: 'piece',
-    defaultRate: '',
-    vendor: '',
-    description: '',
-    projectId: '',
-    quantity: ''
+  // ============ COMPUTED ============
+
+  const filteredMaterials = materials.filter((m) => {
+    const matchesSearch =
+      m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      m.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === "All" || m.category === filterCategory;
+    return matchesSearch && matchesCategory;
   });
-
-  const [newProjectMaterial, setNewProjectMaterial] = useState({
-    materialId: '',
-    assigned: '',
-    used: 0,
-    status: 'Active'
-  });
-
-  const [newUsageLog, setNewUsageLog] = useState({
-    date: new Date().toISOString().split('T')[0],
-    materialId: '',
-    quantity: '',
-    remarks: ''
-  });
-
-  // ============ DATA FETCHING ============
-  
-  // Fetch materials
-  const fetchMaterials = async () => {
-    try {
-      setLoading(true);
-      const response = await materialAPI.getAll();
-      setMaterials(response.materials || []);
-    } catch (err) {
-      console.error('Failed to fetch materials:', err);
-      setError('Failed to load materials');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch projects
-  const fetchProjects = async () => {
-    try {
-      const response = await projectAPI.getAll();
-      setProjects(response.projects || []);
-      if (response.projects?.length > 0 && !selectedProject) {
-        setSelectedProject(response.projects[0].id);
-      }
-    } catch (err) {
-      console.error('Failed to fetch projects:', err);
-    }
-  };
-
-  // Fetch categories
-  const fetchCategories = async () => {
-    try {
-      const response = await materialAPI.getCategories();
-      setCategories(['All', ...(response.categories || [])]);
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
-    }
-  };
-
-  // Fetch project materials
-  const fetchProjectMaterials = async (projectId) => {
-    if (!projectId) return;
-    
-    try {
-      const response = await projectMaterialAPI.getByProject(projectId);
-      setProjectMaterials(response.projectMaterials || []);
-    } catch (err) {
-      console.error('Failed to fetch project materials:', err);
-    }
-  };
-
-  // Fetch usage logs
-  const fetchUsageLogs = async (projectId) => {
-    if (!projectId) return;
-    
-    try {
-      const response = await usageLogAPI.getByProject(projectId);
-      setUsageLogs(response.usageLogs || []);
-    } catch (err) {
-      console.error('Failed to fetch usage logs:', err);
-    }
-  };
-
-  // Fetch material requests
-  const fetchMaterialRequests = async () => {
-    try {
-      const response = await materialRequestAPI.getMyRequests();
-      setMaterialRequests(response.requests || []);
-    } catch (err) {
-      console.error('Failed to fetch requests:', err);
-    }
-  };
-
-  // Fetch notifications
-  const fetchNotifications = async () => {
-    try {
-      const response = await notificationAPI.getAll();
-      setNotifications(response.notifications || []);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
-    }
-  };
-
-  // ============ EFFECTS ============
-  
-  // Initial data load
-  useEffect(() => {
-    fetchMaterials();
-    fetchProjects();
-    fetchCategories();
-    fetchMaterialRequests();
-    fetchNotifications();
-  }, []);
-
-  // Fetch project-specific data when project changes
-  useEffect(() => {
-    if (selectedProject) {
-      fetchProjectMaterials(selectedProject);
-      fetchUsageLogs(selectedProject);
-    }
-  }, [selectedProject]);
-
-  // ============ DOWNLOAD FUNCTIONALITY ============
-
-  const handleDownloadReport = async () => {
-  try {
-    const selectedProjectData = projects.find(p => p.id === selectedProject);
-    
-    // Debug: Check if we have usage logs
-    console.log('Usage logs:', usageLogs);
-    console.log('Selected project:', selectedProjectData);
-    
-    if (usageLogs.length === 0) {
-      alert('No usage logs found for this project. Please log some usage first.');
-      return;
-    }
-
-    // Prepare the data for the PDF
-    const reportData = {
-      projectName: selectedProjectData?.name || 'Unknown Project',
-      generatedDate: new Date().toLocaleDateString('en-IN'),
-      generatedTime: new Date().toLocaleTimeString('en-IN'),
-      usageLogs: usageLogs.map(log => {
-        const quantity = parseFloat(log.quantity) || 0;
-        const rate = parseFloat(log.material?.defaultRate) || 0;
-        const cost = quantity * rate;
-        
-        return {
-          date: new Date(log.date).toLocaleDateString('en-IN'),
-          materialName: log.material?.name || 'N/A',
-          category: log.material?.category || 'N/A',
-          quantity: quantity,
-          unit: log.material?.unit || 'unit',
-          rate: rate,
-          cost: cost,
-          remarks: log.remarks || '-'
-        };
-      }),
-      totalEntries: usageLogs.length,
-      grandTotal: usageLogs.reduce((total, log) => {
-        const quantity = parseFloat(log.quantity) || 0;
-        const rate = parseFloat(log.material?.defaultRate) || 0;
-        return total + (quantity * rate);
-      }, 0)
-    };
-
-    // Debug: Check the prepared data
-    console.log('Report data being sent:', reportData);
-
-    // Call the PDF API endpoint
-    const response = await fetch('http://localhost:5000/api/reports/usage-pdf', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(reportData)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Server error:', errorText);
-      throw new Error('Failed to generate PDF report');
-    }
-
-    // Get the PDF as a blob
-    const blob = await response.blob();
-    
-    // Create a download link
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${reportData.projectName.replace(/\s+/g, '_')}_Usage_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Cleanup
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    console.log('PDF report downloaded successfully');
-  } catch (error) {
-    console.error('Error downloading PDF report:', error);
-    alert('Failed to download PDF report. Please try again.');
-  }
-};
 
   // ============ HANDLERS ============
 
-  // Submit material request
-  const handleSubmitMaterialRequest = async () => {
+  const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     try {
       setLoading(true);
-      
-      console.log('🔍 Current requestType:', requestType);
-      console.log('🔍 Current newMaterial:', newMaterial);
-      
       const requestData = {
         name: newMaterial.name,
         category: newMaterial.category,
@@ -270,247 +51,197 @@ const EmployeeMaterialManagement = () => {
         defaultRate: parseFloat(newMaterial.defaultRate),
         vendor: newMaterial.vendor || null,
         description: newMaterial.description || null,
-        type: requestType, // This should be 'GLOBAL' or 'PROJECT'
-        projectId: requestType === 'PROJECT' ? parseInt(newMaterial.projectId) : null,
-        quantity: requestType === 'PROJECT' ? parseFloat(newMaterial.quantity) : null
+        type: requestType,
+        projectId: requestType === "PROJECT" ? parseInt(newMaterial.projectId) : null,
+        quantity: requestType === "PROJECT" ? parseFloat(newMaterial.quantity) : null,
       };
-
-      console.log('📤 Submitting request:', requestData);
-      const response = await materialRequestAPI.create(requestData);
-      console.log('✅ Request created:', response);
-      
-      // Refresh data
+      await materialRequestAPI.create(requestData);
       await fetchMaterialRequests();
       await fetchNotifications();
-      
-      // Reset form
-      setNewMaterial({
-        name: '',
-        category: 'Paint',
-        unit: 'piece',
-        defaultRate: '',
-        vendor: '',
-        description: '',
-        projectId: '',
-        quantity: ''
-      });
       setShowAddMaterial(false);
-      
-      alert('Material request submitted successfully! You will be notified once it is reviewed.');
+      alert("Material request submitted successfully! You will be notified once it is reviewed.");
     } catch (err) {
-      console.error('❌ Failed to submit request:', err);
-      console.error('❌ Error response:', err.response?.data);
-      console.error('❌ Error status:', err.response?.status);
-      alert(err.response?.data?.error || 'Failed to submit material request');
+      alert(err.response?.data?.error || "Failed to submit material request");
     } finally {
       setLoading(false);
     }
   };
 
-  // Add project material request
-  const handleAddProjectMaterial = async () => {
+  const handleAddProjectMaterial = async (newProjectMaterial) => {
     try {
       setLoading(true);
-      
+      const material = materials.find((m) => m.id === parseInt(newProjectMaterial.materialId));
       const requestData = {
-        name: materials.find(m => m.id === parseInt(newProjectMaterial.materialId))?.name,
-        category: materials.find(m => m.id === parseInt(newProjectMaterial.materialId))?.category,
-        unit: materials.find(m => m.id === parseInt(newProjectMaterial.materialId))?.unit,
-        defaultRate: materials.find(m => m.id === parseInt(newProjectMaterial.materialId))?.defaultRate,
-        type: 'PROJECT_MATERIAL',
+        name: material?.name,
+        category: material?.category,
+        unit: material?.unit,
+        defaultRate: material?.defaultRate,
+        type: "PROJECT_MATERIAL",
         projectId: parseInt(selectedProject),
         materialId: parseInt(newProjectMaterial.materialId),
-        quantity: parseFloat(newProjectMaterial.assigned)
+        quantity: parseFloat(newProjectMaterial.assigned),
       };
-
       await materialRequestAPI.create(requestData);
-      
-      // Refresh data
       await fetchMaterialRequests();
       await fetchNotifications();
-      
-      // Reset form
-      setNewProjectMaterial({
-        materialId: '',
-        assigned: '',
-        used: 0,
-        status: 'Active'
-      });
       setShowAddProjectMaterial(false);
-      
-      alert('Project material request submitted successfully!');
+      alert("Project material request submitted successfully!");
     } catch (err) {
-      console.error('Failed to submit request:', err);
-      alert(err.response?.data?.error || 'Failed to submit project material request');
+      alert(err.response?.data?.error || "Failed to submit project material request");
     } finally {
       setLoading(false);
     }
   };
 
-  // Add usage log - WITH VALIDATION
-  const handleAddUsageLog = async () => {
+  const handleAddUsageLog = async (newUsageLog) => {
     try {
       setLoading(true);
-      
-      // ✅ VALIDATION: Check if quantity exceeds remaining
+      const projectMaterialsWithDetails = getProjectMaterialsWithDetails();
       const selectedMaterialId = parseInt(newUsageLog.materialId);
       const quantityToLog = parseFloat(newUsageLog.quantity);
-      
-      const projectMaterial = projectMaterials.find(
-        pm => pm.materialId === selectedMaterialId
+      const projectMaterial = projectMaterialsWithDetails.find(
+        (pm) => pm.materialId === selectedMaterialId
       );
-      
+
       if (!projectMaterial) {
-        alert('Selected material not found in project!');
-        setLoading(false);
+        alert("Selected material not found in project!");
         return;
       }
-      
-      const remaining = projectMaterial.assigned - projectMaterial.used;
-      
-      // ✅ PREVENT logging if it exceeds remaining quantity
-      if (quantityToLog > remaining) {
+
+      if (quantityToLog > projectMaterial.remaining) {
         alert(
-          `You are trying to log ${quantityToLog - remaining} ${projectMaterial.material?.unit} more than available.\n` +
+          `You are trying to log ${quantityToLog - projectMaterial.remaining} ` +
+          `${projectMaterial.material?.unit} more than available.\n` +
           `Please reduce the quantity or request more materials.`
         );
-        setLoading(false);
         return;
       }
-      
-      const logData = {
+
+      const response = await usageLogAPI.create({
         projectId: parseInt(selectedProject),
         materialId: selectedMaterialId,
         quantity: quantityToLog,
         remarks: newUsageLog.remarks || null,
-        date: newUsageLog.date
-      };
+        date: newUsageLog.date,
+      });
 
-      const response = await usageLogAPI.create(logData);
-      
-      if (response.warning) {
-        alert(`Warning: ${response.warning}`);
-      }
-      
-      // Refresh data
+      if (response.warning) alert(`Warning: ${response.warning}`);
+
       await fetchProjectMaterials(selectedProject);
       await fetchUsageLogs(selectedProject);
-      
-      // Reset form
-      setNewUsageLog({
-        date: new Date().toISOString().split('T')[0],
-        materialId: '',
-        quantity: '',
-        remarks: ''
-      });
       setShowUsageLog(false);
-      
-      alert('Usage logged successfully!');
+      alert("Usage logged successfully!");
     } catch (err) {
-      console.error('Failed to log usage:', err);
-      alert(err.response?.data?.error || 'Failed to log usage');
+      alert(err.response?.data?.error || "Failed to log usage");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditUsageLog = async (originalLog, index, updatedData) => {
-  try {
-    setLoading(true);
-    
-    // Calculate the difference in quantity
-    const quantityDifference = updatedData.quantity - originalLog.quantity;
-    
-    // ✅ VALIDATION: Check if new quantity is valid
-    const projectMaterial = projectMaterials.find(
-      pm => pm.materialId === originalLog.materialId
-    );
-    
-    if (!projectMaterial) {
-      alert('Material not found in project!');
-      setLoading(false);
-      return;
-    }
-    
-    // Calculate what the new remaining would be
-    const currentRemaining = projectMaterial.assigned - projectMaterial.used;
-    const newRemaining = currentRemaining + originalLog.quantity - updatedData.quantity;
-    
-    // ✅ PREVENT editing if it would exceed assigned quantity
-    if (newRemaining < 0) {
-      alert(
-        `Cannot update to ${updatedData.quantity} ${projectMaterial.material?.unit}!\n\n` +
-        `Current used: ${projectMaterial.used} ${projectMaterial.material?.unit}\n` +
-        `Assigned: ${projectMaterial.assigned} ${projectMaterial.material?.unit}\n` +
-        `This change would exceed available quantity by ${Math.abs(newRemaining)} ${projectMaterial.material?.unit}\n\n` +
-        `Please use a smaller quantity.`
+  const handleEditUsageLog = async (originalLog, _index, updatedData) => {
+    try {
+      setLoading(true);
+      const projectMaterialsWithDetails = getProjectMaterialsWithDetails();
+      const projectMaterial = projectMaterialsWithDetails.find(
+        (pm) => pm.materialId === originalLog.materialId
       );
+
+      if (!projectMaterial) {
+        alert("Material not found in project!");
+        return;
+      }
+
+      const newRemaining =
+        projectMaterial.remaining + originalLog.quantity - updatedData.quantity;
+
+      if (newRemaining < 0) {
+        alert(
+          `Cannot update to ${updatedData.quantity} ${projectMaterial.material?.unit}!\n\n` +
+          `Current used: ${projectMaterial.used} ${projectMaterial.material?.unit}\n` +
+          `Assigned: ${projectMaterial.assigned} ${projectMaterial.material?.unit}\n` +
+          `This change would exceed available quantity by ${Math.abs(newRemaining)} ` +
+          `${projectMaterial.material?.unit}\n\nPlease use a smaller quantity.`
+        );
+        return;
+      }
+
+      await usageLogAPI.update(originalLog.id, {
+        quantity: parseFloat(updatedData.quantity),
+        remarks: updatedData.remarks || null,
+      });
+
+      await fetchProjectMaterials(selectedProject);
+      await fetchUsageLogs(selectedProject);
+      alert("Usage log updated successfully!");
+    } catch (err) {
+      alert(err.response?.data?.error || "Failed to update usage log");
+    } finally {
       setLoading(false);
-      return;
     }
-    
-    const updateData = {
-      quantity: parseFloat(updatedData.quantity),
-      remarks: updatedData.remarks || null
-    };
+  };
 
-    await usageLogAPI.update(originalLog.id, updateData);
-    
-    // Refresh data
-    await fetchProjectMaterials(selectedProject);
-    await fetchUsageLogs(selectedProject);
-    
-    alert('Usage log updated successfully!');
-  } catch (err) {
-    console.error('Failed to update usage log:', err);
-    alert(err.response?.data?.error || 'Failed to update usage log');
-  } finally {
-    setLoading(false);
-  }
-};
+  const handleDownloadReport = async () => {
+    try {
+      const selectedProjectData = projects.find((p) => p.id === selectedProject);
+      if (usageLogs.length === 0) {
+        alert("No usage logs found for this project. Please log some usage first.");
+        return;
+      }
 
-  // Mark notification as read
-  const markNotificationAsRead = async (id) => {
+      const reportData = {
+        projectName: selectedProjectData?.name || "Unknown Project",
+        generatedDate: new Date().toLocaleDateString("en-IN"),
+        generatedTime: new Date().toLocaleTimeString("en-IN"),
+        usageLogs: usageLogs.map((log) => {
+          const quantity = parseFloat(log.quantity) || 0;
+          const rate = parseFloat(log.material?.defaultRate) || 0;
+          return {
+            date: new Date(log.date).toLocaleDateString("en-IN"),
+            materialName: log.material?.name || "N/A",
+            category: log.material?.category || "N/A",
+            quantity,
+            unit: log.material?.unit || "unit",
+            rate,
+            cost: quantity * rate,
+            remarks: log.remarks || "-",
+          };
+        }),
+        totalEntries: usageLogs.length,
+        grandTotal: usageLogs.reduce((total, log) => {
+          return total + (parseFloat(log.quantity) || 0) * (parseFloat(log.material?.defaultRate) || 0);
+        }, 0),
+      };
+
+      const response = await fetch("http://localhost:5000/api/reports/usage-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reportData),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate PDF report");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${reportData.projectName.replace(/\s+/g, "_")}_Usage_Report_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Error downloading PDF report:", error);
+      alert("Failed to download PDF report. Please try again.");
+    }
+  };
+
+  const handleMarkNotificationAsRead = async (id) => {
     try {
       await notificationAPI.markAsRead(id);
       await fetchNotifications();
     } catch (err) {
-      console.error('Failed to mark notification as read:', err);
+      console.error("Failed to mark notification as read:", err);
     }
-  };
-
-  // ============ COMPUTED VALUES ============
-
-  const filteredMaterials = materials.filter(m => {
-    const matchesSearch = m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         m.vendor?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === 'All' || m.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const getProjectMaterialsWithDetails = () => {
-    return projectMaterials.map(pm => ({
-      ...pm,
-      remaining: pm.assigned - pm.used
-    }));
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  // ✅ NEW: Get remaining quantity for selected material
-  const getSelectedMaterialRemaining = () => {
-    if (!newUsageLog.materialId) return null;
-    
-    const projectMaterial = projectMaterials.find(
-      pm => pm.materialId === parseInt(newUsageLog.materialId)
-    );
-    
-    if (!projectMaterial) return null;
-    
-    return {
-      remaining: projectMaterial.assigned - projectMaterial.used,
-      unit: projectMaterial.material?.unit
-    };
   };
 
   // ============ RENDER ============
@@ -518,84 +249,42 @@ const EmployeeMaterialManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <EmployeeNavbar />
-      
+
       {/* Header */}
       <div className="bg-white border-b mt-26 border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Material Management System</h1>
-            <p className="text-sm text-gray-600 mt-1">Track and manage materials across all projects</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Track and manage materials across all projects
+            </p>
           </div>
-          
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-            >
-              <Bell className="w-6 h-6" />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <div className="px-4 py-3 border-b border-gray-200">
-                  <h3 className="font-semibold text-gray-900">Notifications</h3>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-500">
-                      No notifications
-                    </div>
-                  ) : (
-                    notifications.map(notif => (
-                      <div
-                        key={notif.id}
-                        onClick={() => markNotificationAsRead(notif.id)}
-                        className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                          !notif.read ? 'bg-yellow-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className={`mt-1 w-2 h-2 rounded-full ${
-                            notif.type === 'SUCCESS' ? 'bg-green-500' :
-                            notif.type === 'ERROR' ? 'bg-red-500' : 'bg-blue-500'
-                          }`} />
-                          <div className="flex-1">
-                            <p className="text-sm text-gray-900">{notif.message}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {new Date(notif.date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <NotificationsDropdown
+            notifications={notifications}
+            unreadCount={unreadCount}
+            show={showNotifications}
+            onToggle={() => setShowNotifications((v) => !v)}
+            onMarkAsRead={handleMarkNotificationAsRead}
+          />
         </div>
       </div>
 
       {/* Tabs */}
       <div className="bg-white border-b border-gray-200 px-6">
         <div className="flex space-x-8">
-          {['materials', 'projects', 'my-requests'].map(tab => (
+          {TABS.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`py-4 px-2 border-b-2 font-bold text-x transition-colors ${
                 activeTab === tab
-                  ? 'border-yellow-600 text-yellow-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-yellow-300'
+                  ? "border-yellow-600 text-yellow-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-yellow-300"
               }`}
             >
-              {tab === 'my-requests' ? 'My Requests' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === "my-requests"
+                ? "My Requests"
+                : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -616,7 +305,7 @@ const EmployeeMaterialManagement = () => {
           </div>
         )}
 
-        {!loading && activeTab === 'materials' && (
+        {!loading && activeTab === "materials" && (
           <EmployeeMaterialsTab
             materials={filteredMaterials}
             searchTerm={searchTerm}
@@ -624,14 +313,11 @@ const EmployeeMaterialManagement = () => {
             filterCategory={filterCategory}
             setFilterCategory={setFilterCategory}
             categories={categories}
-            onAddMaterial={() => {
-              setRequestType('GLOBAL');
-              setShowAddMaterial(true);
-            }}
+            onAddMaterial={() => setShowAddMaterial(true)}
           />
         )}
 
-        {!loading && activeTab === 'projects' && (
+        {!loading && activeTab === "projects" && (
           <EmployeeProjectsTab
             projects={projects}
             selectedProject={selectedProject}
@@ -645,270 +331,37 @@ const EmployeeMaterialManagement = () => {
           />
         )}
 
-        {!loading && activeTab === 'my-requests' && (
-          <EmployeeRequestTab
-            requests={materialRequests}
-          />
+        {!loading && activeTab === "my-requests" && (
+          <EmployeeRequestTab requests={materialRequests} />
         )}
       </div>
 
       {/* Modals */}
-      <EmployeeModalMaterial
+      <AddMaterialModal
         isOpen={showAddMaterial}
-        onClose={() => {
-          setShowAddMaterial(false);
-          setNewMaterial({
-            name: '',
-            category: 'Paint',
-            unit: 'piece',
-            defaultRate: '',
-            vendor: '',
-            description: '',
-            projectId: '',
-            quantity: ''
-          });
-        }}
-        title={requestType === 'GLOBAL' ? 'Request New Global Material' : 'Request Project-Specific Material'}
-        footer={
-          <>
-            <button
-              onClick={() => setShowAddMaterial(false)}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmitMaterialRequest}
-              disabled={!newMaterial.name || !newMaterial.defaultRate || (requestType === 'PROJECT' && (!newMaterial.projectId || !newMaterial.quantity)) || loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </>
-        }
-      >
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Request Type</label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="GLOBAL"
-                checked={requestType === 'GLOBAL'}
-                onChange={(e) => {
-                  setRequestType(e.target.value);
-                  setNewMaterial({ ...newMaterial, projectId: '', quantity: '' });
-                }}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-700">Global Material (Available for all projects)</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="radio"
-                value="PROJECT"
-                checked={requestType === 'PROJECT'}
-                onChange={(e) => setRequestType(e.target.value)}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-700">Project-Specific Material</span>
-            </label>
-          </div>
-        </div>
-        
-        <EmployeeMaterialForm
-          material={newMaterial}
-          onChange={setNewMaterial}
-          categories={categories.length > 1 ? categories.filter(c => c !== 'All') : ['Paint', 'Wood', 'Flooring', 'Electrical', 'Fabric', 'Hardware', 'Plumbing']}
-          isProjectSpecific={requestType === 'PROJECT'}
-          projects={projects}
-        />
-      </EmployeeModalMaterial>
+        onClose={() => setShowAddMaterial(false)}
+        onSubmit={handleSubmitMaterialRequest}
+        categories={categories}
+        projects={projects}
+        loading={loading}
+      />
 
-      <EmployeeModalMaterial
+      <AddProjectMaterialModal
         isOpen={showAddProjectMaterial}
-        onClose={() => {
-          setShowAddProjectMaterial(false);
-          setNewProjectMaterial({ materialId: '', assigned: '', used: 0, status: 'Active' });
-        }}
-        title="Request to Add Material to Project"
-        footer={
-          <>
-            <button
-              onClick={() => setShowAddProjectMaterial(false)}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddProjectMaterial}
-              disabled={!newProjectMaterial.materialId || !newProjectMaterial.assigned || loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Note:</strong> This request will be sent to your supervisor for approval before the material is added to the project.
-            </p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Material <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={newProjectMaterial.materialId}
-              onChange={(e) => setNewProjectMaterial({...newProjectMaterial, materialId: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Choose a material...</option>
-              {materials.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.name} ({m.category} - ₹{m.defaultRate}/{m.unit})
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Assigned Quantity <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={newProjectMaterial.assigned}
-                onChange={(e) => setNewProjectMaterial({...newProjectMaterial, assigned: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Used Quantity</label>
-              <input
-                type="number"
-                value={newProjectMaterial.used}
-                disabled
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                placeholder="0"
-              />
-            </div>
-          </div>
-        </div>
-      </EmployeeModalMaterial>
+        onClose={() => setShowAddProjectMaterial(false)}
+        onSubmit={handleAddProjectMaterial}
+        materials={materials}
+        loading={loading}
+      />
 
-      <EmployeeModalMaterial
+      <LogUsageModal
         isOpen={showUsageLog}
-        onClose={() => {
-          setShowUsageLog(false);
-          setNewUsageLog({ date: new Date().toISOString().split('T')[0], materialId: '', quantity: '', remarks: '' });
-        }}
-        title="Log Material Usage"
-        footer={
-          <>
-            <button
-              onClick={() => setShowUsageLog(false)}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddUsageLog}
-              disabled={!newUsageLog.materialId || !newUsageLog.quantity || loading}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Logging...' : 'Log Usage'}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          {/* ✅ WARNING MESSAGE if quantity exceeds remaining */}
-          {newUsageLog.materialId && newUsageLog.quantity && (() => {
-            const materialInfo = getSelectedMaterialRemaining();
-            if (materialInfo && parseFloat(newUsageLog.quantity) > materialInfo.remaining) {
-              return (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-800 font-semibold">
-                    ⚠️ Warning: Quantity exceeds available stock!
-                  </p>
-                  <p className="text-xs text-red-700 mt-1">
-                    Available: {materialInfo.remaining} {materialInfo.unit} | 
-                    You entered: {newUsageLog.quantity} {materialInfo.unit} | 
-                    Excess: {(parseFloat(newUsageLog.quantity) - materialInfo.remaining).toFixed(2)} {materialInfo.unit}
-                  </p>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-            <input
-              type="date"
-              value={newUsageLog.date}
-              onChange={(e) => setNewUsageLog({...newUsageLog, date: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Select Material</label>
-            <select
-              value={newUsageLog.materialId}
-              onChange={(e) => setNewUsageLog({...newUsageLog, materialId: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Choose a material...</option>
-              {getProjectMaterialsWithDetails().map(pm => (
-                <option key={pm.materialId} value={pm.materialId}>
-                  {pm.material?.name} (Remaining: {pm.remaining} {pm.material?.unit})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Quantity Used
-              {newUsageLog.materialId && (() => {
-                const materialInfo = getSelectedMaterialRemaining();
-                if (materialInfo) {
-                  return (
-                    <span className="text-xs text-gray-500 ml-2">
-                      (Max: {materialInfo.remaining} {materialInfo.unit})
-                    </span>
-                  );
-                }
-                return null;
-              })()}
-            </label>
-            <input
-              type="number"
-              value={newUsageLog.quantity}
-              onChange={(e) => setNewUsageLog({...newUsageLog, quantity: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="20"
-              step="0.01"
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Remarks</label>
-            <textarea
-              value={newUsageLog.remarks}
-              onChange={(e) => setNewUsageLog({...newUsageLog, remarks: e.target.value})}
-              rows="3"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., For Living Room wall"
-            />
-          </div>
-        </div>
-      </EmployeeModalMaterial>
+        onClose={() => setShowUsageLog(false)}
+        onSubmit={handleAddUsageLog}
+        projectMaterialsWithDetails={getProjectMaterialsWithDetails()}
+        getSelectedMaterialRemaining={getSelectedMaterialRemaining}
+        loading={loading}
+      />
     </div>
   );
 };

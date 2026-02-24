@@ -49,34 +49,26 @@ export const getStatusDisplay = (status) => {
 };
 
 // File viewing handler
-export const handleViewFile = async (file, API_BASE_URL) => {
-  try {
-    const token = localStorage.getItem('token');
-    
-    if (!file.fileUrl) throw new Error('File URL not found');
-    
-    const baseUrl = API_BASE_URL.replace('/api', '');
-    const fileUrl = file.fileUrl.startsWith('http') 
-      ? file.fileUrl 
-      : `${baseUrl}${file.fileUrl}`;
-    
-    const response = await fetch(fileUrl, {
-      method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+export const handleViewFile = (file, API_BASE_URL) => {
+  const fileUrl = file.fileUrl || file.url || file.filePath;
+  if (!fileUrl) return alert('File URL not found');
 
-    if (!response.ok) {
-      throw new Error(`Failed to download file (${response.status})`);
-    }
+  const base = API_BASE_URL.replace('/api', '');
+  const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${base}${fileUrl}`;
 
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    window.open(blobUrl, '_blank');
-    
-    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
-  } catch (error) {
-    console.error('Error viewing file:', error);
-    alert('Failed to open file: ' + error.message);
+  const ext = fileUrl.split('.').pop()?.toLowerCase();
+  const viewableInBrowser = ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+
+  if (viewableInBrowser.includes(ext)) {
+    window.open(fullUrl, '_blank');
+  } else {
+    // Force download for doc, docx, xls etc.
+    const a = document.createElement('a');
+    a.href = fullUrl;
+    a.download = file.fileName || 'download';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 };
 

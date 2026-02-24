@@ -250,7 +250,11 @@ const rejectedCount = materialRequests.filter(r => r.status?.toLowerCase() === '
             <RecentFiles
               recentFiles={recentFiles}
               loading={loading}
-              onViewFile={(file) => handleViewFile(file, API_BASE_URL)}
+              onViewFile={(file) => {
+  console.log('file object:', file);
+  console.log('API_BASE_URL:', API_BASE_URL);
+  handleViewFile(file, API_BASE_URL);
+}}
               onNavigateToFiles={() => navigate('/employee/file-management')}
               getFileIcon={getFileIcon}
               getFileType={getFileType}

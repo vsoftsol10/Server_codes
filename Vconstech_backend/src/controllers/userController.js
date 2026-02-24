@@ -384,15 +384,14 @@ export const uploadCompanyLogo = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Check if user is admin
-    if (req.user.userId !== userId || req.user.role !== 'Admin') {
+    // ✅ FIXED: && instead of ||
+    if (req.user.userId !== userId && req.user.role !== 'Admin') {
       return res.status(403).json({
         success: false,
         error: 'Only admins can upload company logo'
       });
     }
 
-    // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -400,7 +399,6 @@ export const uploadCompanyLogo = async (req, res) => {
       });
     }
 
-    // Get user's company
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { companyId: true }
@@ -413,21 +411,17 @@ export const uploadCompanyLogo = async (req, res) => {
       });
     }
 
-    // Update company logo
     const logoUrl = `/uploads/logos/${req.file.filename}`;
     
-    const updatedCompany = await prisma.company.update({
+    await prisma.company.update({
       where: { id: user.companyId },
-      data: {
-        logo: logoUrl,
-        updatedAt: new Date()
-      }
+      data: { logo: logoUrl, updatedAt: new Date() }
     });
 
     res.json({
       success: true,
       message: 'Company logo uploaded successfully',
-      logoUrl: logoUrl
+      logoUrl
     });
 
   } catch (error) {

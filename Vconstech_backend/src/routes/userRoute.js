@@ -14,7 +14,6 @@ const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateToken);
-
 // Profile routes
 router.get('/profile/:userId', getUserProfile);
 router.put('/profile/:userId', updateUserProfile);

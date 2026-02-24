@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { downloadUserData } from '../controllers/Userexportcontroller.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -219,6 +220,9 @@ router.get('/users', async (req, res) => {
     });
   }
 });
+
+
+router.get('/users/:userId/export', downloadUserData);
 
 // Get companies list
 router.get('/companies', async (req, res) => {

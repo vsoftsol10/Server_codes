@@ -19,6 +19,7 @@ import CreateUser from "./pages/SuperAdmin/CreateUser";
 import SuperLogin from "./pages/SuperAdmin/Superlogin";
 import Billing from "./pages/Interiors/Billing";
 import Profile from "./pages/Interiors/Profile";
+import UsersPage from "./pages/SuperAdmin/UsersPage";
 // import Billing from './pages/Interiors/Billing';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
       <Route path="/SuperAdmin/login" element={<SuperLogin/>} />
       <Route path="/SuperAdmin/CreateUser" element={<CreateUser/>} />
       <Route path="/profile" element={<Profile/>} />
+      <Route path="/SuperAdmin/users" element={<UsersPage />} />
     </Routes>
   );
 }

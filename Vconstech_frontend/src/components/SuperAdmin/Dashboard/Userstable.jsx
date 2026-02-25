@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Edit, Trash2, Download, Loader2 } from "lucide-react";
 
-const UsersTable = ({ users, loading, onEdit, onDelete }) => {
+const  UsersTable = ({ users, loading, onEdit, onDelete }) => {
   const [downloadingId, setDownloadingId] = useState(null);
 
   const getMemberCount = (user) => {
@@ -48,7 +48,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md mt-8 overflow-x-auto">
+    <div className="bg-white shadow-md mt-8 overflow-x-auto">
       <table className="border w-full">
         <thead className="bg-gray-100">
           <tr>

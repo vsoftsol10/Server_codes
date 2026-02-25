@@ -1,6 +1,6 @@
-import { Bell, LogOut, X } from 'lucide-react';
+import { Bell, LogOut, X, Users, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import logo from '../../assets/constech-logo.png'
 
 const SuperNav = () => {
@@ -34,9 +34,9 @@ const SuperNav = () => {
     <>
       <nav className="fixed top-0 left-0 right-0 z-50 h-20 sm:h-20 md:h-24 bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-100">      
         <div className="max-w-8xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 h-full">
-          <div className="flex items-center justify-between h-full gap-2 sm:gap-4">
+          <div className="relative flex items-center justify-between h-full gap-2 sm:gap-4">
             {/* Left side - Brand */}
-            <div className="flex items-center space-x-2 sm:space-x-8 flex-1 min-w-0">
+            <div className="flex items-center flex-1 min-w-0">
               <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
                 <div className="relative">
                   <img 
@@ -47,6 +47,37 @@ const SuperNav = () => {
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
                 </div>
               </div>
+            </div>
+
+            {/* Center Nav Links */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 sm:gap-2">
+              <NavLink
+                to="/SuperAdmin/CreateUser"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase text-[10px] sm:text-xs md:text-lg tracking-wide transition-all duration-200
+                  ${isActive
+                    ? 'bg-slate-900 text-yellow-500 shadow-md'
+                    : 'text-slate-600 hover:bg-yellow-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <LayoutDashboard size={14} className="sm:w-4 sm:h-4 md:w-[20px] md:h-[20px]" />
+                <span>Dashboard</span>
+              </NavLink>
+
+              <NavLink
+                to="/SuperAdmin/users"
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold uppercase text-[10px] sm:text-xs md:text-lg tracking-wide transition-all duration-200
+                  ${isActive
+                    ? 'bg-slate-900 text-yellow-500 shadow-md'
+                    : 'text-slate-600 hover:bg-yellow-100 hover:text-slate-900'
+                  }`
+                }
+              >
+                <Users size={14} className="sm:w-4 sm:h-4 md:w-[20px] md:h-[20px]" />
+                <span>Users</span>
+              </NavLink>
             </div>
 
             {/* Right side - Icons */}

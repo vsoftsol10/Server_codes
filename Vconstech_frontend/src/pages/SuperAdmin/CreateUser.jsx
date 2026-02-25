@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Lock, User, Mail, Building, UserCog, AlertCircle, CheckCircle, Eye, EyeOff, Phone, MapPin, Home, Package, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
 
 import InputField from "../../components/SuperAdmin/Dashboard/Inputfield";
 import SelectField from "../../components/SuperAdmin/Dashboard/SelectField";
-import UsersTable from "../../components/SuperAdmin/Dashboard/UsersTable";
-import EditUserModal from "../../components/SuperAdmin/Dashboard/EditUserModal";
-import DeleteUserModal from "../../components/SuperAdmin/Dashboard/DeleteUserModal";
-import { validateCreateForm, validateEditForm } from "../../components/SuperAdmin/Dashboard/validation";
+import { validateCreateForm } from "../../components/SuperAdmin/Dashboard/validation";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
 
@@ -29,34 +26,11 @@ const CreateUser = () => {
   const [isFocused, setIsFocused] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [users, setUsers] = useState([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [editingUser, setEditingUser] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const navigate = useNavigate();
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const res = await fetch(`${API_URL}/superadmin/users`);
-      const data = await res.json();
-      if (data.success) {
-        setUsers([...data.users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-      }
-    } catch (err) {
-      console.error("Error fetching users:", err);
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
-
-  useEffect(() => { fetchUsers(); }, []);
 
   const handleFocus = (field, focused) => setIsFocused((prev) => ({ ...prev, [field]: focused }));
 
@@ -88,71 +62,8 @@ const CreateUser = () => {
       setSuccess(data.message || "User created successfully!");
       setUserData(INITIAL_FORM);
       setFieldErrors({});
-      fetchUsers();
     } catch (err) {
       setError(err.message || "An error occurred while creating the user");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEdit = (user) => {
-    setEditingUser({ ...user, companyName: user.company?.name || "", password: "", confirmPassword: "" });
-    setShowEditModal(true);
-    setError(""); setFieldErrors({});
-  };
-
-  const handleEditChange = (field, value) => {
-    setEditingUser((prev) => ({ ...prev, [field]: value }));
-    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
-  };
-
-  const handleUpdate = async () => {
-    setError("");
-    const errors = validateEditForm(editingUser);
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      setError("Please fix all validation errors before updating");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/superadmin/update-user/${editingUser.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...editingUser,
-          password: editingUser.password || undefined,
-          customMembers: editingUser.package === "Premium" ? editingUser.customMembers : null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update user");
-      setSuccess(data.message || "User updated successfully!");
-      setShowEditModal(false);
-      setEditingUser(null);
-      setFieldErrors({});
-      fetchUsers();
-    } catch (err) {
-      setError(err.message || "An error occurred while updating the user");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!userToDelete) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/superadmin/delete-user/${userToDelete.id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete user");
-      setSuccess(data.message || "User deleted successfully!");
-      setShowDeleteModal(false);
-      setUserToDelete(null);
-      fetchUsers();
-    } catch (err) {
-      setError(err.message || "An error occurred while deleting the user");
     } finally {
       setLoading(false);
     }
@@ -280,26 +191,9 @@ const CreateUser = () => {
                 ) : "Create User"}
               </button>
             </div>
-
-            {/* Users Table */}
-            <UsersTable users={users} loading={loadingUsers}
-              onEdit={handleEdit}
-              onDelete={(user) => { setUserToDelete(user); setShowDeleteModal(true); }} />
           </div>
         </div>
       </div>
-
-      {/* Modals */}
-      {showEditModal && (
-        <EditUserModal user={editingUser} loading={loading} error={error} fieldErrors={fieldErrors}
-          onChange={handleEditChange} onUpdate={handleUpdate}
-          onClose={() => { setShowEditModal(false); setEditingUser(null); setError(""); setFieldErrors({}); }} />
-      )}
-
-      {showDeleteModal && (
-        <DeleteUserModal user={userToDelete} loading={loading} onConfirm={handleDelete}
-          onCancel={() => { setShowDeleteModal(false); setUserToDelete(null); }} />
-      )}
     </div>
   );
 };

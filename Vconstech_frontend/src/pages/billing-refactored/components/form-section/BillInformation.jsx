@@ -55,9 +55,14 @@ const BillInformation = ({ formData, handleInputChange, activeTab }) => {
                 name="dueDate"
                 value={formData.dueDate}
                 onChange={handleInputChange}
+                // Prevent selecting a date before the bill date
+                min={formData.billDate || undefined}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
               />
             </div>
+            {formData.dueDate && formData.billDate && formData.dueDate < formData.billDate && (
+              <p className="mt-1 text-xs text-red-500">Due date cannot be before the invoice date.</p>
+            )}
           </div>
         )}
       </div>

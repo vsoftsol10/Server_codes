@@ -11,66 +11,60 @@ const RecentFiles = ({
   formatFileSize
 }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-gray-900">Recent File Uploads</h2>
+    <div className="bg-white rounded-lg shadow-sm p-4">
+      <div className="flex justify-between items-center mb-3">
+        <h2 className="text-sm font-bold text-gray-900">Recent File Uploads</h2>
         <button
           onClick={onNavigateToFiles} 
-          className="text-sm text-yellow-700  font-medium bg-yellow-100 p-2 rounded-md border-yellow-700"
+          className="text-xs text-yellow-700 font-medium bg-yellow-100 px-2 py-1 rounded-md border border-yellow-300"
         >
-          View All Files
+          View All
         </button>
       </div>
       
       {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading files...</div>
+        <div className="text-center py-4 text-gray-500 text-xs">Loading files...</div>
       ) : recentFiles.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          <FileText className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-          <p>No files uploaded yet</p>
-          <p className="text-xs mt-1">Upload files to your assigned projects to see them here</p>
+        <div className="text-center py-4 text-gray-500">
+          <FileText className="w-8 h-8 mx-auto text-gray-300 mb-1" />
+          <p className="text-xs">No files uploaded yet</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {recentFiles.map((file) => (
+        <div className="space-y-2">
+          {recentFiles.slice(0, 3).map((file) => (
             <div 
               key={file.id} 
-              className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-yellow-300 transition-colors cursor-pointer"
+              className="flex items-center gap-2 p-2 border border-gray-100 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-colors cursor-pointer group"
               onClick={() => onViewFile(file)}
             >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="p-2 bg-yellow-100 rounded text-2xl flex-shrink-0">
-                  {getFileIcon(file.fileName)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 text-sm truncate">
-                    {file.fileName || 'Unnamed File'}
-                  </p>
-                  <p className="text-xs text-gray-600 truncate">
-                    {file.projectName}
-                    {file.uploaderName && ` • ${file.uploaderName}`}
-                  </p>
+              {/* File Icon */}
+              <div className="p-1.5 bg-yellow-100 rounded text-lg flex-shrink-0">
+                {getFileIcon(file.fileName)}
+              </div>
+
+              {/* File Info */}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-gray-900 text-xs truncate">
+                  {file.fileName || 'Unnamed File'}
+                </p>
+                <p className="text-[10px] text-gray-500 truncate">
+                  {file.projectName}
+                  {file.uploaderName && ` • ${file.uploaderName}`}
+                </p>
+                <div className="flex items-center gap-1 mt-0.5">
                   {file.documentType && (
-                    <span className="inline-block mt-1 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
                       {file.documentType}
                     </span>
                   )}
+                  <span className="text-[10px] text-gray-400">
+                    {new Date(file.uploadedAt).toLocaleDateString('en-IN')}
+                  </span>
                 </div>
               </div>
-              <div className="text-right flex-shrink-0 ml-3">
-                <p className="text-xs text-gray-500">
-                  {new Date(file.uploadedAt).toLocaleDateString('en-IN')}
-                </p>
-                <span className="text-xs text-gray-400">
-                  {getFileType(file.fileName)}
-                </span>
-                {file.fileSize && (
-                  <p className="text-xs text-gray-400">
-                    {formatFileSize(file.fileSize)}
-                  </p>
-                )}
-              </div>
-              <ExternalLink className="w-4 h-4 text-gray-400 ml-2 flex-shrink-0" />
+
+              {/* External Link */}
+              <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-yellow-500 flex-shrink-0 transition-colors" />
             </div>
           ))}
         </div>

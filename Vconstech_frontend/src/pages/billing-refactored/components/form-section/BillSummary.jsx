@@ -77,25 +77,25 @@ const BillSummary = ({
         </div>
         
         {formData.tds > 0 && (
-          <div className="flex justify-between text-red-600">
+          <div className="flex justify-between text-black">
             <span className=" text-l pl-4">- TDS ({formData.tds}%):</span>
             <span>₹ {calculateTDS().toFixed(2)}</span>
           </div>
         )}
         {formData.retention > 0 && (
-          <div className="flex justify-between text-red-600">
+          <div className="flex justify-between text-black">
             <span className="pl-4">- Retention ({formData.retention}%):</span>
             <span>₹ {calculateRetention().toFixed(2)}</span>
           </div>
         )}
         {formData.advancePaid > 0 && (
-  <div className={`flex justify-between ${activeTab === 'quotation' ? 'text-green-600' : 'text-red-600'}`}>
+  <div className={`flex justify-between ${activeTab === 'quotation' ? 'text-black' : 'text-black'}`}>
     <span className="pl-4">{activeTab === 'quotation' ? '+ Advance to be Paid:' : '- Advance Paid:'}</span>
     <span>₹ {parseFloat(formData.advancePaid).toFixed(2)}</span>
   </div>
 )}
         {formData.previousBills > 0 && activeTab === 'invoice' && (
-          <div className="flex justify-between text-green-600">
+          <div className="flex justify-between text-black">
             <span className="pl-4">+ Previous Bills:</span>
             <span>₹ {parseFloat(formData.previousBills).toFixed(2)}</span>
           </div>
@@ -106,7 +106,7 @@ const BillSummary = ({
             <span className="text-gray-900">
               {activeTab === 'invoice' ? 'Net Payable Amount:' : 'Total Quoted Amount:'}
             </span>
-            <span className="text-[#ffbe2a]">₹ {calculateNetPayable().toFixed(2)}</span>
+            <span className="text-black">₹ {calculateNetPayable().toFixed(2)}</span>
           </div>
         </div>
       </div>

@@ -326,7 +326,7 @@ const EmployeeFileManagement = () => {
       </nav>
 
       <div className="mt-16 md:p-4 md:p-15 bg-gray-50 min-h-screen">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="mb-6 md:mb-8 text-center px-2 mt-6 sm:mt-10">
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-black mb-2">
               E-Vault

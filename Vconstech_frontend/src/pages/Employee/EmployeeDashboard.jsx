@@ -112,7 +112,6 @@ const EmployeeDashboard = () => {
   };
 
   // Calculate stats
-  // const validRequests = materialRequests.filter(r => r.material && r.project);
   const approvedCount = materialRequests.filter(
     (r) => r.status?.toLowerCase() === "approved",
   ).length;
@@ -141,7 +140,7 @@ const EmployeeDashboard = () => {
       trend: `${pendingCount} pending`,
     },
     {
-      icon: FileText, // or use CheckCircle if you import it
+      icon: FileText,
       label: "Completed Projects",
       value: loading ? "..." : completedProjectsCount.toString(),
       color: "bg-green-500",
@@ -269,8 +268,11 @@ const EmployeeDashboard = () => {
               getStatusColor={getStatusColor}
               getStatusDisplay={getStatusDisplay}
             />
+          </div>
 
-            {/* Recent Files */}
+          {/* Right Column */}
+          <div className="space-y-6">
+            {/* Recent Files - Compact */}
             <RecentFiles
               recentFiles={recentFiles}
               loading={loading}
@@ -283,11 +285,9 @@ const EmployeeDashboard = () => {
               getFileIcon={getFileIcon}
               getFileType={getFileType}
               formatFileSize={formatFileSize}
+              compact={true}
             />
-          </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
             <Notifications notifications={notifications} loading={loading} />
 
             <QuickActions

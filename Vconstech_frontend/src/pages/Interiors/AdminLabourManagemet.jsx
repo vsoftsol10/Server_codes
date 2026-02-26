@@ -250,7 +250,7 @@ const AdminLabourManagement = () => {
                   </button>
                   <button
                     onClick={handleAddLabour}
-                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
+                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-extrabold"
                   >
                     Add Labour
                   </button>
@@ -509,22 +509,22 @@ const AdminLabourManagement = () => {
               <table className="w-full">
                 <thead className="bg-yellow-500 border-b border-black-100">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-x font-bold text-black uppercase tracking-wider">
                       S.No
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-x font-bold text-black uppercase tracking-wider">
                       Name
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-x font-bold textblack  uppercase tracking-wider">
                       Phone Number
                     </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-left text-x font-bold text-black uppercase tracking-wider">
                       Address
                     </th>
                     {/* <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                       Total Amount
                     </th> */}
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-center text-x font-bold text-black uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>

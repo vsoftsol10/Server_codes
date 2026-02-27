@@ -11,18 +11,14 @@ const RequestTab = () => {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectMaterials, setProjectMaterials] = useState([]);
-  const [error, setError] = useState(null); // ✅ ADD THIS
-  
-  // ✅ ADD THESE MISSING STATE DECLARATIONS
+  const [error, setError] = useState(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [selectedRequestId, setSelectedRequestId] = useState(null);
 
-  const filteredMaterialRequests = requestStatusFilter === "All" 
-    ? materialRequests 
+  const filteredMaterialRequests = requestStatusFilter === "All"
+    ? materialRequests
     : materialRequests.filter(req => req.status === requestStatusFilter);
-
-  // ... rest of your existing code stays the same ...
 
   const fetchMaterials = async () => {
     try {
@@ -40,21 +36,9 @@ const RequestTab = () => {
     try {
       setLoading(true);
       const data = await projectAPI.getProjects();
-      
-      console.log('🔍 Raw projects data:', data);
-      console.log('🔍 data.success:', data.success);
-      console.log('🔍 data.projects:', data.projects);
-      
       if (data.projects && Array.isArray(data.projects)) {
-        console.log('📋 Projects array from API:', data.projects);
-        console.log('📋 Projects count from API:', data.projects.length);
-        
         setProjects(data.projects);
-        console.log('✅ setProjects called with:', data.projects.length, 'projects');
-        
         if (data.projects.length > 0) {
-          console.log('✅ First project:', data.projects[0]);
-          console.log('✅ Setting selected project to:', data.projects[0].id);
           setSelectedProject(data.projects[0].id);
         }
       } else {
@@ -71,44 +55,30 @@ const RequestTab = () => {
   const fetchMaterialRequests = async () => {
     try {
       setLoading(true);
-      console.log('Fetching material requests...');
-      
       const token = localStorage.getItem('token');
       let userRole = 'Site_Engineer';
-      
       if (token) {
         try {
           const payload = JSON.parse(atob(token.split('.')[1]));
           userRole = payload.role;
-          console.log('User role:', userRole);
         } catch (e) {
           console.error('Error parsing token:', e);
         }
       }
-      
       let data;
       if (userRole.toUpperCase() === 'ADMIN') {
         data = await materialRequestAPI.getAll();
       } else {
         data = await materialRequestAPI.getMyRequests();
       }
-      
-      console.log('Received data:', data);
-      
       if (data.success) {
-        console.log('Material requests count:', data.count);
-        console.log('Material requests:', data.requests);
         setMaterialRequests(data.requests || []);
       } else {
-        console.error('Failed to fetch requests:', data.error);
         setError(data.error || 'Failed to load material requests');
       }
     } catch (err) {
       console.error('Error fetching material requests:', err);
-      console.error('Error details:', err.response?.data || err.message);
-      
       if (err.response?.status === 403) {
-        console.warn('Permission denied - fetching own requests instead');
         try {
           const data = await materialRequestAPI.getMyRequests();
           if (data.success) {
@@ -127,8 +97,7 @@ const RequestTab = () => {
 
   const handleAcceptRequest = async (requestId) => {
     try {
-      const result = await materialRequestAPI.approve(requestId, 'Request approved');
-      console.log('Approve result:', result);
+      await materialRequestAPI.approve(requestId, 'Request approved');
       fetchMaterialRequests();
       if (selectedProject) {
         fetchProjectMaterials(selectedProject);
@@ -145,12 +114,10 @@ const RequestTab = () => {
     setRejectReason("");
   };
 
-  // ✅ ADD THIS HANDLER
   const handleRejectConfirm = async () => {
     if (rejectReason.trim() && selectedRequestId) {
       try {
-        const result = await materialRequestAPI.reject(selectedRequestId, rejectReason);
-        console.log('Reject result:', result);
+        await materialRequestAPI.reject(selectedRequestId, rejectReason);
         setShowRejectModal(false);
         setRejectReason("");
         setSelectedRequestId(null);
@@ -162,13 +129,12 @@ const RequestTab = () => {
     }
   };
 
-  // ✅ ADD THIS HANDLER
   const handleRejectCancel = () => {
     setShowRejectModal(false);
     setRejectReason("");
     setSelectedRequestId(null);
   };
-  
+
   const fetchProjectMaterials = async (projectId) => {
     try {
       setLoading(true);
@@ -190,13 +156,11 @@ const RequestTab = () => {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUserRole(payload.role);
-        console.log('User role:', payload.role);
       } catch (e) {
         console.error('Error parsing token:', e);
         setUserRole('Site_Engineer');
       }
     }
-    
     fetchProjects();
     fetchMaterialRequests();
     fetchMaterials();
@@ -231,13 +195,13 @@ const RequestTab = () => {
             ))}
           </div>
         </div>
-        
+
         {/* Desktop Table View */}
         <div className="hidden lg:block mx-2 overflow-x-auto">
-          <table className="min-w-full  divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {["Engineer", "Project Name", "Material Requested", "Quantity", "Status", "Action"].map(
+                {["Engineer", "Project Name", "Due Date", "Material Requested", "Quantity", "Status", "Action"].map(
                   (header) => (
                     <th
                       key={header}
@@ -252,30 +216,30 @@ const RequestTab = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-4 lg:px-6 py-8 text-center  text-gray-500 text-sm">
+                  <td colSpan="7" className="px-4 lg:px-6 py-8 text-center text-gray-500 text-sm">
                     Loading...
                   </td>
                 </tr>
               ) : filteredMaterialRequests.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan="6"
-                    className="px-4 lg:px-6 py-8 text-center text-gray-500 text-sm"
-                  >
+                  <td colSpan="7" className="px-4 lg:px-6 py-8 text-center text-gray-500 text-sm">
                     No material requests yet
                   </td>
                 </tr>
               ) : (
                 filteredMaterialRequests.map((request) => (
-                  <tr
-                    key={request.id}
-                    className="hover:bg-gray-50 transition-colors duration-200"
-                  >
+                  <tr key={request.id} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.employee?.name || 'N/A'}
                     </td>
                     <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.project?.name || request.projectName || 'N/A'}
+                    </td>
+                    {/* ✅ Due Date column */}
+                    <td className="px-4 lg:px-6 py-3 text-gray-600 font-medium whitespace-nowrap text-sm">
+                      {request.dueDate
+                        ? new Date(request.dueDate).toLocaleDateString('en-IN')
+                        : '—'}
                     </td>
                     <td className="px-4 lg:px-6 py-3 text-gray-600 font-sans font-medium text-sm">
                       {request.name}
@@ -313,9 +277,7 @@ const RequestTab = () => {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-gray-500">
-                          {request.status}
-                        </span>
+                        <span className="text-xs text-gray-500">{request.status}</span>
                       )}
                     </td>
                   </tr>
@@ -328,13 +290,9 @@ const RequestTab = () => {
         {/* Mobile/Tablet Card View */}
         <div className="lg:hidden divide-y divide-gray-200">
           {loading ? (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              Loading...
-            </div>
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">Loading...</div>
           ) : filteredMaterialRequests.length === 0 ? (
-            <div className="px-4 py-8 text-center text-gray-500 text-sm">
-              No material requests yet
-            </div>
+            <div className="px-4 py-8 text-center text-gray-500 text-sm">No material requests yet</div>
           ) : (
             filteredMaterialRequests.map((request) => (
               <div key={request.id} className="p-4 space-y-3">
@@ -364,6 +322,15 @@ const RequestTab = () => {
                     <span className="text-gray-600">Quantity:</span>
                     <span className="text-gray-900 font-medium">{request.quantity || 'N/A'} {request.unit}</span>
                   </div>
+                  {/* ✅ Due Date in mobile card */}
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Due Date:</span>
+                    <span className="text-gray-900 font-medium">
+                      {request.dueDate
+                        ? new Date(request.dueDate).toLocaleDateString('en-IN')
+                        : '—'}
+                    </span>
+                  </div>
                 </div>
                 {request.status === "PENDING" && (
                   <div className="flex gap-2 pt-2">
@@ -387,7 +354,7 @@ const RequestTab = () => {
         </div>
       </div>
 
-      {/* ✅ ADD REJECT MODAL */}
+      {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6">

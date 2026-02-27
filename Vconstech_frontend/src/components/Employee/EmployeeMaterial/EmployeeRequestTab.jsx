@@ -87,7 +87,17 @@ const EmployeeRequestTab = ({ requests }) => {
                       <div>
                         <span className="text-gray-500">Requested:</span>
                         <p className="font-medium text-gray-900">
-                          {new Date(request.requestDate).toLocaleDateString()}
+                          {new Date(request.requestDate).toLocaleDateString('en-IN')}
+                        </p>
+                      </div>
+
+                      {/* ✅ Due Date */}
+                      <div>
+                        <span className="text-gray-500">Due Date:</span>
+                        <p className="font-medium text-gray-900">
+                          {request.dueDate
+                            ? new Date(request.dueDate).toLocaleDateString('en-IN')
+                            : '—'}
                         </p>
                       </div>
                       
@@ -95,7 +105,7 @@ const EmployeeRequestTab = ({ requests }) => {
                         <div>
                           <span className="text-gray-500">Reviewed:</span>
                           <p className="font-medium text-gray-900">
-                            {new Date(request.reviewDate).toLocaleDateString()}
+                            {new Date(request.reviewDate).toLocaleDateString('en-IN')}
                           </p>
                         </div>
                       )}

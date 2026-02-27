@@ -54,6 +54,7 @@ const EmployeeMaterialManagement = () => {
         type: requestType,
         projectId: requestType === "PROJECT" ? parseInt(newMaterial.projectId) : null,
         quantity: requestType === "PROJECT" ? parseFloat(newMaterial.quantity) : null,
+        dueDate: newMaterial.dueDate || null, // ✅ Add this line
       };
       await materialRequestAPI.create(requestData);
       await fetchMaterialRequests();

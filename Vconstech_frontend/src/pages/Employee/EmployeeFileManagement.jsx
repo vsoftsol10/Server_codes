@@ -580,11 +580,7 @@ const EmployeeFileManagement = () => {
                                 {file.documentType}
                               </span>
                             )}
-                            {file.fileSize && (
-                              <span className="text-xs md:text-sm bg-gray-200 px-3 py-1.5 rounded-lg border-2 border-gray-400">
-                                {(file.fileSize / 1024).toFixed(2)} KB
-                              </span>
-                            )}
+                             
                           </div>
                           <p className="text-xs md:text-sm text-gray-600 mb-2">
                             Uploaded:{" "}

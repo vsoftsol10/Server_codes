@@ -112,7 +112,7 @@ const SidePannel = () => {
   const sidebarLinks = [
     { name: "Dashboard", path: "/dashboard", icon: dashboardicon },
     { name: "Project Management", path: "/project", icon: projectIcon },
-    { name: "Add Engineer", path: "/add-engineers", icon: addEngineerIcon },
+    { name: "Add Member", path: "/add-engineers", icon: addEngineerIcon },
     { name: "Material Management", path: "/material", icon: materialIcon },
     {
       name: "Financial Management",

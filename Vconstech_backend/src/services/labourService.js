@@ -36,6 +36,7 @@ export const getAllLabourers = async (companyId, projectId = null) => {
     
     return {
       ...labourer,
+      project: labourer.projectName,
       totalPaid
     };
   });
@@ -78,13 +79,15 @@ export const createLabourer = async (data) => {
   console.log('🔧 Service: Creating labourer with data:', data);
   
   const labourer = await prisma.labour.create({
-    data: {
-      name: data.name,
-      phone: data.phone,
-      address: data.address,
-      companyId: data.companyId,
-      projectId: data.projectId
-    },
+  data: {
+    name: data.name,
+    phone: data.phone,
+    address: data.address,
+    designation: data.designation,  // ← ADD
+    projectName: data.project,          // ← ADD
+    companyId: data.companyId,
+    projectId: data.projectId
+  },
     include: {
       payments: {
         select: {
@@ -101,6 +104,7 @@ export const createLabourer = async (data) => {
 
   return {
     ...labourer,
+    project: labourer.projectName,
     totalPaid: 0
   };
 };
@@ -114,13 +118,15 @@ export const updateLabourer = async (id, companyId, data) => {
   if (!existing) return null;
 
   const labourer = await prisma.labour.update({
-    where: { id },
-    data: {
-      name: data.name,
-      phone: data.phone,
-      address: data.address,
-      projectId: data.projectId
-    },
+  where: { id },
+  data: {
+    name: data.name,
+    phone: data.phone,
+    address: data.address,
+    designation: data.designation,  // ← ADD
+    projectName: data.project,          // ← ADD
+    projectId: data.projectId
+  },
     include: {
       payments: {
         orderBy: { date: 'desc' },
@@ -140,6 +146,7 @@ export const updateLabourer = async (id, companyId, data) => {
 
   return {
     ...labourer,
+      project: labourer.projectName,
     totalPaid
   };
 };

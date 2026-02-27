@@ -21,7 +21,7 @@ model User {
   address            String              @default("")
   package            String?
   customMembers      Int?
-  gstNumber          String             @default("")
+  gstNumber          String              @default("")
   Bill               Bill[]
   uploadedFiles      File[]
   projectAssignments ProjectAssignment[]
@@ -107,6 +107,7 @@ model Material {
   materialId       String            @unique
   updatedAt        DateTime          @updatedAt
   vendor           String?
+  dueDate          DateTime?
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   requests         MaterialRequest[]
   usages           MaterialUsage[]
@@ -175,6 +176,7 @@ model MaterialRequest {
   updatedAt       DateTime            @updatedAt
   employeeId      Int
   reviewedBy      Int?
+  dueDate         DateTime?
   employee        Engineer            @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
   material        Material?           @relation(fields: [materialId], references: [id])
   project         Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -280,6 +282,7 @@ model Engineer {
   empId                  String
   phone                  String
   alternatePhone         String?
+  designation            String?
   address                String
   profileImage           String?
   companyId              String
@@ -309,6 +312,8 @@ model Labour {
   name      String
   phone     String
   address   String?
+   designation String?        
+  projectName     String? 
   companyId String
   projectId Int?
   createdAt DateTime        @default(now())

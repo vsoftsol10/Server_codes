@@ -365,10 +365,10 @@ export const getMaterialById = async (req, res) => {
  */
 export const createMaterial = async (req, res) => {
   try {
+    console.log('📥 Incoming body:', req.body);
     const { companyId } = req.user;
-    const { name, category, unit, defaultRate, vendor, description } = req.body;
+    const { name, category, unit, defaultRate, vendor, description, dueDate } = req.body; // ✅ Added dueDate
 
-    // Validation
     if (!name || !category || !unit) {
       return res.status(400).json({ 
         success: false,
@@ -376,7 +376,6 @@ export const createMaterial = async (req, res) => {
       });
     }
 
-    // Generate unique material ID
     const materialId = await generateMaterialId();
 
     const material = await prisma.material.create({
@@ -388,6 +387,7 @@ export const createMaterial = async (req, res) => {
         defaultRate: defaultRate ? parseFloat(defaultRate) : null,
         vendor,
         description,
+        dueDate: dueDate ? new Date(dueDate) : null, // ✅ Added dueDate
         companyId
       }
     });
@@ -398,6 +398,7 @@ export const createMaterial = async (req, res) => {
       material 
     });
   } catch (error) {
+    console.log('📥 Incoming body:', req.body);
     console.error('Create material error:', error);
     res.status(500).json({ 
       success: false,
@@ -415,21 +416,14 @@ export const updateMaterial = async (req, res) => {
   try {
     const { id } = req.params;
     const { companyId } = req.user;
-    const { name, category, unit, defaultRate, vendor, description } = req.body;
+    const { name, category, unit, defaultRate, vendor, description, dueDate } = req.body; // ✅ Added dueDate
 
-    // Check if material exists and belongs to company
     const existingMaterial = await prisma.material.findFirst({
-      where: {
-        id: parseInt(id),
-        companyId
-      }
+      where: { id: parseInt(id), companyId }
     });
 
     if (!existingMaterial) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Material not found' 
-      });
+      return res.status(404).json({ success: false, error: 'Material not found' });
     }
 
     const material = await prisma.material.update({
@@ -440,22 +434,15 @@ export const updateMaterial = async (req, res) => {
         unit: unit || existingMaterial.unit,
         defaultRate: defaultRate !== undefined ? parseFloat(defaultRate) : existingMaterial.defaultRate,
         vendor: vendor !== undefined ? vendor : existingMaterial.vendor,
-        description: description !== undefined ? description : existingMaterial.description
+        description: description !== undefined ? description : existingMaterial.description,
+        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existingMaterial.dueDate // ✅ Added dueDate
       }
     });
 
-    res.json({ 
-      success: true,
-      message: 'Material updated successfully',
-      material 
-    });
+    res.json({ success: true, message: 'Material updated successfully', material });
   } catch (error) {
     console.error('Update material error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to update material',
-      details: error.message 
-    });
+    res.status(500).json({ success: false, error: 'Failed to update material', details: error.message });
   }
 };
 

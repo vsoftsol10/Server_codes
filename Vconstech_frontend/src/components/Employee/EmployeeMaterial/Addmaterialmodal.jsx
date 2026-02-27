@@ -11,6 +11,7 @@ const EMPTY_MATERIAL = {
   description: "",
   projectId: "",
   quantity: "",
+  dueDate: "",
 };
 
 const AddMaterialModal = ({ isOpen, onClose, onSubmit, categories, projects, loading }) => {

@@ -1,4 +1,3 @@
-
 // Material Form Component
 const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecific = false, projects = [] }) => (
   <div className="space-y-4">
@@ -37,12 +36,12 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
       <div>
         <label className="block text-sm font-bold text-black mb-2">Category</label>
         <input
-        type="text"
-        value={material.category}
-        onChange={(e) => onChange({ ...material, category: e.target.value })}
-        className="w-full px-4 py-2 border text-gray-500 font-medium border-gray-300 rounded-lg "
-        placeholder="e.g., Flooring"
-      />
+          type="text"
+          value={material.category}
+          onChange={(e) => onChange({ ...material, category: e.target.value })}
+          className="w-full px-4 py-2 border text-gray-500 font-medium border-gray-300 rounded-lg "
+          placeholder="e.g., Flooring"
+        />
       </div>
 
       <div>
@@ -85,22 +84,36 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
             type="number"
             value={material.quantity || ''}
             onChange={(e) => onChange({ ...material, quantity: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300  text-gray-500 font-medium rounded-lg "
+            className="w-full px-4 py-2 border border-gray-300 text-gray-500 font-medium rounded-lg "
             placeholder="100"
           />
         </div>
       )}
     </div>
 
-    <div>
-      <label className="block text-sm font-bold text-black mb-2">Vendor/Supplier</label>
-      <input
-        type="text"
-        value={material.vendor}
-        onChange={(e) => onChange({ ...material, vendor: e.target.value })}
-        className="w-full px-4 py-2 border text-gray-600  border-gray-300 rounded-lg "
-        placeholder="e.g., Asian Paints"
-      />
+    {/* ✅ Vendor and Due Date side by side */}
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-bold text-black mb-2">Vendor/Supplier</label>
+        <input
+          type="text"
+          value={material.vendor}
+          onChange={(e) => onChange({ ...material, vendor: e.target.value })}
+          className="w-full px-4 py-2 border text-gray-600 border-gray-300 rounded-lg "
+          placeholder="e.g., Asian Paints"
+        />
+      </div>
+
+      {/* ✅ Due Date field */}
+      <div>
+        <label className="block text-sm font-bold text-black mb-2">Due Date</label>
+        <input
+          type="date"
+          value={material.dueDate || ''}
+          onChange={(e) => onChange({ ...material, dueDate: e.target.value })}
+          className="w-full px-4 py-2 border text-gray-500 font-medium border-gray-300 rounded-lg "
+        />
+      </div>
     </div>
 
     <div>
@@ -116,4 +129,4 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
   </div>
 );
 
-export default EmployeeMaterialForm
+export default EmployeeMaterialForm;

@@ -14,9 +14,6 @@ export const getMyRequests = async (req, res) => {
       });
     }
 
-    console.log('Fetching requests for user ID:', userId);
-
-    // ✅ FIX: employeeId is Int, not String
     const requests = await prisma.materialRequest.findMany({
       where: { employeeId: parseInt(userId) },
       include: {
@@ -144,7 +141,8 @@ export const createMaterialRequest = async (req, res) => {
 
     const { 
       name, category, unit, defaultRate, vendor, 
-      description, type, projectId, materialId, quantity 
+      description, type, projectId, materialId, quantity,
+      dueDate // ✅ Added dueDate
     } = req.body;
 
     if (!name || !category || !unit || !defaultRate || !type) {
@@ -192,7 +190,8 @@ export const createMaterialRequest = async (req, res) => {
         materialId: materialId ? parseInt(materialId) : null,
         quantity: quantity ? parseFloat(quantity) : null,
         status: 'PENDING',
-        requestDate: new Date()
+        requestDate: new Date(),
+        dueDate: dueDate ? new Date(dueDate) : null, // ✅ Save dueDate
       },
       include: {
         project: {
@@ -210,23 +209,21 @@ export const createMaterialRequest = async (req, res) => {
 
     console.log('✅ Request created successfully:', request.id);
 
-    // ✅ CREATE TWO NOTIFICATIONS:
-    
     // 1. For ENGINEER (confirmation)
     await createNotification(
       parseInt(userId),
       `Material request for "${name}" has been submitted for approval`,
       'INFO',
-      'ENGINEER', // ✅ Show to engineer
+      'ENGINEER',
       request.id
     );
 
     // 2. For ADMIN (action required)
     await createNotification(
-      parseInt(userId), // Keep track of which engineer made the request
+      parseInt(userId),
       `New material request: "${name}" from ${request.employee.name} requires approval`,
       'INFO',
-      'ADMIN', // ✅ Show to admin
+      'ADMIN',
       request.id
     );
 
@@ -249,8 +246,6 @@ export const createMaterialRequest = async (req, res) => {
   }
 };
 
-// Add this function to your materialRequestController.js
-
 export const getAllRequests = async (req, res) => {
   try {
     const { companyId } = req.user;
@@ -264,7 +259,6 @@ export const getAllRequests = async (req, res) => {
 
     console.log('Fetching all requests for company:', companyId);
 
-    // Fetch ALL requests (not just pending) for the company
     const requests = await prisma.materialRequest.findMany({
       where: {
         employee: {
@@ -327,6 +321,7 @@ export const getAllRequests = async (req, res) => {
     });
   }
 };
+
 export const approveMaterialRequest = async (req, res) => {
   try {
     const { id } = req.params;
@@ -401,6 +396,7 @@ export const approveMaterialRequest = async (req, res) => {
             defaultRate: request.defaultRate,
             vendor: request.vendor,
             description: request.description,
+            dueDate: request.dueDate || null, // ✅ Carry dueDate over to Material
             companyId: String(companyId)
           }
         });
@@ -415,6 +411,7 @@ export const approveMaterialRequest = async (req, res) => {
             defaultRate: request.defaultRate,
             vendor: request.vendor,
             description: request.description,
+            dueDate: request.dueDate || null, // ✅ Carry dueDate over to Material
             companyId: String(companyId)
           }
         });
@@ -463,12 +460,11 @@ export const approveMaterialRequest = async (req, res) => {
       return updatedRequest;
     });
 
-    // ✅ NOTIFY ENGINEER ONLY (not admin)
     await createNotification(
       request.employeeId,
       `Your request for "${request.name}" has been approved`,
       'SUCCESS',
-      'ENGINEER', // ✅ Only engineer sees this
+      'ENGINEER',
       request.id
     );
 
@@ -555,12 +551,11 @@ export const rejectMaterialRequest = async (req, res) => {
       }
     });
 
-    // ✅ NOTIFY ENGINEER ONLY (not admin)
     await createNotification(
       request.employeeId,
       `Your request for "${request.name}" has been rejected: ${rejectionReason}`,
       'ERROR',
-      'ENGINEER', // ✅ Only engineer sees this
+      'ENGINEER',
       request.id
     );
 

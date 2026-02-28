@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X, Upload, User, UserCircle, Lock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, UserCircle, Lock } from 'lucide-react';
 
 const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }) => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     alternatePhone: '',
+    designation: '',
     empId: '',
     address: '',
     username: '',
@@ -36,6 +37,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
         name: engineer.name || '',
         phone: engineer.phone || '',
         alternatePhone: engineer.alternatePhone || '',
+        designation: engineer.designation || '',
         empId: engineer.empId || '',
         address: engineer.address || '',
         username: engineer.username || '',
@@ -61,36 +63,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({
-          ...prev,
-          profileImage: 'Image size should be less than 5MB'
-        }));
-        return;
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        profileImage: file
-      }));
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-
-      if (errors.profileImage) {
-        setErrors(prev => ({
-          ...prev,
-          profileImage: ''
-        }));
-      }
-    }
-  };
+  
 
   const validateForm = () => {
     const newErrors = {};
@@ -161,6 +134,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
       name: '',
       phone: '',
       alternatePhone: '',
+      designation: '',
       empId: '',
       address: '',
       username: '',
@@ -190,37 +164,6 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
         <form onSubmit={handleSubmit} className="p-6">
           <div className="space-y-6">
-            {/* Profile Image */}
-            {/* <div className="flex flex-col items-center">
-              <div className="relative">
-                <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                  {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="h-24 w-24 object-cover" />
-                  ) : (
-                    <User className="w-12 h-12 text-blue-600" />
-                  )}
-                </div>
-                <label
-                  htmlFor="profileImage"
-                  className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full cursor-pointer transition-colors"
-                >
-                  <Upload className="w-4 h-4" />
-                  <input
-                    type="file"
-                    id="profileImage"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    disabled={isSubmitting}
-                  />
-                </label>
-              </div>
-              {errors.profileImage && (
-                <p className="text-red-500 text-sm mt-2">{errors.profileImage}</p>
-              )}
-              <p className="text-sm text-gray-500 mt-2">Click the upload icon to change image</p>
-            </div> */}
-
             {/* Basic Information Section */}
             <div className="border-b pb-4">
               <h4 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h4>
@@ -264,6 +207,23 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                 />
                 {errors.empId && <p className="text-red-500 text-sm mt-1">{errors.empId}</p>}
               </div>
+
+              {/* Designation */}
+<div className="mb-4">
+  <label htmlFor="designation" className="block text-sm font-extrabold text-gray-700 mb-1">
+    Designation
+  </label>
+  <input
+    type="text"
+    id="designation"
+    name="designation"
+    value={formData.designation}
+    onChange={handleChange}
+    className="w-full px-4 py-2 border text-gray-600 font-medium border-gray-300 rounded-lg focus:border-transparent"
+    placeholder="e.g. Senior Engineer (optional)"
+    disabled={isSubmitting}
+  />
+</div>
 
               {/* Phone Numbers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

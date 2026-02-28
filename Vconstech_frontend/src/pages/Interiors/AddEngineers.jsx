@@ -46,14 +46,15 @@ const createEngineer = async (engineerData) => {
     throw new Error("No authentication token found");
   }
 
-  const formData = new FormData();
-  formData.append("name", engineerData.name);
-  formData.append("phone", engineerData.phone);
-  formData.append("alternatePhone", engineerData.alternatePhone);
-  formData.append("empId", engineerData.empId);
-  formData.append("address", engineerData.address);
-  formData.append("username", engineerData.username);
-  formData.append("password", engineerData.password);
+ const formData = new FormData();
+formData.append("name", engineerData.name);
+formData.append("phone", engineerData.phone);
+formData.append("alternatePhone", engineerData.alternatePhone);
+formData.append("designation", engineerData.designation || "");  // <-- add this
+formData.append("empId", engineerData.empId);
+formData.append("address", engineerData.address);
+formData.append("username", engineerData.username);
+formData.append("password", engineerData.password);
   if (engineerData.profileImage) {
     formData.append("profileImage", engineerData.profileImage);
   }
@@ -80,13 +81,14 @@ const updateEngineer = async (id, engineerData) => {
     throw new Error("No authentication token found");
   }
 
-  const formData = new FormData();
-  formData.append("name", engineerData.name);
-  formData.append("phone", engineerData.phone);
-  formData.append("alternatePhone", engineerData.alternatePhone);
-  formData.append("empId", engineerData.empId);
-  formData.append("address", engineerData.address);
-  formData.append("username", engineerData.username);
+const formData = new FormData();
+formData.append("name", engineerData.name);
+formData.append("phone", engineerData.phone);
+formData.append("alternatePhone", engineerData.alternatePhone);
+formData.append("designation", engineerData.designation || "");  // <-- add this
+formData.append("empId", engineerData.empId);
+formData.append("address", engineerData.address);
+formData.append("username", engineerData.username);
   if (engineerData.password) {
     formData.append("password", engineerData.password);
   }
@@ -410,10 +412,13 @@ const AddEngineers = () => {
                   <thead className="bg-yellow-400">
                     <tr>
                       <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Engineer
+                        Name
                       </th>
                       <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Employee ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
+                        Designation
                       </th>
                       <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
                         Contact
@@ -434,45 +439,22 @@ const AddEngineers = () => {
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            {/* <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-                              {engineer.profileImage ? (
-                                <img
-                                  src={getImageUrl(engineer.profileImage)}
-                                  alt={engineer.name}
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    console.error(
-                                      "Image failed to load:",
-                                      engineer.profileImage,
-                                    );
-                                    e.target.style.display = "none";
-                                    e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold">${engineer.name
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .toUpperCase()}</span>`;
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-blue-600 font-semibold">
-                                  {engineer.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .toUpperCase()}
-                                </span>
-                              )}
-                            </div> */}
                             <div className="ml-4">
                               <div className="text-sm font-medium  text-gray-700">
                                 {engineer.name}
                               </div>
+                              
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium  text-gray-900">
                             {engineer.empId}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium  text-gray-900">
+                            {engineer.designation || "-----"}
                           </div>
                         </td>
                         <td className="px-6 py-4">

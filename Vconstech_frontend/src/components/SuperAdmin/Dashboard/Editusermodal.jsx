@@ -6,31 +6,33 @@ import {
 
 const ROLES = [{ value: "Admin", label: "Admin" }];
 const PACKAGES = [
-  { value: "Classic", label: "Classic (5 members)" },
-  { value: "Pro", label: "Pro (10 members)" },
-  { value: "Premium", label: "Premium (Custom members)" },
+  { value: "Basic",    label: "Basic (5 members)" },
+  { value: "Premium",  label: "Premium (10 members)" },
+  { value: "Advanced", label: "Advanced (Custom members)" },
 ];
 
-const Field = ({ label, required = true, error, children }) => (
-  <div className="space-y-2">
-    <label className="block text-sm font-bold text-gray-800">
-      {label}{" "}
-      {required && <span className="text-red-500">*</span>}
-      {!required && <span className="text-gray-500 text-xs">(Leave blank to keep current)</span>}
-    </label>
-    {children}
-    {error && <p className="text-red-500 text-xs font-medium">{error}</p>}
-  </div>
-);
-
 const inputClass = (hasError) =>
-  `w-full pl-12 pr-4 py-3 bg-gray-50 border ${
-    hasError ? "border-red-500" : "border-gray-200"
-  } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none`;
+  `w-full pl-11 pr-4 py-2.5 bg-white border ${
+    hasError ? "border-red-400" : "border-gray-200"
+  } rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none transition`;
 
 const IconWrap = ({ icon: Icon }) => (
   <div className="absolute left-3 top-1/2 -translate-y-1/2">
-    <Icon className="w-5 h-5 text-gray-400" />
+    <Icon className="w-4 h-4 text-[#c98f00]" />
+  </div>
+);
+
+const Field = ({ label, required = true, error, children }) => (
+  <div className="space-y-1.5">
+    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">
+      {label}{" "}
+      {required && <span className="text-red-400">*</span>}
+      {!required && <span className="text-gray-400 normal-case font-normal">(optional)</span>}
+    </label>
+    <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+      {children}
+    </div>
+    {error && <p className="text-red-500 text-xs font-medium pl-1">{error}</p>}
   </div>
 );
 
@@ -38,33 +40,59 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-8">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-gray-900">Edit User</h2>
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-              <X className="w-6 h-6" />
-            </button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+        style={{ animation: "modalIn 0.22s cubic-bezier(.4,0,.2,1)" }}
+      >
+        {/* Header strip */}
+        <div className="bg-[#ffbe2a] px-6 py-5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
+              <span className="text-[#ffbe2a] font-bold text-xl uppercase">
+                {user.name?.charAt(0) || "?"}
+              </span>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-yellow-900 uppercase tracking-widest opacity-70">
+                Edit Profile
+              </p>
+              <h2 className="text-xl font-bold text-gray-900 leading-tight">{user.name}</h2>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-white/60 hover:bg-white flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-700" />
+          </button>
+        </div>
 
-          {/* Error */}
+        {/* Scrollable body */}
+        <div className="overflow-y-auto px-6 py-5 flex-1">
+          {/* Error banner */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
-              <p className="ml-3 text-sm font-medium text-red-900">{error}</p>
+            <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700 font-medium">{error}</p>
             </div>
           )}
 
-          {/* Form Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Fields grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Name */}
-            <Field label="Client Name" error={fieldErrors.name}>
+            <Field label="Full Name" error={fieldErrors.name}>
               <div className="relative">
                 <IconWrap icon={User} />
-                <input type="text" value={user.name} onChange={(e) => onChange("name", e.target.value)}
-                  className={inputClass(fieldErrors.name)} placeholder="Enter full name" />
+                <input type="text" value={user.name}
+                  onChange={(e) => onChange("name", e.target.value)}
+                  className={inputClass(fieldErrors.name)}
+                  placeholder="Enter full name" />
               </div>
             </Field>
 
@@ -72,8 +100,10 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
             <Field label="Email" error={fieldErrors.email}>
               <div className="relative">
                 <IconWrap icon={Mail} />
-                <input type="email" value={user.email} onChange={(e) => onChange("email", e.target.value)}
-                  className={inputClass(fieldErrors.email)} placeholder="Enter email address" />
+                <input type="email" value={user.email}
+                  onChange={(e) => onChange("email", e.target.value)}
+                  className={inputClass(fieldErrors.email)}
+                  placeholder="Enter email address" />
               </div>
             </Field>
 
@@ -81,8 +111,10 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
             <Field label="Contact Number" error={fieldErrors.phoneNumber}>
               <div className="relative">
                 <IconWrap icon={Phone} />
-                <input type="tel" value={user.phoneNumber} onChange={(e) => onChange("phoneNumber", e.target.value)}
-                  className={inputClass(fieldErrors.phoneNumber)} placeholder="Enter phone number" />
+                <input type="tel" value={user.phoneNumber}
+                  onChange={(e) => onChange("phoneNumber", e.target.value)}
+                  className={inputClass(fieldErrors.phoneNumber)}
+                  placeholder="Enter phone number" />
               </div>
             </Field>
 
@@ -90,7 +122,8 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
             <Field label="Role" error={fieldErrors.role}>
               <div className="relative">
                 <IconWrap icon={UserCog} />
-                <select value={user.role} onChange={(e) => onChange("role", e.target.value)}
+                <select value={user.role}
+                  onChange={(e) => onChange("role", e.target.value)}
                   className={inputClass(fieldErrors.role)}>
                   <option value="">Select role</option>
                   {ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
@@ -102,8 +135,10 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
             <Field label="Company Name" error={fieldErrors.companyName}>
               <div className="relative">
                 <IconWrap icon={Building} />
-                <input type="text" value={user.companyName} onChange={(e) => onChange("companyName", e.target.value)}
-                  className={inputClass(fieldErrors.companyName)} placeholder="Enter company name" />
+                <input type="text" value={user.companyName}
+                  onChange={(e) => onChange("companyName", e.target.value)}
+                  className={inputClass(fieldErrors.companyName)}
+                  placeholder="Enter company name" />
               </div>
             </Field>
 
@@ -111,8 +146,10 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
             <Field label="City" error={fieldErrors.city}>
               <div className="relative">
                 <IconWrap icon={MapPin} />
-                <input type="text" value={user.city} onChange={(e) => onChange("city", e.target.value)}
-                  className={inputClass(fieldErrors.city)} placeholder="Enter city" />
+                <input type="text" value={user.city}
+                  onChange={(e) => onChange("city", e.target.value)}
+                  className={inputClass(fieldErrors.city)}
+                  placeholder="Enter city" />
               </div>
             </Field>
 
@@ -129,69 +166,87 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
               </div>
             </Field>
 
-            {/* Custom Members */}
-            {user.package === "Premium" && (
+            {/* Custom Members — only for Advanced */}
+            {user.package === "Advanced" && (
               <Field label="Number of Site Engineers" error={fieldErrors.customMembers}>
                 <div className="relative">
                   <IconWrap icon={Users} />
-                  <input type="number" value={user.customMembers} onChange={(e) => onChange("customMembers", e.target.value)}
-                    className={inputClass(fieldErrors.customMembers)} placeholder="Enter number" min="1" />
+                  <input type="number" value={user.customMembers}
+                    onChange={(e) => onChange("customMembers", e.target.value)}
+                    className={inputClass(fieldErrors.customMembers)}
+                    placeholder="Enter number" min="1" />
                 </div>
               </Field>
             )}
 
-            {/* Password */}
+            {/* New Password */}
             <Field label="New Password" required={false} error={fieldErrors.password}>
               <div className="relative">
                 <IconWrap icon={Lock} />
-                <input type="password" value={user.password || ""} onChange={(e) => onChange("password", e.target.value)}
-                  className={inputClass(fieldErrors.password)} placeholder="New password" />
+                <input type="password" value={user.password || ""}
+                  onChange={(e) => onChange("password", e.target.value)}
+                  className={inputClass(fieldErrors.password)}
+                  placeholder="Leave blank to keep current" />
               </div>
             </Field>
 
-            {/* Confirm Password */}
+            {/* Confirm Password — only if password typed */}
             {user.password && (
               <Field label="Confirm New Password" error={fieldErrors.confirmPassword}>
                 <div className="relative">
                   <IconWrap icon={Lock} />
-                  <input type="password" value={user.confirmPassword || ""} onChange={(e) => onChange("confirmPassword", e.target.value)}
-                    className={inputClass(fieldErrors.confirmPassword)} placeholder="Confirm password" />
+                  <input type="password" value={user.confirmPassword || ""}
+                    onChange={(e) => onChange("confirmPassword", e.target.value)}
+                    className={inputClass(fieldErrors.confirmPassword)}
+                    placeholder="Confirm new password" />
                 </div>
               </Field>
             )}
           </div>
 
-          {/* Address */}
-          <div className="space-y-2 mt-6">
-            <label className="block text-sm font-bold text-gray-800">
-              Address <span className="text-red-500">*</span>
+          {/* Address — full width */}
+          <div className="mt-4 space-y-1.5">
+            <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Address <span className="text-red-400">*</span>
             </label>
-            <div className="relative">
-              <div className="absolute left-3 top-3">
-                <Home className="w-5 h-5 text-gray-400" />
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+              <div className="relative">
+                <div className="absolute left-3 top-3">
+                  <Home className="w-4 h-4 text-[#c98f00]" />
+                </div>
+                <textarea value={user.address}
+                  onChange={(e) => onChange("address", e.target.value)}
+                  rows={3}
+                  placeholder="Enter full address"
+                  className={`w-full pl-11 pr-4 py-2.5 bg-white border ${
+                    fieldErrors.address ? "border-red-400" : "border-gray-200"
+                  } rounded-lg text-sm text-gray-800 focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none transition resize-none`}
+                />
               </div>
-              <textarea value={user.address} onChange={(e) => onChange("address", e.target.value)}
-                rows={4} placeholder="Enter full address"
-                className={`w-full pl-12 pr-4 py-3 bg-gray-50 border ${
-                  fieldErrors.address ? "border-red-500" : "border-gray-200"
-                } rounded-xl focus:ring-2 focus:ring-[#ffbe2a] outline-none resize-y`} />
             </div>
-            {fieldErrors.address && <p className="text-red-500 text-xs font-medium">{fieldErrors.address}</p>}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-4 mt-8">
-            <button onClick={onClose} disabled={loading}
-              className="flex-1 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50">
-              Cancel
-            </button>
-            <button onClick={onUpdate} disabled={loading}
-              className="flex-1 bg-[#ffbe2a] text-black font-bold py-3 rounded-xl hover:shadow-lg transition-all disabled:opacity-50">
-              {loading ? "Updating..." : "Update User"}
-            </button>
+            {fieldErrors.address && <p className="text-red-500 text-xs font-medium pl-1">{fieldErrors.address}</p>}
           </div>
         </div>
+
+        {/* Footer actions */}
+        <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-white">
+          <button onClick={onClose} disabled={loading}
+            className="flex-1 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-colors disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={onUpdate} disabled={loading}
+            className="flex-1 py-2.5 rounded-lg bg-[#ffbe2a] hover:bg-[#f0b020] text-black font-bold text-sm transition-colors disabled:opacity-50 shadow-sm">
+            {loading ? "Updating..." : "Update User"}
+          </button>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.94) translateY(10px); }
+          to   { opacity: 1; transform: scale(1)    translateY(0);     }
+        }
+      `}</style>
     </div>
   );
 };

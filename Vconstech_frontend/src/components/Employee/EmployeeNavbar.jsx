@@ -61,8 +61,8 @@ const EmployeeNavbar = () => {
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
                 <h1 className="text-lg sm:text-xl lg:text-2xl uppercase font-black text-slate-900 tracking-tight">
-  {designation} !
-</h1>
+                  {designation} !
+                </h1>
               </div>
             </div>
 

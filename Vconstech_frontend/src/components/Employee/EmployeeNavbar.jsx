@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, LogOut, X, Menu } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { logout } from '../../utils/auth'; // ✅ Import auth utility
@@ -6,8 +6,30 @@ import { logout } from '../../utils/auth'; // ✅ Import auth utility
 const EmployeeNavbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [designation, setDesignation] = useState('Site Enginee');
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('authToken'); // ✅ match whatever auth.js uses
+      const res = await fetch('http://localhost:5000/api/engineers/my-profile', { // ✅ full backend URL
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success && data.engineer?.designation) {
+        setDesignation(data.engineer.designation);
+      }
+    } catch (err) {
+      console.error('Failed to fetch engineer profile:', err);
+    }
+  };
+
+  fetchProfile();
+}, []);
 
   const handleLogout = () => {
     setShowLogoutModal(true);
@@ -39,8 +61,8 @@ const EmployeeNavbar = () => {
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
                 <h1 className="text-lg sm:text-xl lg:text-2xl uppercase font-black text-slate-900 tracking-tight">
-                  Site Engineer
-                </h1>
+  {designation} !
+</h1>
               </div>
             </div>
 

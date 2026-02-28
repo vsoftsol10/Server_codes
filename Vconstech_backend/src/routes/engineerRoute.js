@@ -132,6 +132,7 @@ router.post('/login', async (req, res) => {
         username: engineer.username,
         empId: engineer.empId,
         phone: engineer.phone,
+        designation: engineer.designation || null, 
         profileImage: engineer.profileImage,
         companyId: engineer.companyId,
         companyName: engineer.company.name
@@ -233,19 +234,11 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
     const engineer = await prisma.engineer.findUnique({
       where: { id: req.user.id },
       select: {
-        id: true,
-        name: true,
-        empId: true,
-        phone: true,
-        alternatePhone: true,
-        address: true,
-        profileImage: true,
-        username: true,
-        createdAt: true,
-        company: {
-          select: { id: true, name: true }
-        }
-      }
+  id: true, name: true, empId: true, phone: true,
+  alternatePhone: true, designation: true, address: true,  // <-- add designation
+  profileImage: true, username: true, createdAt: true,
+  company: { select: { id: true, name: true } }
+}
     });
 
     if (!engineer) {
@@ -307,19 +300,12 @@ router.get('/', authenticateToken, async (req, res) => {
       where: { companyId: req.user.companyId },
       orderBy: { createdAt: 'desc' },
       select: {
-        id: true,
-        name: true,
-        empId: true,
-        phone: true,
-        alternatePhone: true,
-        address: true,
-        profileImage: true,
-        username: true,
-        plainPassword: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { projects: true } }
-      }
+  id: true, name: true, empId: true, phone: true,
+  alternatePhone: true, designation: true, address: true,  // <-- add designation
+  profileImage: true, username: true, plainPassword: true,
+  createdAt: true, updatedAt: true,
+  _count: { select: { projects: true } }
+}
     });
 
     res.json({ success: true, engineers });
@@ -340,17 +326,10 @@ router.get('/:id', authenticateToken, async (req, res) => {
         companyId: req.user.companyId
       },
       select: {
-        id: true,
-        name: true,
-        empId: true,
-        phone: true,
-        alternatePhone: true,
-        address: true,
-        profileImage: true,
-        username: true,
-        plainPassword: true,
-        createdAt: true,
-        updatedAt: true,
+          id: true, name: true, empId: true, phone: true,
+  alternatePhone: true, designation: true, address: true,  // <-- add designation
+  profileImage: true, username: true, plainPassword: true,
+  createdAt: true, updatedAt: true,
         projects: {
           select: {
             id: true,
@@ -376,8 +355,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new engineer
 router.post('/', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
-    const { name, phone, alternatePhone, empId, address, username, password } = req.body;
-
+const { name, phone, alternatePhone, empId, address, username, password, designation } = req.body;
     const missingFields = [];
     if (!name?.trim()) missingFields.push('name');
     if (!phone?.trim()) missingFields.push('phone');
@@ -466,6 +444,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
       data: {
         name, empId, phone,
         alternatePhone: alternatePhone || null,
+        designation: designation || null,
         address,
         profileImage: profileImagePath,
         username,
@@ -474,10 +453,10 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
         companyId: req.user.companyId
       },
       select: {
-        id: true, name: true, empId: true, phone: true,
-        alternatePhone: true, address: true, profileImage: true,
-        username: true, createdAt: true, updatedAt: true
-      }
+  id: true, name: true, empId: true, phone: true,
+  alternatePhone: true, designation: true, address: true,  // <-- add designation
+  profileImage: true, username: true, createdAt: true, updatedAt: true
+}
     });
 
     res.status(201).json({ success: true, message: 'Engineer added successfully', engineer });
@@ -494,8 +473,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
 router.put('/:id', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, alternatePhone, empId, address, username, password } = req.body;
-
+const { name, phone, alternatePhone, empId, address, username, password, designation } = req.body;
     const existingEngineer = await prisma.engineer.findFirst({
       where: { id: parseInt(id), companyId: req.user.companyId }
     });
@@ -566,6 +544,7 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
       data: {
         name, empId, phone,
         alternatePhone: alternatePhone || null,
+        designation: designation || null,
         address,
         profileImage: profileImagePath,
         username: username || null,
@@ -573,10 +552,10 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
         plainPassword: plainPasswordToStore
       },
       select: {
-        id: true, name: true, empId: true, phone: true,
-        alternatePhone: true, address: true, profileImage: true,
-        username: true, plainPassword: true, createdAt: true, updatedAt: true
-      }
+  id: true, name: true, empId: true, phone: true,
+  alternatePhone: true, designation: true, address: true,  // <-- add designation
+  profileImage: true, username: true, plainPassword: true, createdAt: true, updatedAt: true
+}
     });
 
     res.json({ success: true, message: 'Engineer updated successfully', engineer });

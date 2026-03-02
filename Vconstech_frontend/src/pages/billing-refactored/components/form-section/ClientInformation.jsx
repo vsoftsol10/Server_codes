@@ -96,8 +96,7 @@ const ClientInformation = ({
             value={formData.clientGST}
             onChange={handleInputChange}
             placeholder="29XXXXXXXXXXXXX"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
-            readOnly
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
           />
         </div>
 
@@ -112,7 +111,6 @@ const ClientInformation = ({
             rows="2"
             placeholder="Client Address"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none resize-none"
-            readOnly
           />
         </div>
 
@@ -127,7 +125,7 @@ const ClientInformation = ({
             onChange={handleInputChange}
             placeholder="Company Name"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
-            readOnly
+            
           />
         </div>
 
@@ -144,7 +142,7 @@ const ClientInformation = ({
               onChange={handleInputChange}
               placeholder="+91 XXXXX XXXXX"
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
-              readOnly
+              
             />
           </div>
         </div>
@@ -160,7 +158,7 @@ const ClientInformation = ({
             onChange={handleInputChange}
             placeholder="client@example.com"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
-            readOnly
+            
           />
         </div>
       </div>

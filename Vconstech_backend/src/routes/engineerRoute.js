@@ -410,17 +410,22 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
     }
 
     const admin = await prisma.user.findUnique({
-      where: { id: req.user.userId },
-      select: { companyId: true, package: true, customMembers: true }
-    });
+  where: { id: req.user.userId },
+  select: { companyId: true, package: true, customMembers: true }
+});
 
-    let memberLimit;
-    if (admin.package === 'Classic') memberLimit = 5;
-    else if (admin.package === 'Pro') memberLimit = 10;
-    else if (admin.package === 'Premium') memberLimit = admin.customMembers;
-    else {
-      return res.status(400).json({ success: false, error: 'Invalid package configuration. Please contact support.' });
-    }
+console.log('Admin package debug:', { userId: req.user.userId, package: admin?.package, customMembers: admin?.customMembers });
+
+if (!admin) {
+  return res.status(400).json({ success: false, error: 'Admin account not found.' });
+}
+
+const pkg = admin.package?.toLowerCase();
+let memberLimit;
+if (pkg === 'classic') memberLimit = 5;
+else if (pkg === 'pro') memberLimit = 10;
+else if (pkg === 'premium') memberLimit = admin.customMembers || 999;
+else memberLimit = 5; // fallback default instead of hard error
 
     const existingEngineersCount = await prisma.engineer.count({
       where: { companyId: req.user.companyId }

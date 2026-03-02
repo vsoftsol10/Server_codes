@@ -139,6 +139,7 @@ export const createEngineer = async (engineerData) => {
       name: engineerData.name,
       phone: engineerData.phone,
       alternatePhone: engineerData.alternatePhone,
+      designation: engineerData.designation,
       empId: engineerData.empId,
       address: engineerData.address,
       username: engineerData.username,

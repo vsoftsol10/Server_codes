@@ -131,6 +131,15 @@ router.post('/login', async (req, res) => {
         error: 'Invalid credentials'
       });
     }
+
+      if (!user.isActive) {
+      console.log('❌ Inactive account login attempt:', email);
+      return res.status(403).json({
+        error: 'Your account has been deactivated. Please contact your administrator.'
+      });
+    }
+
+    
     
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password);

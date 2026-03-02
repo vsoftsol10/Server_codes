@@ -1,24 +1,34 @@
 // middleware/authMiddlewares.js
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client'; // ✅ ADD THIS
+const prisma = new PrismaClient(); // ✅ ADD THIS
 
-export const authenticateToken = (req, res, next) => {
+export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
     if (err) {
-      console.error('❌ JWT Verification Error:', err.message);
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
 
-    // ✅ Log the decoded token for debugging
-    console.log('✅ Token verified successfully');
-    console.log('👤 Decoded user:', decoded);
-    
+    // ✅ ADD THIS — re-check isActive on every request
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { isActive: true }
+    });
+
+    if (!user || !user.isActive) {
+      console.log('❌ Deactivated user attempted access:', decoded.email);
+      return res.status(403).json({
+        error: 'Your account has been deactivated. Please contact your administrator.'
+      });
+    }
+
     req.user = decoded;
     next();
   });

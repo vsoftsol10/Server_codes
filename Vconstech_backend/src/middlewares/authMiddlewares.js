@@ -1,7 +1,7 @@
 // middleware/authMiddlewares.js
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client'; // ✅ ADD THIS
-const prisma = new PrismaClient(); // ✅ ADD THIS
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -16,9 +16,15 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
 
-    // ✅ ADD THIS — re-check isActive on every request
+    // Engineers are stored in a separate table — skip user isActive check
+    if (decoded.type === 'engineer') {
+      req.user = decoded;
+      return next();
+    }
+
+    // Admin/user — re-check isActive on every request
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: String(decoded.userId) },
       select: { isActive: true }
     });
 
@@ -49,11 +55,9 @@ export const authorizeRole = (...roles) => {
       });
     }
 
-    // ✅ Case-insensitive comparison with trim
     const userRole = req.user.role.toUpperCase().trim();
     const allowedRoles = roles.map(role => role.toUpperCase().trim());
 
-    // ✅ Log authorization check
     console.log('🔒 Authorization Check:');
     console.log('   Endpoint requires:', allowedRoles);
     console.log('   User has role:', userRole);

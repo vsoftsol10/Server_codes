@@ -214,7 +214,7 @@ export default function ContractManagement() {
                         <option value="">Select Project</option>
                         {projects.map(project => (
                           <option key={project.id} value={project.id}>
-                            {project.name} ({project.projectId})
+                            {project.name} 
                           </option>
                         ))}
                       </select>
@@ -298,18 +298,18 @@ export default function ContractManagement() {
                   </div>
                   <div className="flex gap-2 mt-6">
                     <button
-                      onClick={handleAddNew}
-                      className="flex-1 flex items-center justify-center gap-2 bg-[#FFbe2a] text-black font-semibold px-4 py-3 rounded-lg hover:bg-[#f5b621] transition-colors"
-                    >
-                      <Save size={18} />
-                      Add Contract
-                    </button>
-                    <button
                       onClick={() => setShowAddForm(false)}
                       className="flex-1 flex items-center justify-center gap-2 bg-gray-800 text-white px-4 py-3 rounded-lg hover:bg-gray-900 transition-colors"
                     >
                       <X size={18} />
                       Cancel
+                    </button>
+                    <button
+                      onClick={handleAddNew}
+                      className="flex-1 flex items-center justify-center gap-2 bg-[#FFbe2a] text-black font-semibold px-4 py-3 rounded-lg hover:bg-[#f5b621] transition-colors"
+                    >
+                      <Save size={18} />
+                      Add Contract
                     </button>
                   </div>
                 </div>

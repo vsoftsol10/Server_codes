@@ -398,11 +398,10 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       }
 
       const existingUsername = await prisma.engineer.findFirst({
-        where: { username, companyId: req.user.companyId }
+        where: { username }
       });
       if (existingUsername) {
-        return res.status(400).json({ success: false, error: 'Username already exists in your company' });
-      }
+return res.status(400).json({ success: false, error: 'Username already taken. Please choose a different username.' });      }
 
       if (password.length < 6) {
         return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
@@ -422,10 +421,10 @@ if (!admin) {
 
 const pkg = admin.package?.toLowerCase();
 let memberLimit;
-if (pkg === 'classic') memberLimit = 5;
-else if (pkg === 'pro') memberLimit = 10;
-else if (pkg === 'premium') memberLimit = admin.customMembers || 999;
-else memberLimit = 5; // fallback default instead of hard error
+if (pkg === 'basic') memberLimit = 5;
+else if (pkg === 'premium') memberLimit = 10;
+else if (pkg === 'advanced') memberLimit = admin.customMembers || 999;
+else memberLimit = 5; // fallback
 
     const existingEngineersCount = await prisma.engineer.count({
       where: { companyId: req.user.companyId }
@@ -517,10 +516,10 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       }
 
       const duplicateUsername = await prisma.engineer.findFirst({
-        where: { username, companyId: req.user.companyId, NOT: { id: parseInt(id) } }
-      });
+  where: { username, NOT: { id: parseInt(id) } }
+});
       if (duplicateUsername) {
-        return res.status(400).json({ success: false, error: 'Username already exists in your company' });
+       return res.status(400).json({ success: false, error: 'Username already taken. Please choose a different username.' });
       }
     }
 

@@ -86,13 +86,7 @@ const ProjectFormModal = ({
       errors.location = "Project location is required";
     }
 
-    if (
-      !project.id &&
-      (!project.assignedEmployee || project.assignedEmployee === "")
-    ) {
-      errors.assignedEmployee =
-        "Site Engineer assignment is required for new projects";
-    }
+   
 
     // Project ID format validation (only for new projects)
     if (
@@ -272,7 +266,7 @@ const ProjectFormModal = ({
             </div>
 
             {/* Project ID (only for new projects) */}
-            {!project.id && (
+            {/* {!project.id && (
               <div>
                 <label className="block text-sm font-extrabold text-gray-700 mb-2">
                   Project ID <span className="text-red-500">*</span>
@@ -303,7 +297,7 @@ const ProjectFormModal = ({
                   </p>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Client Name */}
             <div className={!project.id ? "" : "sm:col-span-2"}>
@@ -457,9 +451,7 @@ const ProjectFormModal = ({
                   {validationErrors.quotationAmount}
                 </p>
               )}
-              <p className="text-xs text-gray-500 mt-1">
-                Amount quoted to the client
-              </p>
+              
             </div>
 
             {/* Start Date */}
@@ -551,7 +543,7 @@ const ProjectFormModal = ({
             <div className="sm:col-span-2">
               <label className="block text-sm font-extrabold text-gray-700 mb-2">
                 Assign Site Engineer{" "}
-                {!project.id && <span className="text-red-500">*</span>}
+                {/* {!project.id && <span className="text-red-500">*</span>} */}
               </label>
               <select
                 value={project.assignedEmployee || ""}
@@ -578,17 +570,7 @@ const ProjectFormModal = ({
                   </option>
                 ))}
               </select>
-              {validationErrors.assignedEmployee && (
-                <p className="text-red-500 text-xs mt-1">
-                  {validationErrors.assignedEmployee}
-                </p>
-              )}
-              {employees.length === 0 && !error && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <span>⚠️</span> No site engineers available. Please add site
-                  engineers first.
-                </p>
-              )}
+            
               {employees.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
                   {employees.length} site engineer
@@ -681,8 +663,7 @@ const ProjectFormModal = ({
           <button
             onClick={handleSubmit}
             className="w-full sm:w-auto px-4 py-2 bg-yellow-600 text-white rounded-lg  disabled:bg-yellow-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            disabled={loading || (employees.length === 0 && !project.id)}
-            type="button"
+disabled={loading}            type="button"
           >
             {loading ? (
               <>

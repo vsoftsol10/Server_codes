@@ -206,18 +206,20 @@ const AddEngineers = () => {
 
     // First try to get from localStorage
     if (user.package) {
-      let limit;
-      if (user.package === "Classic") limit = 5;
-      else if (user.package === "Pro") limit = 10;
-      else if (user.package === "Premium") limit = user.customMembers;
+  const pkg = user.package.toLowerCase();
+  let limit;
+  if (pkg === "basic") limit = 5;
+  else if (pkg === "premium") limit = 10;
+  else if (pkg === "advanced") limit = user.customMembers || 999;
+  else limit = 5; // fallback
 
-      console.log("Setting packageInfo with limit:", limit);
-      setPackageInfo({ package: user.package, limit });
-    } else {
+  console.log("Setting packageInfo with limit:", limit);
+  setPackageInfo({ package: user.package, limit });
+}else {
       console.log("No package in localStorage, fetching from API...");
       // If not in localStorage, fetch from API
       try {
-        const response = await fetch("/api/auth/me", {
+        const response = await fetch("/api/engineers/me", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -231,11 +233,12 @@ const AddEngineers = () => {
           console.log("API response data:", data);
           
           if (data.success && data.user) {
-            let limit;
-            if (data.user.package === "Classic") limit = 5;
-            else if (data.user.package === "Pro") limit = 10;
-            else if (data.user.package === "Premium") limit = data.user.customMembers;
-
+            const pkg = user.package?.toLowerCase(); // use data.user.package in the API branch
+let limit;
+if (pkg === "basic") limit = 5;
+else if (pkg === "premium") limit = 10;
+else if (pkg === "advanced") limit = user.customMembers || 999; // data.user.customMembers in API branch
+else limit = 5;
             console.log("Setting packageInfo from API with limit:", limit);
             setPackageInfo({ package: data.user.package, limit });
             
@@ -285,26 +288,23 @@ const AddEngineers = () => {
   };
 
   const handleAddEngineer = async (engineerData) => {
-    try {
-      setIsSubmitting(true);
-      const response = await createEngineer(engineerData);
-
-      if (response.success) {
-        setShowAddModal(false);
-        await fetchEngineers();
-        showToast("Engineer added successfully!", "success");
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Add engineer error:", error);
-      // Show the detailed error message from backend
-      showToast(error.error || error.message || "Failed to add engineer", "error");
-      return false;
-    } finally {
-      setIsSubmitting(false);
+  try {
+    setIsSubmitting(true);
+    const response = await createEngineer(engineerData);
+    if (response.success) {
+      setShowAddModal(false);
+      await fetchEngineers();
+      showToast("Engineer added successfully!", "success");
+      return { success: true };
     }
-  };
+    return { success: false };
+  } catch (error) {
+    console.error("Add engineer error:", error);
+    return { success: false, error: error.error || error.message || "Failed to add engineer" };
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleUpdateEngineer = async (id, engineerData) => {
     setIsSubmitting(true);

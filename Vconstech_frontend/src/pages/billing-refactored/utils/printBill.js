@@ -117,6 +117,7 @@ const netPayable = billType === 'quotation'
           background: white;
           padding: 30px;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
+          overflow: hidden;
         }
         
         .header {
@@ -229,29 +230,43 @@ const netPayable = billType === 'quotation'
           margin-bottom: 25px;
         }
         
+        /* ── FIXED TABLE ── */
         table {
           width: 100%;
           border-collapse: collapse;
           margin: 20px 0;
-          font-size: 13px;
+          font-size: 12px;
+          table-layout: fixed;        /* key: forces columns to respect widths */
         }
         
         th {
           background: #333;
           color: white;
-          padding: 12px 10px;
+          padding: 10px 6px;
           text-align: left;
           font-weight: 600;
           text-transform: uppercase;
-          font-size: 11px;
+          font-size: 10px;
           letter-spacing: 0.5px;
+          word-wrap: break-word;
         }
         
         td {
           border: 1px solid #ddd;
-          padding: 10px;
+          padding: 8px 6px;
           color: #555;
+          word-wrap: break-word;
+          overflow-wrap: break-word;
         }
+
+        /* Column width distribution — total = 100% */
+        col.col-sno         { width: 5%; }
+        col.col-description { width: 35%; }
+        col.col-hsn         { width: 10%; }
+        col.col-unit        { width: 8%; }
+        col.col-qty         { width: 9%; }
+        col.col-rate        { width: 14%; }
+        col.col-amount      { width: 19%; }
         
         tbody tr:nth-child(even) {
           background: #f9f9f9;
@@ -478,15 +493,24 @@ const netPayable = billType === 'quotation'
         </div>
 
         <table>
+          <colgroup>
+            <col class="col-sno" />
+            <col class="col-description" />
+            <col class="col-hsn" />
+            <col class="col-unit" />
+            <col class="col-qty" />
+            <col class="col-rate" />
+            <col class="col-amount" />
+          </colgroup>
           <thead>
             <tr>
-              <th style="width: 50px;">S.No</th>
+              <th class="text-center">S.No</th>
               <th>Description of Work</th>
-              <th style="width: 80px;">HSN/SAC</th>
-              <th style="width: 80px;">Unit</th>
-              <th style="width: 80px;" class="text-right">Qty</th>
-              <th style="width: 100px;" class="text-right">Rate</th>
-              <th style="width: 120px;" class="text-right">Amount</th>
+              <th class="text-center">HSN/SAC</th>
+              <th class="text-center">Unit</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Rate</th>
+              <th class="text-right">Amount</th>
             </tr>
           </thead>
           <tbody>

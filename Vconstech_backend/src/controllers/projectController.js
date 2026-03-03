@@ -30,12 +30,12 @@ export const createProject = async (req, res) => {
     console.log('========================================');
 
     // Validation
-    if (!projectId || !name || !clientName) {
-      console.log('❌ Validation failed: Missing required fields');
-      return res.status(400).json({
-        error: 'Project ID, name, and client name are required'
-      });
-    }
+    if (!name || !clientName) {
+  return res.status(400).json({
+    error: 'Project name and client name are required'
+  });
+}
+
 
     if (!location) {
       console.log('❌ Validation failed: Missing location');
@@ -44,41 +44,39 @@ export const createProject = async (req, res) => {
       });
     }
 
-    if (!assignedUserId) {
-      console.log('❌ Validation failed: Missing engineer assignment');
-      return res.status(400).json({
-        error: 'Engineer assignment is required'
-      });
-    }
+  
 
     // Check if project ID already exists
-    console.log('🔍 Checking for duplicate project ID:', projectId);
-    const existingProject = await prisma.project.findUnique({
-      where: { projectId }
-    });
+    const projectCount = await prisma.project.count({
+  where: { companyId: req.user.companyId }
+});
+let generatedProjectId = `PRJ${String(projectCount + 1).padStart(3, '0')}`;
 
-    if (existingProject) {
-      console.log('❌ Duplicate project ID found:', existingProject.id);
-      return res.status(400).json({
-        error: 'Project ID already exists'
-      });
-    }
+// Handle collision (e.g. if a project was deleted)
+const existingProject = await prisma.project.findUnique({
+  where: { projectId: generatedProjectId }
+});
+if (existingProject) {
+  generatedProjectId = `PRJ${Date.now().toString().slice(-6)}`;
+}
 
     // Verify assigned engineer exists and belongs to same company
-    console.log('🔍 Verifying engineer:', assignedUserId);
-    const assignedEngineer = await prisma.engineer.findFirst({
-      where: {
-        id: parseInt(assignedUserId),
-        companyId: req.user.companyId
-      }
-    });
-
-    if (!assignedEngineer) {
-      console.log('❌ Engineer not found or wrong company');
-      return res.status(400).json({
-        error: 'Invalid Engineer selected or engineer does not belong to your company'
-      });
+    if (assignedUserId) {
+  console.log('🔍 Verifying engineer:', assignedUserId);
+  const assignedEngineer = await prisma.engineer.findFirst({
+    where: {
+      id: parseInt(assignedUserId),
+      companyId: req.user.companyId
     }
+  });
+
+  if (!assignedEngineer) {
+    console.log('❌ Engineer not found or wrong company');
+    return res.status(400).json({
+      error: 'Invalid Engineer selected or engineer does not belong to your company'
+    });
+  }
+}
 
     // Get company ID from authenticated user
     const companyId = req.user.companyId;
@@ -87,7 +85,7 @@ export const createProject = async (req, res) => {
     // Create project with engineer assignment
     const project = await prisma.project.create({
       data: {
-        projectId,
+        projectId: generatedProjectId,
         name,
         clientName,
         projectType: projectType || 'Residential',
@@ -99,7 +97,7 @@ export const createProject = async (req, res) => {
         status: 'PENDING',
         actualProgress: 0, // ✅ Initialize with 0% progress
         companyId,
-        assignedEngineerId: parseInt(assignedUserId)
+        assignedEngineerId: assignedUserId ? parseInt(assignedUserId) : null
       },
       include: {
         assignedEngineer: {

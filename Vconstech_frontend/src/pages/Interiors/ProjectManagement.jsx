@@ -32,18 +32,21 @@ const ProjectManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [newProject, setNewProject] = useState({
-    name: "",
-    projectId: "",
-    client: "",
-    type: "Residential",
-    budget: "",
-    startDate: "",
-    endDate: "",
-    location: "",
-    assignedEmployee: "",
-    description: "",
-  });
+ const [newProject, setNewProject] = useState({
+  name: "",
+  projectId: "",
+  client: "",
+  type: "Residential",
+  budget: "",
+  quotationAmount: "", // ← add this
+  startDate: "",
+  endDate: "",
+  location: "",
+  assignedEmployee: "",
+  description: "",
+});
+  // Add this helper function near the top of the component
+
 
   // At the top of ProjectManagement.jsx
   useEffect(() => {
@@ -234,18 +237,16 @@ const ProjectManagement = () => {
       console.error("❌ Failed to reload projects:", err);
     }
   };
-  const handleCreateProject = async (file) => {
-    if (
-      !newProject.name ||
-      !newProject.projectId ||
-      !newProject.client ||
-      !newProject.location ||
-      !newProject.assignedEmployee
-    ) {
-      throw new Error(
-        "Please fill in all required fields (Name, ID, Client, Location, and Site Engineer)",
-      );
-    }
+const handleCreateProject = async (file) => {
+  if (
+    !newProject.name ||
+    !newProject.client ||
+    !newProject.location
+  ) {
+    throw new Error(
+      "Please fill in all required fields (Name, ID, Client, and Location)",
+    );
+  }
 
     try {
       console.log("🚀 Starting project creation:", newProject.projectId);
@@ -259,17 +260,17 @@ const ProjectManagement = () => {
 
       setShowNewProjectModal(false);
       setNewProject({
-        name: "",
-        projectId: "",
-        client: "",
-        type: "Residential",
-        budget: "",
-        startDate: "",
-        endDate: "",
-        location: "",
-        assignedEmployee: "",
-        description: "",
-      });
+  name: "",
+  projectId: "", // fresh ID ready for next project
+  client: "",
+  type: "Residential",
+  budget: "",
+  startDate: "",
+  endDate: "",
+  location: "",
+  assignedEmployee: "",
+  description: "",
+});
 
       alert("Project created successfully!");
     } catch (err) {
@@ -401,7 +402,9 @@ const ProjectManagement = () => {
             <h1 className="text-lg font-bold text-gray-900">Projects</h1>
           </div>
           <button
-            onClick={() => setShowNewProjectModal(true)}
+           onClick={() => {
+  setShowNewProjectModal(true);
+}}
             className="flex items-center gap-1 bg-black text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-800"
           >
             <Plus className="w-4 h-4" />
@@ -421,7 +424,9 @@ const ProjectManagement = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowNewProjectModal(true)}
+                onClick={() => {
+  setShowNewProjectModal(true);
+}}
                 className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 <Plus className="w-5 h-5" />

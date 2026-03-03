@@ -23,6 +23,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     confirmPassword: "",
   });
   const [profileImage, setProfileImage] = useState(null);
+  const [serverError, setServerError] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -96,30 +97,31 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    if (!validateForm()) {
-      return;
-    }
+  setServerError(''); // clear previous error
 
-    const engineerData = {
-      name: formData.name.trim(),
-      phone: formData.phone.trim(),
-      alternatePhone: formData.alternatePhone.trim() || "",
-      designation: formData.designation.trim() || "",
-      empId: formData.empId.trim(),
-      address: formData.address.trim(),
-      username: formData.username.trim(),
-      password: formData.password,
-      profileImage: profileImage,
-    };
-
-    const success = await onSubmit(engineerData);
-
-    if (success) {
-      resetForm();
-    }
+  const engineerData = {
+    name: formData.name.trim(),
+    phone: formData.phone.trim(),
+    alternatePhone: formData.alternatePhone.trim() || "",
+    designation: formData.designation.trim() || "",
+    empId: formData.empId.trim(),
+    address: formData.address.trim(),
+    username: formData.username.trim(),
+    password: formData.password,
+    profileImage: profileImage,
   };
+
+  const result = await onSubmit(engineerData);
+
+  if (result?.success) {
+    resetForm();
+  } else if (result?.error) {
+    setServerError(result.error);
+  }
+};
 
   const resetForm = () => {
     setFormData({
@@ -130,11 +132,13 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
       empId: "",
       address: "",
       username: "",
+      
       password: "",
       confirmPassword: "",
     });
     setProfileImage(null);
     setImagePreview(null);
+    setServerError('');
     setErrors({});
   };
 
@@ -417,8 +421,15 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
             </div>
           </div>
         </div>
+{serverError && (
+  <div className="mx-6 mb-2 p-3 bg-red-50 border border-red-300 rounded-lg">
+    <p className="text-red-600 text-sm font-medium">⚠️ {serverError}</p>
+  </div>
+)}
+
 
         <div className="flex gap-3 p-6 border-t">
+          
           <button
             type="button"
             onClick={handleSubmit}

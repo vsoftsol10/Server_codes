@@ -42,7 +42,7 @@ const emptyMaterial = {
 };
 
 // Shared input class for consistent light gray styling across all fields
-const inputClass = "w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-400 placeholder-gray-400 font-normal";
+const inputClass = "w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-500 font-normal";
 
 const DashboardTab = () => {
   const [loading, setLoading] = useState(true);
@@ -243,7 +243,7 @@ const DashboardTab = () => {
                   : (!newMaterial.defaultRate || !newMaterial.quantityNeeded || !newMaterial.projectId)) ||
                 submitting
               }
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Add Material
             </button>
@@ -395,7 +395,7 @@ const DashboardTab = () => {
           {/* Vendor/Supplier and Due Date */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Vendor/Supplier</label>
+              <label className="block text-sm font-medium text-gray-900 mb-2">Vendor/Supplier</label>
               <input
                 type="text"
                 value={newMaterial.vendor}

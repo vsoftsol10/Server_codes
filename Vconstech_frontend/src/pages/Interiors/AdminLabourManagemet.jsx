@@ -241,7 +241,7 @@ const AdminLabourManagement = () => {
             <option value="">Select a project</option>
             {projects.map((proj) => (
               <option key={proj.id} value={proj.name}>
-                {proj.name} {proj.projectId ? `(${proj.projectId})` : ''}
+                {proj.name} 
               </option>
             ))}
           </select>

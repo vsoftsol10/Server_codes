@@ -576,9 +576,9 @@ const FileManagement = () => {
                 <div key={file.id} className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow">
                   <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
                     <div className="flex items-start gap-3 md:gap-4 flex-1 w-full">
-                      <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0 text-xl md:text-2xl">
+                      {/* <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0 text-xl md:text-2xl">
                         {getFileIcon(file)}
-                      </div>
+                      </div> */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-black text-sm md:text-lg mb-2 break-all">{file.fileName || file.filename}</h4>
                         <div className="flex flex-wrap gap-2 mb-3">

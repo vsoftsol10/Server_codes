@@ -38,12 +38,13 @@ export const getStatusColor = (status) => {
 
 export const getStatusDisplay = (status) => {
   const statusMap = {
-    'PENDING': 'Planning',
+    
+    // 'PENDING': 'Planning',
     'ONGOING': 'In Progress',
     'COMPLETED': 'Completed',
     'pending': 'Pending',
     'approved': 'Approved',
-    'rejected': 'Rejected'
+    'rejected': 'Rejected',
   };
   return statusMap[status] || status;
 };

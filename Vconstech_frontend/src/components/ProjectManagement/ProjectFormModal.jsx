@@ -71,12 +71,7 @@ const ProjectFormModal = ({
       errors.name = "Project name is required";
     }
 
-    if (
-      !project.id &&
-      (!project.projectId || project.projectId.trim() === "")
-    ) {
-      errors.projectId = "Project ID is required";
-    }
+
 
     if (!project.client || project.client.trim() === "") {
       errors.client = "Client name is required";
@@ -88,15 +83,7 @@ const ProjectFormModal = ({
 
    
 
-    // Project ID format validation (only for new projects)
-    if (
-      !project.id &&
-      project.projectId &&
-      !/^[a-zA-Z0-9_-]+$/.test(project.projectId)
-    ) {
-      errors.projectId =
-        "Project ID can only contain letters, numbers, dashes, and underscores";
-    }
+
 
     // Date validation
     if (project.startDate && project.endDate) {

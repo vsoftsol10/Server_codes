@@ -139,17 +139,19 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
                     className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
                   />
                 </td>
-                <td className="px-3 py-3 border align-top">
-                  <select
-                    value={item.unit || "Nos"}
-                    onChange={(e) => handleChange(index, "unit", e.target.value)}
-                    className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
-                  >
-                    {UNIT_OPTIONS.map((unit) => (
-                      <option key={unit} value={unit}>{unit}</option>
-                    ))}
-                  </select>
-                </td>
+                <td className="px-2 sm:px-3 py-2 sm:py-3 border align-top">
+  <select
+    value={item.unit || "Nos"}
+    onChange={(e) => handleChange(index, "unit", e.target.value)}
+    className="w-full min-w-[80px] px-2 py-1 text-sm sm:text-base border border-gray-300 rounded focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+  >
+    {UNIT_OPTIONS.map((unit) => (
+      <option key={unit} value={unit}>
+        {unit}
+      </option>
+    ))}
+  </select>
+</td>
                 <td className="px-3 py-3 border align-top">
                   <input
                     type="number"

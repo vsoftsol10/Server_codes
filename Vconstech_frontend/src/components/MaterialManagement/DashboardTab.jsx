@@ -159,18 +159,23 @@ const DashboardTab = () => {
     <div className="space-y-6 p-4 sm:p-6">
 
       {/* Add Material Button */}
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-600">
-          {userRole === 'ADMIN' ? 'Add materials directly to the database' : 'Submit material requests for admin approval'}
-        </span>
-        <button
-          onClick={() => setShowAddMaterial(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-black rounded-lg cursor-pointer transition-colors shadow-md hover:shadow-lg"
-        >
-          <Plus className="w-5 h-5" />
-          Add Material
-        </button>
-      </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+  
+  <span className="text-sm text-gray-600 leading-relaxed sm:max-w-[70%]">
+    {userRole === 'ADMIN'
+      ? 'Add materials directly to the database'
+      : 'Submit material requests for admin approval'}
+  </span>
+
+  <button
+    onClick={() => setShowAddMaterial(true)}
+    className="flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-black rounded-lg cursor-pointer transition-colors shadow-md hover:shadow-lg w-full sm:w-auto"
+  >
+    <Plus className="w-5 h-5" />
+    Add Material
+  </button>
+
+</div>
 
       {/* Metrics Section */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

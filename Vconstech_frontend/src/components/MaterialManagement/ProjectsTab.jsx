@@ -454,19 +454,6 @@ const ProjectsTab = () => {
                     <div className="font-medium text-gray-900 text-sm">{pm.project?.name || 'N/A'}</div>
                     <div className="text-gray-600 text-sm mt-0.5">{pm.material?.name || 'N/A'}</div>
                   </div>
-                  <span
-                    className={`inline-block px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap ml-2 flex-shrink-0 ${
-                      pm.status === "ACTIVE"
-                        ? "bg-green-100 text-green-800"
-                        : pm.status === "COMPLETED"
-                        ? "bg-blue-100 text-blue-800"
-                        : pm.status === "NOT_USED"
-                        ? "bg-gray-100 text-gray-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {pm.status === "NOT_USED" ? "Not Used" : pm.status}
-                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Assigned:</span>
@@ -480,12 +467,7 @@ const ProjectsTab = () => {
                   <span className="text-gray-600">Cost:</span>
                   <span className="text-gray-900 font-semibold">₹{((pm.material?.defaultRate || 0) * pm.used).toLocaleString()}</span>
                 </div>
-                <button
-                  onClick={() => handleStatusUpdateClick(idx)}
-                  className="w-full mt-2 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Update Status
-                </button>
+                
               </div>
             ))
           )}

@@ -240,7 +240,7 @@ const MaterialManagement = () => {
               </button>
               <button
                 onClick={handleAddMaterial}
-                className="px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-700"
               >
                 Add Material
               </button>

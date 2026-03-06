@@ -199,7 +199,7 @@ const SidePannel = () => {
   return (
     <>
       {/* Sidebar - Now with proper scrolling */}
-      <div className="fixed top-20 left-0 md:w-60 w-16 hover:w-64 border-r border-gray-300 bg-white h-[calc(100vh-5rem)] md:overflow-y-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 overflow-x-hidden transition-all duration-300 z-50 group">
+      <div className="fixed top-20 left-0 md:w-61 w-16 hover:w-64 border-r border-gray-300 bg-white h-[calc(100vh-5rem)] md:overflow-y-auto overflow-y-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 overflow-x-hidden transition-all duration-300 z-50 group">
         <div className="pt-6 flex flex-col pb-6">
           {sidebarLinks.map((item, index) => (
             <div key={index}>

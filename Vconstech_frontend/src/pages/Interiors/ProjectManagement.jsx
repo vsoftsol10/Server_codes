@@ -19,6 +19,7 @@ import { projectAPI } from "../../api/projectAPI";
 import costCalculationService from "../../api/costCalculationService";
 import projectReportService from "../../services/projectReportService";
 import { Download } from "lucide-react";
+
 const ProjectManagement = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
@@ -32,53 +33,35 @@ const ProjectManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
- const [newProject, setNewProject] = useState({
-  name: "",
-  projectId: "",
-  client: "",
-  type: "Residential",
-  budget: "",
-  quotationAmount: "", // ← add this
-  startDate: "",
-  endDate: "",
-  location: "",
-  assignedEmployee: "",
-  description: "",
-});
-  // Add this helper function near the top of the component
+  const [newProject, setNewProject] = useState({
+    name: "",
+    projectId: "",
+    client: "",
+    type: "Residential",
+    budget: "",
+    quotationAmount: "",
+    startDate: "",
+    endDate: "",
+    location: "",
+    assignedEmployee: "",
+    description: "",
+  });
 
-
-  // At the top of ProjectManagement.jsx
   useEffect(() => {
     let mounted = true;
-
     const fetchData = async () => {
-      if (mounted) {
-        await loadProjects();
-      }
+      if (mounted) await loadProjects();
     };
-
     fetchData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []); // Empty dependency array
+    return () => { mounted = false; };
+  }, []);
 
   const handleStatusChangeInline = async (projectId, newStatus) => {
     try {
       const project = projects.find((p) => p.id === projectId);
-      if (!project) {
-        throw new Error("Project not found");
-      }
-
-      // Transform frontend status to backend format
+      if (!project) throw new Error("Project not found");
       const backendStatus = transformStatusToBackend(newStatus);
-
-      // Update status using the dedicated method
       await projectAPI.updateProjectStatus(project.dbId, backendStatus);
-
-      // Reload projects to get fresh data
       await loadProjects();
     } catch (err) {
       console.error("Failed to update status:", err);
@@ -86,60 +69,33 @@ const ProjectManagement = () => {
       throw err;
     }
   };
+
   const loadProjects = async () => {
     try {
       setLoading(true);
       setError(null);
-
-      console.log("🔄 Fetching projects at:", new Date().toISOString());
-
-      const enrichedProjects =
-        await costCalculationService.getAllProjectsWithSpent();
-
-      console.log("📦 Received enriched projects:", enrichedProjects.length);
-      console.log("📦 First project sample:", enrichedProjects[0]); // ✅ Add this to see the structure
-
-      // Transform data to match frontend format
-      const transformedProjects = enrichedProjects.map((project) => {
-        console.log(`📋 Project ${project.projectId} - DB ID: ${project.id}`); // ✅ Add this
-
-        return {
-          id: project.projectId,
-          dbId: project.id, // ✅ This is the database ID
-          name: project.name,
-          client: project.clientName,
-          type: project.projectType,
-          status: transformStatus(project.status),
-          progress: project.actualProgress || 0,
-          budget: project.budget || 0,
-          spent: project.spent || 0,
-          spentBreakdown: project.spentBreakdown,
-          startDate: project.startDate
-            ? new Date(project.startDate).toISOString().split("T")[0]
-            : "",
-          endDate: project.endDate
-            ? new Date(project.endDate).toISOString().split("T")[0]
-            : "",
-          location: project.location || "",
-          team: project.assignedEngineer ? [project.assignedEngineer.name] : [],
-          assignedEmployee: project.assignedEngineer
-            ? project.assignedEngineer.id.toString()
-            : "",
-          assignedEngineerName: project.assignedEngineer
-            ? project.assignedEngineer.name
-            : "",
-          assignedEngineerEmpId: project.assignedEngineer
-            ? project.assignedEngineer.empId
-            : "",
-          tasks: {
-            total: project._count?.materialUsed || 0,
-            completed: 0,
-          },
-          description: project.description || "",
-        };
-      });
-
-      console.log("✅ Setting projects with real calculated spent");
+      const enrichedProjects = await costCalculationService.getAllProjectsWithSpent();
+      const transformedProjects = enrichedProjects.map((project) => ({
+        id: project.projectId,
+        dbId: project.id,
+        name: project.name,
+        client: project.clientName,
+        type: project.projectType,
+        status: transformStatus(project.status),
+        progress: project.actualProgress || 0,
+        budget: project.budget || 0,
+        spent: project.spent || 0,
+        spentBreakdown: project.spentBreakdown,
+        startDate: project.startDate ? new Date(project.startDate).toISOString().split("T")[0] : "",
+        endDate: project.endDate ? new Date(project.endDate).toISOString().split("T")[0] : "",
+        location: project.location || "",
+        team: project.assignedEngineer ? [project.assignedEngineer.name] : [],
+        assignedEmployee: project.assignedEngineer ? project.assignedEngineer.id.toString() : "",
+        assignedEngineerName: project.assignedEngineer ? project.assignedEngineer.name : "",
+        assignedEngineerEmpId: project.assignedEngineer ? project.assignedEngineer.empId : "",
+        tasks: { total: project._count?.materialUsed || 0, completed: 0 },
+        description: project.description || "",
+      }));
       setProjects(transformedProjects);
     } catch (err) {
       console.error("Failed to load projects:", err);
@@ -149,29 +105,14 @@ const ProjectManagement = () => {
     }
   };
 
-  // Transform backend status to frontend format
   const transformStatus = (status) => {
-    const statusMap = {
-      PENDING: "Planning",
-      ONGOING: "In Progress",
-      COMPLETED: "Completed",
-    };
+    const statusMap = { PENDING: "Planning", ONGOING: "In Progress", COMPLETED: "Completed" };
     return statusMap[status] || status;
   };
 
-  // Transform frontend status to backend format
   const transformStatusToBackend = (status) => {
-    const statusMap = {
-      Planning: "PENDING",
-      "In Progress": "ONGOING",
-      Completed: "COMPLETED",
-    };
+    const statusMap = { Planning: "PENDING", "In Progress": "ONGOING", Completed: "COMPLETED" };
     return statusMap[status] || "PENDING";
-  };
-
-  const calculateProgress = (project) => {
-    // ✅ Use actualProgress from database
-    return project.actualProgress || 0;
   };
 
   const stats = {
@@ -185,27 +126,19 @@ const ProjectManagement = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Completed":
-        return "bg-green-100 text-green-700";
-      case "In Progress":
-        return "bg-blue-100 text-blue-700";
-      case "Planning":
-        return "bg-yellow-100 text-yellow-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+      case "Completed": return "bg-green-100 text-green-700";
+      case "In Progress": return "bg-blue-100 text-blue-700";
+      case "Planning": return "bg-yellow-100 text-yellow-700";
+      default: return "bg-gray-100 text-gray-700";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Completed":
-        return <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />;
-      case "In Progress":
-        return <Clock className="w-3 h-3 sm:w-4 sm:h-4" />;
-      case "Planning":
-        return <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />;
-      default:
-        return null;
+      case "Completed": return <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />;
+      case "In Progress": return <Clock className="w-3 h-3 sm:w-4 sm:h-4" />;
+      case "Planning": return <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />;
+      default: return null;
     }
   };
 
@@ -219,6 +152,7 @@ const ProjectManagement = () => {
     const matchesFilter = filterType === "all" || project.type === filterType;
     return matchesSearch && matchesTab && matchesFilter;
   });
+
   const handleDownloadReport = async (project) => {
     try {
       const html = await projectReportService.generateReport(project);
@@ -230,81 +164,43 @@ const ProjectManagement = () => {
 
   const handleProgressUpdate = async () => {
     try {
-      console.log("🔄 Reloading projects after progress update...");
       await loadProjects();
-      console.log("✅ Projects reloaded");
     } catch (err) {
       console.error("❌ Failed to reload projects:", err);
     }
   };
-const handleCreateProject = async (file) => {
-  if (
-    !newProject.name ||
-    !newProject.client ||
-    !newProject.location
-  ) {
-    throw new Error(
-      "Please fill in all required fields (Name, ID, Client, and Location)",
-    );
-  }
 
+  const handleCreateProject = async (file) => {
+    if (!newProject.name || !newProject.client || !newProject.location) {
+      throw new Error("Please fill in all required fields (Name, ID, Client, and Location)");
+    }
     try {
-      console.log("🚀 Starting project creation:", newProject.projectId);
-
       const result = await projectAPI.createProject(newProject, file);
-      console.log("✅ Project created in DB:", result);
-
-      console.log("🔄 Reloading projects list...");
       await loadProjects();
-      console.log("✅ Projects reloaded");
-
       setShowNewProjectModal(false);
       setNewProject({
-  name: "",
-  projectId: "", // fresh ID ready for next project
-  client: "",
-  type: "Residential",
-  budget: "",
-  startDate: "",
-  endDate: "",
-  location: "",
-  assignedEmployee: "",
-  description: "",
-});
-
+        name: "", projectId: "", client: "", type: "Residential",
+        budget: "", startDate: "", endDate: "", location: "",
+        assignedEmployee: "", description: "",
+      });
       alert("Project created successfully!");
     } catch (err) {
       console.error("❌ Create project failed:", err);
-      alert(
-        `Failed to create project: ${
-          err.message || err.error || "Unknown error"
-        }`,
-      );
-      throw err; // Re-throw so the modal can handle it
+      alert(`Failed to create project: ${err.message || err.error || "Unknown error"}`);
+      throw err;
     }
   };
 
   const handleEditProject = (project) => {
-    // Transform project data for editing - include progress
-    const editData = {
-      ...project,
-      client: project.client,
-      status: project.status,
-      progress: project.progress || 0, // ✅ Ensure progress is included with default value
-    };
-    setEditingProject(editData);
+    setEditingProject({ ...project, client: project.client, status: project.status, progress: project.progress || 0 });
     setShowEditModal(true);
   };
+
   const handleUpdateProject = async (file) => {
     if (!editingProject.name || !editingProject.client) {
       throw new Error("Please fill in all required fields");
     }
-
     try {
-      console.log("🔍 Editing project:", editingProject); // ✅ Add this debug log
-      console.log("🔍 Database ID being sent:", editingProject.dbId); // ✅ Add this debug log
-
-      // ✅ Build projectData object, only include progress if it exists
       const projectData = {
         name: editingProject.name,
         client: editingProject.client,
@@ -316,29 +212,16 @@ const handleCreateProject = async (file) => {
         location: editingProject.location,
         assignedEmployee: editingProject.assignedEmployee,
         description: editingProject.description,
-        status: editingProject.status
-          ? transformStatusToBackend(editingProject.status)
-          : undefined,
+        status: editingProject.status ? transformStatusToBackend(editingProject.status) : undefined,
       };
-
-      // ✅ Only include progress if it's defined and valid
-      if (
-        editingProject.progress !== undefined &&
-        editingProject.progress !== null
-      ) {
+      if (editingProject.progress !== undefined && editingProject.progress !== null) {
         projectData.progress = editingProject.progress;
       }
-
-      console.log("📤 Updating project with data:", projectData);
-
       await projectAPI.updateProject(editingProject.dbId, projectData, file);
-
       await loadProjects();
-
       setShowEditModal(false);
       setSelectedProject(null);
       setEditingProject(null);
-
       alert("Project updated successfully!");
     } catch (err) {
       console.error("❌ Update failed:", err);
@@ -347,27 +230,13 @@ const handleCreateProject = async (file) => {
   };
 
   const handleDeleteProject = async (projectId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this project? This action cannot be undone.",
-      )
-    ) {
-      return;
-    }
-
+    if (!window.confirm("Are you sure you want to delete this project? This action cannot be undone.")) return;
     try {
       const project = projects.find((p) => p.id === projectId);
       if (!project) return;
-
       await projectAPI.deleteProject(project.dbId);
-
-      // ✅ Reload from database instead of just filtering local state
       await loadProjects();
-
-      if (selectedProject && selectedProject.id === projectId) {
-        setSelectedProject(null);
-      }
-
+      if (selectedProject && selectedProject.id === projectId) setSelectedProject(null);
       alert("Project deleted successfully!");
     } catch (err) {
       console.error("Failed to delete project:", err);
@@ -379,8 +248,8 @@ const handleCreateProject = async (file) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading projects...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p className="text-gray-600 text-sm">Loading projects...</p>
         </div>
       </div>
     );
@@ -388,165 +257,133 @@ const handleCreateProject = async (file) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Top Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <Navbar />
       </nav>
 
-      <aside className="fixed left-0 top-16 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
-        <SidePannel />
-      </aside>
+      {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
+      <SidePannel />
 
-      <div className="mt-26 pl-16 md:pl-64 min-h-screen">
-        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-16 z-30">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-gray-900">Projects</h1>
+      {/* Main content: push right on desktop, no push on mobile */}
+      <div className="pt-25 md:pl-64">
+
+        {/* ── Mobile sticky sub-header ── */}
+        <div className="md:hidden bg-white border-b border-gray-200 px-3 py-3 flex items-center justify-between sticky top-16 z-30">
+          <h1 className="text-base font-bold text-gray-900">Projects</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => projectReportService.downloadAllProjectsReport(projects)}
+              className="flex items-center gap-1 bg-yellow-400 text-black px-3 py-1.5 rounded-lg text-xs font-medium"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Reports
+            </button>
+            <button
+              onClick={() => setShowNewProjectModal(true)}
+              className="flex items-center gap-1 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-medium"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New
+            </button>
           </div>
-          <button
-           onClick={() => {
-  setShowNewProjectModal(true);
-}}
-            className="flex items-center gap-1 bg-black text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-800"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden xs:inline">New</span>
-          </button>
         </div>
 
-        <div className="hidden lg:block bg-white border-b border-gray-200 px-6 py-4">
+        {/* ── Desktop header ── */}
+        <div className="hidden md:block bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Project Management
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Manage and track all your projects
-              </p>
+              <h1 className="text-2xl font-bold text-gray-900">Project Management</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage and track all your projects</p>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => {
-  setShowNewProjectModal(true);
-}}
-                className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                onClick={() => setShowNewProjectModal(true)}
+                className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 New Project
               </button>
               <button
-                onClick={() =>
-                  projectReportService.downloadAllProjectsReport(projects)
-                }
-                className="flex items-center gap-1 bg-yellow-500 text-white px-4 py-2 rounded-lg cursor-pointer"
+                onClick={() => projectReportService.downloadAllProjectsReport(projects)}
+                className="flex items-center gap-2 bg-yellow-500 text-black px-4 py-2 rounded-lg text-sm font-medium"
               >
-                <Download className="w-5 h-5" />
+                <Download className="w-4 h-4" />
                 Download All Reports
               </button>
             </div>
           </div>
         </div>
 
+        {/* Error banner */}
         {error && (
-          <div className="mx-4 mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mx-3 mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
             <p className="font-medium">Error loading projects</p>
-            <p className="text-sm">{error}</p>
-            <button onClick={loadProjects} className="mt-2 text-sm underline">
-              Try again
-            </button>
+            <p className="text-xs mt-0.5">{error}</p>
+            <button onClick={loadProjects} className="mt-1.5 text-xs underline">Try again</button>
           </div>
         )}
 
-        <div className="p-3 sm:p-4 lg:p-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <StatsCard
-              icon={FileText}
-              label="Total Projects"
-              value={stats.total}
-              bgColor="bg-blue-100"
-              iconColor="text-blue-600"
-            />
-            <StatsCard
-              icon={Clock}
-              label="In Progress"
-              value={stats.inProgress}
-              bgColor="bg-yellow-100"
-              iconColor="text-yellow-600"
-            />
-            <StatsCard
-              icon={CheckCircle}
-              label="Completed"
-              value={stats.completed}
-              bgColor="bg-green-100"
-              iconColor="text-green-600"
-            />
-            <StatsCard
-              icon={IndianRupee}
-              label="Total Budget"
-              value={`₹${(stats.totalBudget / 1000).toFixed(0)}k`}
-              bgColor="bg-purple-100"
-              iconColor="text-purple-600"
-            />
+        {/* ── Page body ── */}
+        <div className="px-3 sm:px-4 lg:px-6 pt-3 pb-24 md:pb-8 space-y-4">
+
+          {/* Stats grid — 2 cols mobile, 4 cols desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatsCard icon={FileText}     label="Total Projects" value={stats.total}      bgColor="bg-blue-100"   iconColor="text-blue-600" />
+            <StatsCard icon={Clock}        label="In Progress"    value={stats.inProgress}  bgColor="bg-yellow-100" iconColor="text-yellow-600" />
+            <StatsCard icon={CheckCircle}  label="Completed"      value={stats.completed}   bgColor="bg-green-100"  iconColor="text-green-600" />
+            <StatsCard icon={IndianRupee}  label="Total Budget"   value={`₹${(stats.totalBudget / 1000).toFixed(0)}k`} bgColor="bg-purple-100" iconColor="text-purple-600" />
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 sm:mb-6">
+          {/* Search / filter / tabs + project list */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+
+            {/* Search + filter row */}
             <div className="p-3 sm:p-4 border-b border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="flex gap-2">
                 <div className="flex-1 relative">
-                  <Search className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg  focus:border-transparent"
+                    className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                   />
                 </div>
                 <div className="relative">
                   <button
                     onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm w-full sm:w-auto"
+                    className="flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
                   >
                     <Filter className="w-4 h-4" />
                     <span className="hidden sm:inline">Filter</span>
                     {filterType !== "all" && (
-                      <span className="bg-yellow-500 text-white rounded-full w-2 h-2"></span>
+                      <span className="w-2 h-2 bg-yellow-500 rounded-full" />
                     )}
                   </button>
                   {showFilterDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                      <div className="p-2">
-                        <p className="text-xs font-medium text-gray-600 px-2 py-1">
-                          Filter by Type
-                        </p>
-                        {[
-                          "all",
-                          "Residential",
-                          "Commercial",
-                          "Industrial",
-                          "Renovation",
-                        ].map((type) => (
-                          <button
-                            key={type}
-                            onClick={() => {
-                              setFilterType(type);
-                              setShowFilterDropdown(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded text-sm ${
-                              filterType === type
-                                ? "bg-yellow-100 text-black-600"
-                                : "hover:bg-gray-50"
-                            }`}
-                          >
-                            {type === "all" ? "All Types" : type}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-200 z-10 py-1">
+                      <p className="text-xs font-semibold text-gray-500 px-3 py-1.5 uppercase tracking-wide">Type</p>
+                      {["all", "Residential", "Commercial", "Industrial", "Renovation"].map((type) => (
+                        <button
+                          key={type}
+                          onClick={() => { setFilterType(type); setShowFilterDropdown(false); }}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                            filterType === type ? "bg-yellow-50 text-yellow-800 font-medium" : "hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          {type === "all" ? "All Types" : type}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 overflow-x-auto scrollbar-hide">
+            {/* Tab pills */}
+            <div className="flex gap-1.5 px-3 py-2 border-b border-gray-200 overflow-x-auto scrollbar-hide">
               {[
                 { id: "all", label: "All" },
                 { id: "in-progress", label: "In Progress" },
@@ -556,10 +393,10 @@ const handleCreateProject = async (file) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap text-sm ${
+                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors whitespace-nowrap text-xs sm:text-sm flex-shrink-0 ${
                     activeTab === tab.id
-                      ? "bg-yellow-100 text-black-600"
-                      : "text-gray-600 hover:bg-gray-50"
+                      ? "bg-yellow-400 text-black"
+                      : "text-gray-600 hover:bg-gray-100"
                   }`}
                 >
                   {tab.label}
@@ -567,11 +404,12 @@ const handleCreateProject = async (file) => {
               ))}
             </div>
 
-            <div className="divide-y divide-gray-200">
+            {/* Project list */}
+            <div className="divide-y divide-gray-100">
               {filteredProjects.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p>No projects found</p>
+                <div className="p-10 text-center text-gray-400">
+                  <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">No projects found</p>
                 </div>
               ) : (
                 filteredProjects.map((project) => (
@@ -585,44 +423,41 @@ const handleCreateProject = async (file) => {
                     getStatusIcon={getStatusIcon}
                     onStatusChange={handleStatusChangeInline}
                     onProgressUpdate={handleProgressUpdate}
-                    onDownloadReport={handleDownloadReport} // ✅ Add this line
+                    onDownloadReport={handleDownloadReport}
                   />
                 ))
               )}
             </div>
           </div>
         </div>
-
-        <ProjectFormModal
-          isOpen={showNewProjectModal}
-          onClose={() => setShowNewProjectModal(false)}
-          project={newProject}
-          onChange={setNewProject}
-          onSubmit={handleCreateProject}
-          title="Create New Project"
-          submitLabel="Create Project"
-        />
-
-        <ProjectFormModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          project={editingProject || {}}
-          onChange={setEditingProject}
-          onSubmit={handleUpdateProject}
-          title="Edit Project"
-          submitLabel="Update Project"
-        />
-
-        <ProjectDetailsModal
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-          getStatusColor={getStatusColor}
-          getStatusIcon={getStatusIcon}
-          onQuickAction={(action) =>
-            alert(`${action} feature will be available soon!`)
-          }
-        />
       </div>
+
+      {/* Modals */}
+      <ProjectFormModal
+        isOpen={showNewProjectModal}
+        onClose={() => setShowNewProjectModal(false)}
+        project={newProject}
+        onChange={setNewProject}
+        onSubmit={handleCreateProject}
+        title="Create New Project"
+        submitLabel="Create Project"
+      />
+      <ProjectFormModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        project={editingProject || {}}
+        onChange={setEditingProject}
+        onSubmit={handleUpdateProject}
+        title="Edit Project"
+        submitLabel="Update Project"
+      />
+      <ProjectDetailsModal
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+        getStatusColor={getStatusColor}
+        getStatusIcon={getStatusIcon}
+        onQuickAction={(action) => alert(`${action} feature will be available soon!`)}
+      />
     </div>
   );
 };

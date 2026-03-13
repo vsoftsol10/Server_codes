@@ -210,7 +210,7 @@ const FinancialManagement = () => {
         <SidePannel />
       </aside>
 
-      <div className="pt-20 pl-16 md:pl-64">
+      <div className="pt-20 pl-0 md:pl-64">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">

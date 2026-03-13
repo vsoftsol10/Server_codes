@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Phone } from 'lucide-react';
 
 const CompanyInformation = ({ formData, handleInputChange }) => {
   const [loading, setLoading] = useState(false);
@@ -152,14 +151,13 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
             Phone
           </label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="tel"
               name="companyPhone"
               value={displayValue(formData.companyPhone)}
               onChange={handleInputChange}
               placeholder="+91 XXXXX XXXXX"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+              className="w-full px-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
             />
           </div>
         </div>

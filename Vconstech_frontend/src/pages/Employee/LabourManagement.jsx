@@ -53,8 +53,6 @@ const LabourManagement = () => {
     }
   }
 
-
-
   const fetchProjects = async () => {
     try {
       const data = await projectAPI.getProjects()
@@ -68,7 +66,7 @@ const LabourManagement = () => {
 
   useEffect(() => {
     fetchLabourers()
-    fetchProjects()  // ← ADD THIS
+    fetchProjects()
   }, [])
 
   const handleAddLabour = async () => {
@@ -76,10 +74,8 @@ const LabourManagement = () => {
       alert('Please fill in all required fields')
       return
     }
-
     try {
       const data = await labourApi.createLabourer(newLabour)
-      
       if (data.success) {
         await fetchLabourers()
         setNewLabour({ name: '', phone: '', address: '', designation: '', project: '' })
@@ -109,7 +105,6 @@ const LabourManagement = () => {
       alert('Please fill in all required fields')
       return
     }
-
     try {
       const data = await labourApi.updateLabourer(editLabour.id, {
         name: editLabour.name,
@@ -118,7 +113,6 @@ const LabourManagement = () => {
         designation: editLabour.designation,
         project: editLabour.project
       })
-      
       if (data.success) {
         await fetchLabourers()
         setEditLabour({ id: null, name: '', phone: '', address: '', designation: '', project: '' })
@@ -135,10 +129,8 @@ const LabourManagement = () => {
       alert('Please enter a valid amount')
       return
     }
-
     try {
       const data = await labourApi.addPayment(selectedLabour.id, payment)
-      
       if (data.success) {
         await fetchLabourers()
         setPayment({ amount: '', date: new Date().toISOString().split('T')[0] })
@@ -165,7 +157,6 @@ const LabourManagement = () => {
     if (window.confirm('Are you sure you want to delete this labourer? This will also delete all their payment records.')) {
       try {
         const data = await labourApi.deleteLabourer(id)
-        
         if (data.success) {
           await fetchLabourers()
           alert('Labourer deleted successfully!')
@@ -181,9 +172,8 @@ const LabourManagement = () => {
   }
 
   // Reusable form fields for Add/Edit
-    const renderLabourFields = (formState, setFormState) => (
+  const renderLabourFields = (formState, setFormState) => (
     <div className="space-y-4">
-      {/* Name */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
         <div className="relative">
@@ -192,13 +182,12 @@ const LabourManagement = () => {
             type="text"
             value={formState.name}
             onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg  focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
             placeholder="Enter name"
           />
         </div>
       </div>
 
-      {/* Phone */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
         <div className="relative">
@@ -207,13 +196,12 @@ const LabourManagement = () => {
             type="tel"
             value={formState.phone}
             onChange={(e) => setFormState({ ...formState, phone: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg  focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
             placeholder="Enter phone number"
           />
         </div>
       </div>
 
-      {/* Designation */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
         <div className="relative">
@@ -222,40 +210,38 @@ const LabourManagement = () => {
             type="text"
             value={formState.designation}
             onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg  focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
             placeholder="e.g. Mason, Electrician, Helper"
           />
         </div>
       </div>
 
-      {/* Project - NOW A DROPDOWN ← CHANGED */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Project</label>
         <div className="relative">
           <FolderOpen className="absolute left-3 top-3 text-gray-400 pointer-events-none" size={20} />
-         <select
-  value={formState.project}
-  onChange={(e) => {
-    const selectedProject = projects.find(p => p.name === e.target.value)
-    setFormState({ 
-      ...formState, 
-      project: e.target.value,
-      projectId: selectedProject ? selectedProject.id : null  // ← ADD THIS
-    })
-  }}
-  className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent bg-white appearance-none"
->
-  <option value="">Select a project</option>
-  {projects.map((proj) => (
-    <option key={proj.id} value={proj.name}>
-      {proj.name} {proj.projectId ? `(${proj.projectId})` : ''}
-    </option>
-  ))}
-</select>
+          <select
+            value={formState.project}
+            onChange={(e) => {
+              const selectedProject = projects.find(p => p.name === e.target.value)
+              setFormState({ 
+                ...formState, 
+                project: e.target.value,
+                projectId: selectedProject ? selectedProject.id : null
+              })
+            }}
+            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent bg-white appearance-none"
+          >
+            <option value="">Select a project</option>
+            {projects.map((proj) => (
+              <option key={proj.id} value={proj.name}>
+                {proj.name} {proj.projectId ? `(${proj.projectId})` : ''}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Address */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
         <div className="relative">
@@ -263,7 +249,7 @@ const LabourManagement = () => {
           <textarea
             value={formState.address}
             onChange={(e) => setFormState({ ...formState, address: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg  focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
             placeholder="Enter address"
             rows="3"
           />
@@ -281,31 +267,34 @@ const LabourManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16">
-        <EmployeeNavbar />
-      </nav>
-      <div className="max-w-8xl pt-25 mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Labour Management</h1>
-              <p className="text-gray-600 mt-1">Manage labourers and track daily payments</p>
-            </div>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg cursor-pointer hover:bg-[#e5ab26] transition font-medium"
-            >
-              <Plus size={20} />
-              Add Labour
-            </button>
+    <div className="min-h-screen bg-gray-50">
+      <EmployeeNavbar />
+
+      {/* ── Header ── */}
+      <div className="mt-16 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Labour Management</h1>
+            <p className="text-gray-600 mt-1 text-sm">Manage labourers and track daily payments</p>
           </div>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 bg-[#ffbe2a] text-black px-4 py-2 rounded-lg cursor-pointer hover:bg-[#e5ab26] transition font-medium"
+          >
+            <Plus size={20} />
+            <span className="hidden sm:inline">Add Labour</span>
+            <span className="sm:hidden">Add</span>
+          </button>
         </div>
+      </div>
+
+      {/* ── Main content ── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Add Labour Modal */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Add New Labour</h2>
                 <button onClick={() => setShowAddForm(false)} className="text-gray-500 hover:text-gray-700">
@@ -333,8 +322,8 @@ const LabourManagement = () => {
 
         {/* Edit Labour Modal */}
         {showEditForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Edit Labour Details</h2>
                 <button onClick={() => setShowEditForm(false)} className="text-gray-500 hover:text-gray-700">
@@ -362,8 +351,8 @@ const LabourManagement = () => {
 
         {/* Add Payment Modal */}
         {showPaymentModal && selectedLabour && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Add Payment</h2>
                 <button
@@ -426,8 +415,8 @@ const LabourManagement = () => {
 
         {/* View Payments Modal */}
         {showViewPaymentsModal && selectedLabour && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Payment History</h2>
@@ -496,7 +485,7 @@ const LabourManagement = () => {
           </div>
         )}
 
-        {/* Table View */}
+        {/* Table — original design, scroll-wrapped for mobile */}
         {labourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />

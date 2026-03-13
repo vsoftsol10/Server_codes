@@ -165,7 +165,7 @@ const Profile = () => {
         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
           <SidePannel />
         </aside>
-        <div className="pt-20 pl-16 md:pl-64 flex items-center justify-center min-h-screen">
+<div className="pt-16 pl-0 md:pl-64 pb-20 md:pb-0 flex items-center justify-center min-h-screen">          
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ffbe2a] mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading profile...</p>
@@ -184,8 +184,7 @@ const Profile = () => {
         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
           <SidePannel />
         </aside>
-        <div className="pt-20 pl-16 md:pl-64 flex items-center justify-center min-h-screen">
-          <div className="text-center">
+<div className="pt-16 pl-0 md:pl-64 pb-20 md:pb-0 flex items-center justify-center min-h-screen">          <div className="text-center">
             <p className="text-red-600 text-lg">Failed to load profile</p>
             <button
               onClick={fetchUserProfile}
@@ -209,8 +208,7 @@ const Profile = () => {
         <SidePannel />
       </aside>
 
-      <div className="pt-20 pl-16 md:pl-64">
-        <div className="p-4 sm:p-6 lg:p-8">
+<div className="pt-20 pl-0 md:pl-64 pb-20 md:pb-0">        <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-5xl mx-auto">
 
             {/* Header */}

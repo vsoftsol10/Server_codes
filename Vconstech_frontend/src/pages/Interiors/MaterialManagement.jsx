@@ -7,7 +7,6 @@ import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import RequestTab from '../../components/MaterialManagement/RequestTab';
 
-// Main App Component
 const MaterialManagement = () => {
   const [materials, setMaterials] = useState([
     { id: 'MAT001', name: 'Asian Paints Premium', category: 'Paint', unit: 'liter', defaultRate: 450, vendor: 'Asian Paints', description: 'Premium interior paint' },
@@ -103,7 +102,7 @@ const MaterialManagement = () => {
     setNewMaterial({ name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: '' });
     setShowAddMaterial(false);
   };
-   
+
   const handleUpdateMaterial = () => {
     setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
     setEditingMaterial(null);
@@ -127,7 +126,7 @@ const MaterialManagement = () => {
   };
 
   const handleUpdateUsage = (projectId, materialId, newUsed) => {
-    setProjectMaterials(projectMaterials.map(pm => 
+    setProjectMaterials(projectMaterials.map(pm =>
       pm.projectId === projectId && pm.materialId === materialId
         ? { ...pm, used: parseInt(newUsed) }
         : pm
@@ -140,46 +139,50 @@ const MaterialManagement = () => {
       projectId: selectedProject,
       quantity: parseInt(newUsageLog.quantity)
     }]);
-    
-    const currentPM = projectMaterials.find(pm => 
+    const currentPM = projectMaterials.find(pm =>
       pm.projectId === selectedProject && pm.materialId === newUsageLog.materialId
     );
     if (currentPM) {
-      handleUpdateUsage(selectedProject, newUsageLog.materialId, 
+      handleUpdateUsage(selectedProject, newUsageLog.materialId,
         currentPM.used + parseInt(newUsageLog.quantity));
     }
-
     setNewUsageLog({ date: new Date().toISOString().split('T')[0], materialId: '', quantity: '', remarks: '' });
     setShowUsageLog(false);
   };
 
+  const inputClass = "w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm";
+
+  const tabs = ['dashboard', 'projects', 'Requests'];
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <Navbar />
       </nav>
 
-      <aside className="fixed left-0 top-16 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
-        <SidePannel />
-      </aside>
+      {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
+      <SidePannel />
 
-      <div className="mt-26 pl-16 md:pl-64 min-h-screen">
-        {/* Header Section */}
-        <div className="bg-white border-b border-gray-200 px-3 sm:px-4 md:px-6 py-3 sm:py-4">
-          <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Material Management System</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Track and manage materials across all projects</p>
+      {/* Main content */}
+      <div className="pt-20 md:pl-64">
+
+        {/* Page header */}
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4">
+          <h1 className="text-base sm:text-xl font-bold text-gray-900">Material Management</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Track and manage materials across all projects</p>
         </div>
 
-        {/* Tabs Section */}
-        <div className="bg-white border-b border-gray-200 px-3 sm:px-4 md:px-6 overflow-x-auto">
-          <div className="flex space-x-4 sm:space-x-8">
-            {['dashboard', 'projects', 'Requests'].map(tab => (
+        {/* Tab bar */}
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 overflow-x-auto">
+          <div className="flex gap-1">
+            {tabs.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3 sm:py-4 px-2 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                className={`py-3 px-3 sm:px-5 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab
-                    ? 'border-yellow-600 text-yellow-500'
+                    ? 'border-yellow-500 text-yellow-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
@@ -189,8 +192,8 @@ const MaterialManagement = () => {
           </div>
         </div>
 
-        {/* Content Section */}
-        <div>
+        {/* Tab content — pb-24 so bottom nav doesn't cover last element on mobile */}
+        <div className="pb-24 md:pb-8">
           {activeTab === 'dashboard' && (
             <DashboardTab
               metrics={dashboardMetrics}
@@ -199,7 +202,6 @@ const MaterialManagement = () => {
               materials={materials}
             />
           )}
-
           {activeTab === 'projects' && (
             <ProjectsTab
               projects={projects}
@@ -222,86 +224,59 @@ const MaterialManagement = () => {
               onLogUsage={() => setShowUsageLog(true)}
             />
           )}
-          
         </div>
 
-        {/* Add Material Modal */}
+        {/* ── Add Material Modal ── */}
         <ModalMaterial
           isOpen={showAddMaterial}
           onClose={() => setShowAddMaterial(false)}
           title="Add New Material"
           footer={
             <>
-              <button
-                onClick={() => setShowAddMaterial(false)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
+              <button onClick={() => setShowAddMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
                 Cancel
               </button>
-              <button
-                onClick={handleAddMaterial}
-                className="px-6 py-2 bg-yellow-500 text-black rounded-lg hover:bg-yellow-700"
-              >
+              <button onClick={handleAddMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-yellow-500 text-black rounded-lg text-sm font-medium hover:bg-yellow-600">
                 Add Material
               </button>
             </>
           }
         >
-          <MaterialForm
-            material={newMaterial}
-            onChange={setNewMaterial}
-            categories={categories}
-          />
+          <MaterialForm material={newMaterial} onChange={setNewMaterial} categories={categories} />
         </ModalMaterial>
 
-        {/* Edit Material Modal */}
+        {/* ── Edit Material Modal ── */}
         <ModalMaterial
           isOpen={!!editingMaterial}
           onClose={() => setEditingMaterial(null)}
           title="Edit Material"
           footer={
             <>
-              <button
-                onClick={() => setEditingMaterial(null)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
+              <button onClick={() => setEditingMaterial(null)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
                 Cancel
               </button>
-              <button
-                onClick={handleUpdateMaterial}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
+              <button onClick={handleUpdateMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
                 Update Material
               </button>
             </>
           }
         >
           {editingMaterial && (
-            <MaterialForm
-              material={editingMaterial}
-              onChange={setEditingMaterial}
-              categories={categories}
-            />
+            <MaterialForm material={editingMaterial} onChange={setEditingMaterial} categories={categories} />
           )}
         </ModalMaterial>
 
-        {/* Add Project Material Modal */}
+        {/* ── Add Project Material Modal ── */}
         <ModalMaterial
           isOpen={showAddProjectMaterial}
           onClose={() => setShowAddProjectMaterial(false)}
           title="Add Material to Project"
           footer={
             <>
-              <button
-                onClick={() => setShowAddProjectMaterial(false)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
+              <button onClick={() => setShowAddProjectMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
                 Cancel
               </button>
-              <button
-                onClick={handleAddProjectMaterial}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
+              <button onClick={handleAddProjectMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
                 Add to Project
               </button>
             </>
@@ -309,48 +284,46 @@ const MaterialManagement = () => {
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Material</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Select Material</label>
               <select
                 value={newProjectMaterial.materialId}
                 onChange={(e) => setNewProjectMaterial({...newProjectMaterial, materialId: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
               >
                 <option value="">Choose a material...</option>
                 {materials.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name} ({m.category} - {m.unit})
-                  </option>
+                  <option key={m.id} value={m.id}>{m.name} ({m.category} - {m.unit})</option>
                 ))}
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Quantity</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned Qty</label>
                 <input
                   type="number"
                   value={newProjectMaterial.assigned}
                   onChange={(e) => setNewProjectMaterial({...newProjectMaterial, assigned: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                   placeholder="100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Used Quantity</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Used Qty</label>
                 <input
                   type="number"
                   value={newProjectMaterial.used}
                   onChange={(e) => setNewProjectMaterial({...newProjectMaterial, used: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={inputClass}
                   placeholder="0"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
               <select
                 value={newProjectMaterial.status}
                 onChange={(e) => setNewProjectMaterial({...newProjectMaterial, status: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
               >
                 <option value="Active">Active</option>
                 <option value="Not Used">Not Used</option>
@@ -360,44 +333,38 @@ const MaterialManagement = () => {
           </div>
         </ModalMaterial>
 
-        {/* Add Usage Log Modal */}
+        {/* ── Add Usage Log Modal ── */}
         <ModalMaterial
           isOpen={showUsageLog}
           onClose={() => setShowUsageLog(false)}
           title="Log Material Usage"
           footer={
             <>
-              <button
-                onClick={() => setShowUsageLog(false)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
+              <button onClick={() => setShowUsageLog(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
                 Cancel
               </button>
-              <button
-                onClick={handleAddUsageLog}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
+              <button onClick={handleAddUsageLog} className="flex-1 sm:flex-none px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
                 Log Usage
               </button>
             </>
           }
-        >    
+        >
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
               <input
                 type="date"
                 value={newUsageLog.date}
                 onChange={(e) => setNewUsageLog({...newUsageLog, date: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Material</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Select Material</label>
               <select
                 value={newUsageLog.materialId}
                 onChange={(e) => setNewUsageLog({...newUsageLog, materialId: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
               >
                 <option value="">Choose a material...</option>
                 {getProjectMaterialsWithDetails(selectedProject).map(pm => (
@@ -408,27 +375,28 @@ const MaterialManagement = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quantity Used</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quantity Used</label>
               <input
                 type="number"
                 value={newUsageLog.quantity}
                 onChange={(e) => setNewUsageLog({...newUsageLog, quantity: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 placeholder="20"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Remarks</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Remarks</label>
               <textarea
                 value={newUsageLog.remarks}
                 onChange={(e) => setNewUsageLog({...newUsageLog, remarks: e.target.value})}
                 rows="3"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={inputClass}
                 placeholder="e.g., For Living Room wall"
               />
             </div>
           </div>
         </ModalMaterial>
+
       </div>
     </div>
   );

@@ -172,7 +172,7 @@ export default function ContractManagement() {
       </aside>
 
 
-      <div className="pt-25 pl-16 md:pl-64">
+      <div className="pt-20 pl-0 md:pl-64 pb-20 md:pb-0">
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">

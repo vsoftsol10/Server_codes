@@ -13,6 +13,12 @@ import LogUsageModal from "../../components/Employee/EmployeeMaterial/LogUsageMo
 
 const TABS = ["materials", "projects", "my-requests"];
 
+const TAB_LABELS = {
+  materials: "Materials",
+  projects: "Projects",
+  "my-requests": "My Requests",
+};
+
 const EmployeeMaterialManagement = () => {
   const {
     materials, projects, usageLogs, materialRequests, notifications,
@@ -54,7 +60,7 @@ const EmployeeMaterialManagement = () => {
         type: requestType,
         projectId: requestType === "PROJECT" ? parseInt(newMaterial.projectId) : null,
         quantity: requestType === "PROJECT" ? parseFloat(newMaterial.quantity) : null,
-        dueDate: newMaterial.dueDate || null, // ✅ Add this line
+        dueDate: newMaterial.dueDate || null,
       };
       await materialRequestAPI.create(requestData);
       await fetchMaterialRequests();
@@ -251,61 +257,72 @@ const EmployeeMaterialManagement = () => {
     <div className="min-h-screen bg-gray-50">
       <EmployeeNavbar />
 
-      {/* Header */}
-      <div className="bg-white border-b mt-26 border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Material Management System</h1>
-            <p className="text-sm text-gray-600 mt-1">
+      {/* ── Header ── */}
+      <div className="bg-white border-b border-gray-100 mt-16 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-900 leading-tight truncate">
+              Material Management
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
               Track and manage materials across all projects
             </p>
           </div>
-          <NotificationsDropdown
-            notifications={notifications}
-            unreadCount={unreadCount}
-            show={showNotifications}
-            onToggle={() => setShowNotifications((v) => !v)}
-            onMarkAsRead={handleMarkNotificationAsRead}
-          />
+          <div className="shrink-0">
+            <NotificationsDropdown
+              notifications={notifications}
+              unreadCount={unreadCount}
+              show={showNotifications}
+              onToggle={() => setShowNotifications((v) => !v)}
+              onMarkAsRead={handleMarkNotificationAsRead}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 px-6">
-        <div className="flex space-x-8">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-4 px-2 border-b-2 font-bold text-x transition-colors ${
-                activeTab === tab
-                  ? "border-yellow-600 text-yellow-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-yellow-300"
-              }`}
-            >
-              {tab === "my-requests"
-                ? "My Requests"
-                : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+      {/* ── Tabs ── */}
+      <div className="bg-white border-b border-gray-100 sticky top-16 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex">
+            {TABS.map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`
+                  flex-1 sm:flex-none py-3 sm:py-4 px-3 sm:px-6
+                  border-b-2 font-semibold text-sm transition-colors whitespace-nowrap
+                  ${activeTab === tab
+                    ? "border-yellow-500 text-yellow-600"
+                    : "border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200"
+                  }
+                `}
+              >
+                {TAB_LABELS[tab]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-6">
+      {/* ── Content ── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+
+        {/* Loading */}
         {loading && (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-gray-600">Loading...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-yellow-500 animate-spin" />
+            <p className="text-sm text-gray-400">Loading...</p>
           </div>
         )}
 
+        {/* Error */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-red-800">{error}</p>
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-5">
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
+        {/* Tab panels */}
         {!loading && activeTab === "materials" && (
           <EmployeeMaterialsTab
             materials={filteredMaterials}
@@ -337,7 +354,7 @@ const EmployeeMaterialManagement = () => {
         )}
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <AddMaterialModal
         isOpen={showAddMaterial}
         onClose={() => setShowAddMaterial(false)}

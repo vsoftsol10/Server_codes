@@ -102,8 +102,7 @@ const filteredBills = bills.filter(bill => {
     <div className="bg-white rounded-lg shadow-md mb-6">
 {/* Section Tabs */}
 <div className="border-b border-gray-200 px-6">
-  <div className="flex space-x-8">
-    {['all', 'invoice', 'quotation', 'draft'].map(section => (
+<div className="flex overflow-x-auto scrollbar-hide">    {['all', 'invoice', 'quotation', 'draft'].map(section => (
       <button
         key={section}
         onClick={() => setActiveSection(section)}
@@ -142,8 +141,7 @@ const filteredBills = bills.filter(bill => {
 
       {/* Search and Filter Bar */}
       <div className="p-6 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search Box */}
+<div className="flex flex-row gap-2 flex-wrap">          {/* Search Box */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -159,7 +157,7 @@ const filteredBills = bills.filter(bill => {
           <div className="relative">
             <button
               onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1 px-2 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm whitespace-nowrap"
             >
               <Filter className="w-5 h-5 text-gray-600" />
               <span className="text-sm font-medium text-gray-700">

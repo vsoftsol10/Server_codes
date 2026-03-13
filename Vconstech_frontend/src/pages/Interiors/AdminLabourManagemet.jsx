@@ -283,7 +283,7 @@ const AdminLabourManagement = () => {
         <SidePannel />
       </aside>
 
-      <div className="pt-25 pl-16 md:pl-70 pr-4 pb-8 min-h-screen">
+      <div className="pt-16 pl-3 md:pl-64 pr-4 pb-20 md:pb-8 min-h-screen">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>

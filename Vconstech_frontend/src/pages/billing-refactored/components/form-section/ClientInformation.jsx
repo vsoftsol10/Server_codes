@@ -32,7 +32,6 @@ const ClientInformation = ({
             Client Name <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               name="clientName"
@@ -41,7 +40,7 @@ const ClientInformation = ({
               onFocus={() => formData.clientName && setShowClientSuggestions(true)}
               onBlur={() => setTimeout(() => setShowClientSuggestions(false), 300)}
               placeholder="Start typing client name..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+              className="w-full px-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
               required
             />
           </div>
@@ -96,7 +95,7 @@ const ClientInformation = ({
             value={formData.clientGST}
             onChange={handleInputChange}
             placeholder="29XXXXXXXXXXXXX"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+            className="w-full px-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
           />
         </div>
 
@@ -134,14 +133,13 @@ const ClientInformation = ({
             Client Phone
           </label>
           <div className="relative">
-            <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="tel"
               name="clientPhone"
               value={formData.clientPhone}
               onChange={handleInputChange}
               placeholder="+91 XXXXX XXXXX"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+              className="w-full px-5 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
               
             />
           </div>

@@ -14,14 +14,13 @@ import {
   generatePrintContent,
 } from "../../utils/dashboardUtils";
 
-// Import extracted components
 import KPICard from "../../components/Employee/EmployeeDashboard/KPICard";
 import ProjectCard from "../../components/Employee/EmployeeDashboard/ProjectCard";
 import MaterialRequestTable from "../../components/Employee/EmployeeDashboard/MaterialRequestTable";
 import RecentFiles from "../../components/Employee/EmployeeDashboard/RecentFiles";
 import DailyProgressHistory from "../../components/Employee/EmployeeDashboard/DailyProgressHistory";
-import Notifications from "../../components/Employee/EmployeeDashboard//Notifications";
-import QuickActions from "../../components/Employee/EmployeeDashboard//QuickActions";
+import Notifications from "../../components/Employee/EmployeeDashboard/Notifications";
+import QuickActions from "../../components/Employee/EmployeeDashboard/QuickActions";
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -59,7 +58,6 @@ const EmployeeDashboard = () => {
     day: "numeric",
   });
 
-  // Progress handlers
   const openProgressSlider = (projectId, currentProgress) => {
     setTempProgress({ ...tempProgress, [projectId]: currentProgress });
     setShowProgressSlider({ ...showProgressSlider, [projectId]: true });
@@ -89,7 +87,6 @@ const EmployeeDashboard = () => {
     setProgressMessage({ ...progressMessage, [projectId]: value });
   };
 
-  // Report download handler
   const handleDownloadReport = async (project) => {
     try {
       const html = await projectReportService.generateReport(project);
@@ -100,30 +97,26 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Print handler
   const handlePrintHistory = () => {
     const printWindow = window.open("", "_blank");
-    const printContent = generatePrintContent(
-      dailyProgressHistory,
-      employeeName,
-    );
+    const printContent = generatePrintContent(dailyProgressHistory, employeeName);
     printWindow.document.write(printContent);
     printWindow.document.close();
   };
 
-  // Calculate stats
   const approvedCount = materialRequests.filter(
-    (r) => r.status?.toLowerCase() === "approved",
+    (r) => r.status?.toLowerCase() === "approved"
   ).length;
   const pendingCount = materialRequests.filter(
-    (r) => r.status?.toLowerCase() === "pending",
+    (r) => r.status?.toLowerCase() === "pending"
   ).length;
   const rejectedCount = materialRequests.filter(
-    (r) => r.status?.toLowerCase() === "rejected",
+    (r) => r.status?.toLowerCase() === "rejected"
   ).length;
   const completedProjectsCount = assignedProjects.filter(
-    (p) => p.status?.toLowerCase() === "completed",
+    (p) => p.status?.toLowerCase() === "completed"
   ).length;
+
   const kpiData = [
     {
       icon: FolderOpen,
@@ -141,7 +134,7 @@ const EmployeeDashboard = () => {
     },
     {
       icon: FileText,
-      label: "Completed Projects",
+      label: "Completed",
       value: loading ? "..." : completedProjectsCount.toString(),
       color: "bg-green-500",
       trend: `${completedProjectsCount} finished`,
@@ -152,18 +145,18 @@ const EmployeeDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <EmployeeNavbar />
-        <div className="mt-26 flex items-center justify-center p-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
+        <div className="mt-16 flex items-center justify-center p-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-6 w-full max-w-md">
             <div className="flex items-center gap-3 mb-2">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-              <h2 className="text-lg font-semibold text-red-900">
+              <AlertCircle className="w-6 h-6 text-red-600 shrink-0" />
+              <h2 className="text-base font-semibold text-red-900">
                 Error Loading Dashboard
               </h2>
             </div>
-            <p className="text-red-700">{error}</p>
+            <p className="text-sm text-red-700">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="mt-4 w-full px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 active:scale-95 transition-all"
             >
               Retry
             </button>
@@ -173,64 +166,77 @@ const EmployeeDashboard = () => {
     );
   }
 
+  const initials = employeeName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <EmployeeNavbar />
 
-      {/* Header */}
-      <div className="mt-26">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Hello, {employeeName} 👷‍♂️
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">{currentDate}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-semibold">
-                {employeeName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </div>
-            </div>
+      {/* ── Header ── */}
+      <div className="mt-16 bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+              Hello, {employeeName} 👷‍♂️
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">{currentDate}</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-yellow-400 flex items-center justify-center text-gray-900 font-bold text-sm shrink-0 shadow-sm">
+            {initials}
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+
+        {/* ── KPI Cards — always 3 columns ── */}
+        <div className="grid grid-cols-3 gap-3">
           {kpiData.map((kpi, index) => (
-            <KPICard key={index} {...kpi} />
+            <KPICard key={index} {...kpi} compact />
           ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* ── Quick Actions — mobile only pill row ── */}
+        <div className="lg:hidden">
+          <QuickActions
+            onMaterialRequest={() => navigate("/employee/material-management")}
+            onFileUpload={() => navigate("/employee/file-management")}
+            mobile
+          />
+        </div>
+
+        {/* ── Main Grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          {/* Left / main column */}
+          <div className="lg:col-span-2 space-y-5">
+
             {/* Projects */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-gray-900">
-                  My Assigned Projects
-                </h2>
+                <h2 className="text-base font-bold text-gray-900">My Assigned Projects</h2>
+                <span className="text-xs text-gray-400 font-medium">
+                  {assignedProjects.length} total
+                </span>
               </div>
 
               {loading ? (
-                <div className="text-center py-8 text-gray-500">
-                  Loading projects...
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                  ))}
                 </div>
               ) : assignedProjects.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-10 text-gray-400 text-sm">
                   No projects assigned yet
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {assignedProjects.map((project) => (
                     <ProjectCard
                       key={project.id}
@@ -270,32 +276,28 @@ const EmployeeDashboard = () => {
             />
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Recent Files - Compact */}
+          {/* Right sidebar */}
+          <div className="space-y-5">
             <RecentFiles
               recentFiles={recentFiles}
               loading={loading}
-              onViewFile={(file) => {
-                console.log("file object:", file);
-                console.log("API_BASE_URL:", API_BASE_URL);
-                handleViewFile(file, API_BASE_URL);
-              }}
+              onViewFile={(file) => handleViewFile(file, API_BASE_URL)}
               onNavigateToFiles={() => navigate("/employee/file-management")}
               getFileIcon={getFileIcon}
               getFileType={getFileType}
               formatFileSize={formatFileSize}
-              compact={true}
+              compact
             />
 
             <Notifications notifications={notifications} loading={loading} />
 
-            <QuickActions
-              onMaterialRequest={() =>
-                navigate("/employee/material-management")
-              }
-              onFileUpload={() => navigate("/employee/file-management")}
-            />
+            {/* Quick Actions — desktop sidebar only */}
+            <div className="hidden lg:block">
+              <QuickActions
+                onMaterialRequest={() => navigate("/employee/material-management")}
+                onFileUpload={() => navigate("/employee/file-management")}
+              />
+            </div>
 
             <DailyProgressHistory
               dailyProgressHistory={dailyProgressHistory}

@@ -26,11 +26,8 @@ const getMimeType = (file) => {
   const ext = getFileExtension(file);
   const mimeMap = {
     pdf:  'application/pdf',
-    jpg:  'image/jpeg',
-    jpeg: 'image/jpeg',
-    png:  'image/png',
-    gif:  'image/gif',
-    webp: 'image/webp',
+    jpg:  'image/jpeg', jpeg: 'image/jpeg',
+    png:  'image/png',  gif: 'image/gif', webp: 'image/webp',
     doc:  'application/msword',
     docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     xls:  'application/vnd.ms-excel',
@@ -43,11 +40,10 @@ const isImageFile  = (file) => ['jpg','jpeg','png','gif','webp'].includes(getFil
 const isPdfFile    = (file) => getFileExtension(file) === 'pdf';
 const isOfficeFile = (file) => ['doc','docx','xls','xlsx'].includes(getFileExtension(file));
 
-// Convert Blob → base64 data URI
 const blobToBase64 = (blob) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result); // already a data URI string
+    reader.onload  = () => resolve(reader.result);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
@@ -55,21 +51,18 @@ const blobToBase64 = (blob) =>
 // ─── File Viewer Modal ────────────────────────────────────────────────────────
 
 const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
-  const [zoom, setZoom]         = useState(1);
-  const [rotation, setRotation] = useState(0);
+  const [zoom, setZoom]           = useState(1);
+  const [rotation, setRotation]   = useState(0);
   const [pdfLoaded, setPdfLoaded] = useState(false);
   const [pdfError, setPdfError]   = useState(false);
-
   const fileName = file?.fileName || file?.filename || 'File';
 
-  // Close on Escape
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // PDF: auto-timeout — if embed hasn't signalled loaded after 8s, assume it worked anyway
   useEffect(() => {
     if (!isPdfFile(file)) return;
     const t = setTimeout(() => setPdfLoaded(true), 3000);
@@ -77,7 +70,6 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
   }, [file]);
 
   const renderContent = () => {
-    // ── Images ──────────────────────────────────────────────────────────────
     if (isImageFile(file)) {
       return (
         <div className="w-full h-full overflow-auto flex items-center justify-center bg-gray-900 p-4">
@@ -88,7 +80,7 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
               transform: `scale(${zoom}) rotate(${rotation}deg)`,
               transformOrigin: 'center center',
               transition: 'transform 0.2s ease',
-              maxWidth:  zoom <= 1 ? '100%' : 'none',
+              maxWidth: zoom <= 1 ? '100%' : 'none',
               maxHeight: zoom <= 1 ? '100%' : 'none',
               objectFit: 'contain',
               borderRadius: '6px',
@@ -98,10 +90,6 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
         </div>
       );
     }
-
-    // ── PDF ──────────────────────────────────────────────────────────────────
-    // Use <embed> with a base64 data URI — most reliable cross-browser approach.
-    // <iframe> with blob:// can silently fail on some browsers/OS combos.
     if (isPdfFile(file)) {
       return (
         <div className="relative w-full h-full bg-gray-200">
@@ -113,10 +101,8 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
               </div>
             </div>
           )}
-
           {pdfError ? (
-            <FallbackDownload file={file} onDownload={onDownload}
-              message="Your browser could not render this PDF inline." />
+            <FallbackDownload file={file} onDownload={onDownload} message="Your browser could not render this PDF inline." />
           ) : (
             <embed
               src={dataUri}
@@ -129,11 +115,6 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
         </div>
       );
     }
-
-    // ── Office (DOC / DOCX / XLS / XLSX) ────────────────────────────────────
-    // Browsers have no native Office renderer. We try Microsoft Office Online
-    // Viewer as a last resort — but it requires a public URL, which a data URI
-    // is not. So we show a friendly fallback immediately with download + tip.
     if (isOfficeFile(file)) {
       return (
         <div className="w-full h-full flex items-center justify-center bg-gray-50">
@@ -141,12 +122,9 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
             <span className="text-7xl mb-5 block">{getFileIcon(file)}</span>
             <p className="text-lg font-bold text-gray-800 mb-2">{fileName}</p>
             <p className="text-sm text-gray-500 mb-1">
-              <strong>{getFileExtension(file).toUpperCase()}</strong> files cannot be previewed
-              directly in the browser.
+              <strong>{getFileExtension(file).toUpperCase()}</strong> files cannot be previewed in the browser.
             </p>
-            <p className="text-xs text-gray-400 mb-6">
-              Download and open with Microsoft Office, LibreOffice, or upload to Google Drive to view online.
-            </p>
+            <p className="text-xs text-gray-400 mb-6">Download and open with Microsoft Office or LibreOffice.</p>
             <button onClick={onDownload}
               className="bg-amber-400 hover:bg-amber-500 text-black font-bold py-2.5 px-6 rounded-lg border-2 border-black flex items-center gap-2 mx-auto transition-colors">
               <Download size={18} /> Download File
@@ -155,8 +133,6 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
         </div>
       );
     }
-
-    // ── Unknown ──────────────────────────────────────────────────────────────
     return <FallbackDownload file={file} onDownload={onDownload} message="Preview not available for this file type." />;
   };
 
@@ -169,15 +145,11 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
         className="relative bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
         style={{ width: '92vw', maxWidth: '1100px', height: '92vh' }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b-2 border-amber-400 bg-amber-50 flex-shrink-0">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-xl">{getFileIcon(file)}</span>
-            <span className="font-bold text-black text-sm md:text-base truncate max-w-xs md:max-w-lg">
-              {fileName}
-            </span>
+            <span className="font-bold text-black text-sm md:text-base truncate max-w-xs md:max-w-lg">{fileName}</span>
           </div>
-
           <div className="flex items-center gap-1.5 flex-shrink-0">
             {isImageFile(file) && (
               <>
@@ -199,12 +171,10 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
                 <div className="w-px h-5 bg-gray-300 mx-1" />
               </>
             )}
-
             <button onClick={onDownload}
               className="flex items-center gap-1.5 bg-green-400 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg border-2 border-black text-xs font-bold transition-colors">
               <Download size={14} /> Download
             </button>
-
             <button onClick={onClose}
               className="ml-1 p-1.5 rounded-lg hover:bg-red-100 text-red-500 border-2 border-transparent hover:border-red-300 transition-colors"
               title="Close (Esc)">
@@ -212,17 +182,12 @@ const FileViewerModal = ({ file, dataUri, rawBlob, onClose, onDownload }) => {
             </button>
           </div>
         </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-hidden">
-          {renderContent()}
-        </div>
+        <div className="flex-1 overflow-hidden">{renderContent()}</div>
       </div>
     </div>
   );
 };
 
-// Small reusable fallback card
 const FallbackDownload = ({ file, onDownload, message }) => (
   <div className="w-full h-full flex items-center justify-center bg-gray-50">
     <div className="text-center py-16 px-8 max-w-sm">
@@ -240,19 +205,17 @@ const FallbackDownload = ({ file, onDownload, message }) => (
 // ─── Main Page Component ──────────────────────────────────────────────────────
 
 const FileManagement = () => {
-  const [projects, setProjects]         = useState([]);
+  const [projects, setProjects]               = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [projectFiles, setProjectFiles] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [filesLoading, setFilesLoading] = useState(false);
+  const [projectFiles, setProjectFiles]       = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [filesLoading, setFilesLoading]       = useState(false);
   const [showAddFileForm, setShowAddFileForm] = useState(false);
-  const [saveMessage, setSaveMessage]   = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [fileFormData, setFileFormData] = useState({ documentType: '', file: null, fileName: '' });
-
-  // viewerState: { file, dataUri, rawBlob }
-  const [viewerState, setViewerState]   = useState(null);
-  const [viewLoading, setViewLoading]   = useState(false);
+  const [saveMessage, setSaveMessage]         = useState('');
+  const [errorMessage, setErrorMessage]       = useState('');
+  const [fileFormData, setFileFormData]       = useState({ documentType: '', file: null, fileName: '' });
+  const [viewerState, setViewerState]         = useState(null);
+  const [viewLoading, setViewLoading]         = useState(false);
 
   const documentTypes = ['Contract','Invoice','Blueprint','Report','Certificate','Permit','Drawing','Specification','Other'];
   const API_BASE_URL  = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -339,7 +302,6 @@ const FileManagement = () => {
     setSelectedProject(null); setShowAddFileForm(false); setProjectFiles([]);
   };
 
-  // Fetch file → return { rawBlob, dataUri }
   const fetchFileData = async (file) => {
     const url = `${API_BASE_URL}/projects/${selectedProject.id}/files/${file.id}/download`;
     const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
@@ -347,10 +309,10 @@ const FileManagement = () => {
       const err = await response.json().catch(() => ({}));
       throw new Error(err.error || `Failed: ${response.status} ${response.statusText}`);
     }
-    const rawBlob  = await response.blob();
-    const mimeType = getMimeType(file);
+    const rawBlob   = await response.blob();
+    const mimeType  = getMimeType(file);
     const typedBlob = new Blob([rawBlob], { type: mimeType });
-    const dataUri   = await blobToBase64(typedBlob);   // reliable base64 data URI
+    const dataUri   = await blobToBase64(typedBlob);
     return { rawBlob: typedBlob, dataUri };
   };
 
@@ -360,11 +322,8 @@ const FileManagement = () => {
       setViewLoading(true);
       const { rawBlob, dataUri } = await fetchFileData(file);
       setViewerState({ file, dataUri, rawBlob });
-    } catch (e) {
-      showMessage('Failed to open file: ' + e.message, true);
-    } finally {
-      setViewLoading(false);
-    }
+    } catch (e) { showMessage('Failed to open file: ' + e.message, true); }
+    finally     { setViewLoading(false); }
   };
 
   const handleDownloadFile = async (file) => {
@@ -384,7 +343,6 @@ const FileManagement = () => {
     } catch (e) { showMessage('Failed to download file: ' + e.message, true); }
   };
 
-  // Download from inside the modal (reuse already-fetched blob)
   const handleModalDownload = () => {
     if (!viewerState) return;
     const { file, rawBlob } = viewerState;
@@ -397,8 +355,6 @@ const FileManagement = () => {
     document.body.removeChild(link);
     setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
   };
-
-  const closeViewer = () => setViewerState(null);
 
   const getStatusBadgeColor = (status) => {
     const map = {
@@ -419,210 +375,236 @@ const FileManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50">
 
+      {/* File viewer modal */}
       {viewerState && (
         <FileViewerModal
           file={viewerState.file}
           dataUri={viewerState.dataUri}
           rawBlob={viewerState.rawBlob}
-          onClose={closeViewer}
+          onClose={() => setViewerState(null)}
           onDownload={handleModalDownload}
         />
       )}
 
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16"><Navbar /></nav>
-      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto"><SidePannel /></aside>
+      {/* Navbar */}
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16">
+        <Navbar />
+      </nav>
 
-      <div className="mt-16 pl-16 md:pl-64 p-4 md:p-15 bg-gray-50 min-h-screen">
-        <div className="max-w-6xl mx-auto">
+      {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
+      <SidePannel />
 
-          <div className="mb-6 md:mb-8 text-center px-2 mt-6 sm:mt-10">
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-black mb-2">E-Vault</h1>
-            <p className="text-xs sm:text-sm md:text-base text-gray-700">
+      {/* Main content */}
+      <div className="pt-16 md:pl-64">
+        <div className="px-3 sm:px-4 lg:px-8 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto">
+
+          {/* Page heading */}
+          <div className="text-center mb-5 mt-2">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">E-Vault</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               {isFilesView ? `Files for ${selectedProject.name}` : 'Manage project documents securely'}
             </p>
           </div>
 
+          {/* Toast messages */}
           {saveMessage && (
-            <div className="mb-4 p-3 md:p-4 bg-green-100 border-2 border-green-400 rounded-lg text-green-800 text-center font-medium text-xs sm:text-sm md:text-base mx-2 flex items-center justify-center gap-2">
-              <Save size={16} /> {saveMessage}
+            <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded-xl text-green-800 text-center text-sm flex items-center justify-center gap-2">
+              <Save size={15} /> {saveMessage}
             </div>
           )}
           {errorMessage && (
-            <div className="mb-4 p-3 md:p-4 bg-red-100 border-2 border-red-400 rounded-lg text-red-800 text-center font-medium text-xs sm:text-sm md:text-base mx-2 flex items-center justify-center gap-2">
-              <AlertCircle size={16} /> {errorMessage}
+            <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-xl text-red-700 text-center text-sm flex items-center justify-center gap-2">
+              <AlertCircle size={15} /> {errorMessage}
             </div>
           )}
 
+          {/* Breadcrumb */}
           {isFilesView && (
-            <div className="mb-4 px-2 flex items-center gap-2 text-sm md:text-base text-gray-600">
-              <button onClick={handleBackToProjects} className="hover:text-black font-medium">Projects</button>
-              <ChevronRight size={16} />
-              <span className="text-black font-semibold truncate">{selectedProject.name}</span>
+            <div className="mb-3 flex items-center gap-1.5 text-sm text-gray-500">
+              <button onClick={handleBackToProjects} className="hover:text-gray-900 font-medium transition-colors">Projects</button>
+              <ChevronRight size={14} />
+              <span className="text-gray-900 font-semibold truncate">{selectedProject.name}</span>
             </div>
           )}
 
+          {/* Action bar (files view) */}
           {isFilesView && !showAddFileForm && (
-            <div className="mb-6 px-2 flex gap-2">
-              <button onClick={handleBackToProjects} className="bg-gray-300 hover:bg-gray-400 text-black font-bold py-3 md:py-4 px-4 md:px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors">
-                <X size={20} /><span className="text-sm md:text-base hidden sm:inline">Back</span>
+            <div className="mb-4 flex gap-2">
+              <button
+                onClick={handleBackToProjects}
+                className="flex items-center gap-1.5 bg-gray-200 hover:bg-gray-300 text-black font-medium py-2.5 px-4 rounded-xl text-sm transition-colors"
+              >
+                <X size={16} /> Back
               </button>
-              <button onClick={() => setShowAddFileForm(true)} className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-3 md:py-4 px-6 rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors">
-                <Plus size={24} /><span className="text-sm md:text-base">Upload Files</span>
+              <button
+                onClick={() => setShowAddFileForm(true)}
+                className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus size={18} /> Upload Files
               </button>
             </div>
           )}
 
+          {/* Upload form */}
           {showAddFileForm && (
-            <div className="mb-6 p-4 md:p-6 bg-white border-2 border-amber-400 rounded-lg space-y-4 mx-2">
-              <h3 className="text-lg md:text-xl font-bold text-black mb-4">Upload File to {selectedProject?.name}</h3>
+            <div className="mb-5 bg-white border-2 border-amber-400 rounded-xl p-4 sm:p-5 space-y-4">
+              <h3 className="text-base font-bold text-gray-900">Upload File to {selectedProject?.name}</h3>
+
               <div>
-                <label className="block text-xs md:text-sm font-medium text-black mb-1.5 md:mb-2">Document Type (Optional)</label>
-                <div className="relative">
-                  <select name="documentType" value={fileFormData.documentType}
-                    onChange={(e) => setFileFormData(prev => ({ ...prev, documentType: e.target.value }))}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-sm md:text-base border-2 border-black rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white text-black appearance-none cursor-pointer transition-all hover:border-amber-400 pr-10">
-                    <option value="">Select document type</option>
-                    {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-black">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                  </div>
-                </div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Document Type (Optional)</label>
+                <select
+                  value={fileFormData.documentType}
+                  onChange={(e) => setFileFormData(prev => ({ ...prev, documentType: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 bg-white"
+                >
+                  <option value="">Select document type</option>
+                  {documentTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                </select>
               </div>
+
               <div>
-                <label className="block text-xs md:text-sm font-medium text-black mb-1.5 md:mb-2">Attach File *</label>
-                <div className="border-2 border-dashed border-amber-400 rounded-lg p-4 md:p-6 lg:p-8 text-center bg-amber-50">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Attach File *</label>
+                <div className="border-2 border-dashed border-amber-400 rounded-xl p-5 text-center bg-amber-50">
                   <input type="file" id="file-upload" onChange={handleFileChange} className="hidden"
                     accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx,.xls,.dwg,.dxf" />
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <Upload size={32} className="mx-auto text-amber-600 mb-2 md:w-10 md:h-10" />
-                    <p className="text-xs sm:text-sm md:text-base font-medium text-black break-words px-2">
-                      {fileFormData.fileName || 'Click to upload file'}
+                  <label htmlFor="file-upload" className="cursor-pointer block">
+                    <Upload size={28} className="mx-auto text-amber-500 mb-2" />
+                    <p className="text-sm font-medium text-gray-800 break-words">
+                      {fileFormData.fileName || 'Tap to select a file'}
                     </p>
-                    <p className="text-xs text-gray-600 mt-1 px-2">PDF, DOC, DOCX, JPG, PNG, XLSX, DWG, DXF supported</p>
+                    <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, JPG, PNG, XLSX, DWG, DXF</p>
                   </label>
                 </div>
               </div>
+
               <div className="flex gap-2">
-                <button onClick={handleAddFile}
-                  className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 md:py-3 px-4 md:px-6 text-sm md:text-base rounded-lg shadow-lg flex items-center justify-center gap-2 transition-colors border-2 border-black">
-                  <Upload size={16} className="md:w-5 md:h-5" /> Upload File
+                <button
+                  onClick={() => { setShowAddFileForm(false); setFileFormData({ documentType: '', file: null, fileName: '' }); }}
+                  className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl text-sm transition-colors"
+                >
+                  Cancel
                 </button>
-                <button onClick={() => { setShowAddFileForm(false); setFileFormData({ documentType: '', file: null, fileName: '' }); }}
-                  className="bg-gray-300 hover:bg-gray-400 text-black font-bold py-2 md:py-3 px-3 md:px-6 rounded-lg border-2 border-black shadow-lg flex items-center justify-center transition-colors">
-                  <X size={16} className="md:w-5 md:h-5" /><span className="hidden sm:inline ml-2">Cancel</span>
+                <button
+                  onClick={handleAddFile}
+                  className="flex-1 bg-amber-400 hover:bg-amber-500 text-black font-bold py-2.5 px-4 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Upload size={15} /> Upload File
                 </button>
               </div>
             </div>
           )}
 
-          {/* Projects list */}
+          {/* ── Projects list ── */}
           {!isFilesView && (
-            <div className="space-y-4 px-2">
+            <div className="space-y-3">
               {loading ? (
-                <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-                  <p className="text-base md:text-lg font-medium text-gray-700">Loading projects...</p>
+                <div className="text-center py-14 bg-white rounded-xl border-2 border-amber-400">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-3" />
+                  <p className="text-sm text-gray-600 font-medium">Loading projects...</p>
                 </div>
               ) : projects.length > 0 ? projects.map(project => (
-                <div key={project.id} className="bg-white border-2 border-amber-400 rounded-xl p-4 md:p-6 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleOpenProject(project)}>
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 md:gap-4 flex-1 w-full">
-                      <div className="bg-amber-400 p-3 md:p-4 rounded-lg flex-shrink-0">
-                        <FolderOpen size={24} className="text-black md:w-8 md:h-8" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-black text-base md:text-xl mb-2 break-words">{project.name}</h3>
-                        {project.description && <p className="text-xs md:text-sm text-gray-700 mb-3 break-words">{project.description}</p>}
-                        <div className="flex flex-wrap gap-2 items-center mb-3">
-                          <span className={`text-xs md:text-sm px-2 md:px-3 py-1 md:py-1.5 rounded-md font-medium ${getStatusBadgeColor(project.status)}`}>{project.status}</span>
-                          {project.projectType && <span className="text-xs md:text-sm bg-gray-100 text-gray-700 px-2 md:px-3 py-1 md:py-1.5 rounded-md font-medium">{project.projectType}</span>}
-                        </div>
-                        <div className="text-xs md:text-sm text-gray-700 space-y-1">
-                          {project.clientName && <p><span className="font-medium">Client:</span> {project.clientName}</p>}
-                          {(project.startDate || project.endDate) && (
-                            <p><span className="font-medium">Timeline:</span> {formatDate(project.startDate)} – {formatDate(project.endDate)}</p>
-                          )}
-                        </div>
-                      </div>
+                <div
+                  key={project.id}
+                  className="bg-white border-2 border-amber-400 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer active:scale-[0.99]"
+                  onClick={() => handleOpenProject(project)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="bg-amber-400 p-2.5 rounded-lg flex-shrink-0">
+                      <FolderOpen size={20} className="text-black" />
                     </div>
-                    <button onClick={(e) => { e.stopPropagation(); handleOpenProject(project); }}
-                      className="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors flex-shrink-0">
-                      <Plus size={20} /><span>Upload Files</span>
-                    </button>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight">{project.name}</h3>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${getStatusBadgeColor(project.status)}`}>
+                          {project.status}
+                        </span>
+                      </div>
+                      {project.description && (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{project.description}</p>
+                      )}
+                      <div className="mt-2 space-y-0.5 text-xs text-gray-500">
+                        {project.clientName && <p><span className="font-medium">Client:</span> {project.clientName}</p>}
+                        {(project.startDate || project.endDate) && (
+                          <p><span className="font-medium">Timeline:</span> {formatDate(project.startDate)} – {formatDate(project.endDate)}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleOpenProject(project); }}
+                        className="mt-3 w-full bg-amber-400 hover:bg-amber-500 text-black font-bold py-2 px-4 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Plus size={14} /> Upload Files
+                      </button>
+                    </div>
                   </div>
                 </div>
               )) : (
-                <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
-                  <FolderOpen size={48} className="md:w-16 md:h-16 mx-auto text-gray-400 mb-4" />
-                  <p className="text-base md:text-lg font-medium text-gray-700 mb-2">No projects found</p>
-                  <p className="text-sm text-gray-500 px-4">Projects will appear here once they are created</p>
+                <div className="text-center py-14 bg-white rounded-xl border-2 border-amber-400">
+                  <FolderOpen size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-sm font-medium text-gray-600">No projects found</p>
+                  <p className="text-xs text-gray-400 mt-1 px-4">Projects will appear here once they are created</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* Files list */}
+          {/* ── Files list ── */}
           {isFilesView && (
-            <div className="space-y-4 px-2">
+            <div className="space-y-3">
               {filesLoading ? (
-                <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-                  <p className="text-base md:text-lg font-medium text-gray-700">Loading files...</p>
+                <div className="text-center py-14 bg-white rounded-xl border-2 border-amber-400">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-3" />
+                  <p className="text-sm text-gray-600 font-medium">Loading files...</p>
                 </div>
               ) : projectFiles.length > 0 ? projectFiles.map(file => (
-                <div key={file.id} className="bg-white border-2 border-amber-400 rounded-lg p-4 md:p-6 hover:shadow-lg transition-shadow">
-                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 md:gap-4 flex-1 w-full">
-                      {/* <div className="bg-amber-400 p-3 md:p-4 rounded-lg border-2 border-black flex-shrink-0 text-xl md:text-2xl">
-                        {getFileIcon(file)}
-                      </div> */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-black text-sm md:text-lg mb-2 break-all">{file.fileName || file.filename}</h4>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {file.documentType && (
-                            <span className="inline-flex items-center gap-1.5 text-xs md:text-sm bg-amber-200 px-2 md:px-3 py-1 md:py-1.5 rounded-lg border-2 border-amber-400 font-medium">
-                              <File size={14} />{file.documentType}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs md:text-sm text-gray-600 mb-3">
-                          Uploaded: {formatDate(file.uploadedAt || file.createdAt)}
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleViewFile(file)}
-                            disabled={viewLoading}
-                            className="bg-blue-400 hover:bg-blue-500 disabled:opacity-60 text-white px-3 py-1.5 rounded-lg border-2 border-black text-xs md:text-sm font-medium flex items-center gap-1.5 transition-colors"
-                          >
-                            {viewLoading ? <Loader size={14} className="animate-spin" /> : <ExternalLink size={14} />}
-                            View
-                          </button>
-                          <button
-                            onClick={() => handleDownloadFile(file)}
-                            className="bg-green-400 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg border-2 border-black text-xs md:text-sm font-medium flex items-center gap-1.5 transition-colors"
-                          >
-                            <Download size={14} /> Download
-                          </button>
-                        </div>
+                <div key={file.id} className="bg-white border-2 border-amber-400 rounded-xl p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="text-2xl flex-shrink-0 mt-0.5">{getFileIcon(file)}</div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-900 text-sm break-all leading-tight">
+                        {file.fileName || file.filename}
+                      </h4>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {file.documentType && (
+                          <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">
+                            <File size={10} />{file.documentType}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400">
+                          {formatDate(file.uploadedAt || file.createdAt)}
+                        </span>
+                      </div>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-2 mt-3">
+                        <button
+                          onClick={() => handleViewFile(file)}
+                          disabled={viewLoading}
+                          className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:opacity-60 text-white py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          {viewLoading ? <Loader size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+                          View
+                        </button>
+                        <button
+                          onClick={() => handleDownloadFile(file)}
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <Download size={12} /> Download
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFile(file.id)}
+                          className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                          title="Delete file"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleDeleteFile(file.id)}
-                      className="w-full sm:w-auto bg-red-400 hover:bg-red-500 p-2 md:p-3 rounded-lg border-2 border-black transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Trash2 size={18} className="text-white md:w-5 md:h-5" />
-                      <span className="sm:hidden text-white font-medium">Delete File</span>
-                    </button>
                   </div>
                 </div>
               )) : (
-                <div className="text-center py-12 md:py-16 bg-white rounded-lg border-2 border-amber-400">
-                  <File size={48} className="md:w-16 md:h-16 mx-auto text-gray-400 mb-4" />
-                  <p className="text-base md:text-lg font-medium text-gray-700 mb-2">No files uploaded yet</p>
-                  <p className="text-sm text-gray-500 px-4">Click "Upload Files" to add documents to this project</p>
+                <div className="text-center py-14 bg-white rounded-xl border-2 border-amber-400">
+                  <File size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-sm font-medium text-gray-600">No files uploaded yet</p>
+                  <p className="text-xs text-gray-400 mt-1 px-4">Click "Upload Files" to add documents</p>
                 </div>
               )}
             </div>

@@ -22,7 +22,7 @@ const PACKAGES = [
   { value: "Advanced", label: "Advanced (Custom members)" },
 ];
 
-// ─── Toast Component ──────────────────────────────────────────────────────────
+// ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 3500);
@@ -34,18 +34,17 @@ const Toast = ({ message, onClose }) => {
       <style>{`
         @keyframes toastIn {
           from { opacity: 0; transform: translateY(20px) scale(0.95); }
-          to   { opacity: 1; transform: translateY(0)    scale(1);    }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes toastProgress {
           from { width: 100%; }
           to   { width: 0%; }
         }
-        .toast-enter { animation: toastIn 0.3s cubic-bezier(.4,0,.2,1) forwards; }
+        .toast-enter    { animation: toastIn 0.3s cubic-bezier(.4,0,.2,1) forwards; }
         .toast-progress { animation: toastProgress 3.5s linear forwards; }
       `}</style>
-
-      <div className="fixed bottom-6 right-6 z-[9999] toast-enter">
-        <div className="relative bg-white rounded-2xl shadow-2xl border border-green-100 overflow-hidden min-w-[300px] max-w-sm">
+      <div className="fixed bottom-6 right-4 left-4 sm:left-auto sm:right-6 z-[9999] toast-enter">
+        <div className="relative bg-white rounded-2xl shadow-2xl border border-green-100 overflow-hidden">
           <div className="toast-progress absolute bottom-0 left-0 h-1 bg-green-400 rounded-full" />
           <div className="flex items-center gap-3 px-4 py-4">
             <div className="w-9 h-9 rounded-xl bg-green-500 flex items-center justify-center shrink-0 shadow-md">
@@ -122,7 +121,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
       setToast(data.message || "User created successfully!");
       setUserData(INITIAL_FORM);
       setFieldErrors({});
-      onUserCreated?.(); // ← refresh stats after creating a user
+      onUserCreated?.();
       setTimeout(handleClose, 1500);
     } catch (err) {
       setError(err.message || "An error occurred while creating the user");
@@ -151,41 +150,44 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
       `}</style>
 
       <div
-        className="modal-backdrop fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+        className="modal-backdrop fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       >
-        <div className="modal-panel relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Bottom-sheet on mobile, centered modal on sm+ */}
+        <div className="modal-panel relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-4xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 bg-[#ffbe2a] rounded-t-3xl shrink-0">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-inner">
-                <User className="w-6 h-6 text-gray-900" />
+          <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#ffbe2a] rounded-t-3xl shrink-0">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Create New User</h2>
-                <p className="text-gray-700 text-sm">Add a new user to the ERP system</p>
+                <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Create New User</h2>
+                <p className="text-gray-700 text-xs sm:text-sm">Add a new user to the ERP system</p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-10 h-10 rounded-xl bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black/10 hover:bg-black/20 flex items-center justify-center transition-colors"
             >
-              <X className="w-5 h-5 text-gray-900" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900" />
             </button>
           </div>
 
           {/* Scrollable Form Body */}
-          <div className="overflow-y-auto flex-1 px-8 py-8">
+          <div className="overflow-y-auto flex-1 px-5 sm:px-8 py-5 sm:py-8">
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl flex items-start shadow-sm">
-                <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="w-5 h-5 text-white" />
+              <div className="mb-5 p-4 bg-red-50 border-l-4 border-red-500 rounded-2xl flex items-start shadow-sm">
+                <div className="w-8 h-8 rounded-xl bg-red-500 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="w-4 h-4 text-white" />
                 </div>
                 <p className="ml-3 text-sm font-bold text-red-900 self-center">{error}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 1-col on mobile, 2-col on md+ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <InputField field="name" label="Client Name" placeholder="Enter full name" icon={User}
                 value={userData.name} isFocused={isFocused.name} error={fieldErrors.name} {...sharedInputProps} />
 
@@ -234,7 +236,7 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
               </InputField>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <InputField field="address" label="Address" placeholder="Enter full address" icon={Home}
                 value={userData.address} isFocused={isFocused.address} error={fieldErrors.address}
                 isTextarea rows={4} {...sharedInputProps} />
@@ -242,20 +244,20 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
           </div>
 
           {/* Modal Footer */}
-          <div className="flex gap-4 px-8 py-6 border-t border-gray-100 bg-gray-50/60 rounded-b-3xl shrink-0">
+          <div className="flex gap-3 sm:gap-4 px-5 sm:px-8 py-4 sm:py-6 border-t border-gray-100 bg-gray-50/60 rounded-b-3xl shrink-0">
             <button onClick={handleClose} disabled={loading}
-              className="flex-1 bg-white border-2 border-gray-200 text-gray-700 font-bold py-3.5 rounded-2xl hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex-1 bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 sm:py-3.5 rounded-2xl hover:bg-gray-50 hover:border-gray-300 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base">
               Cancel
             </button>
             <button onClick={handleSubmit} disabled={loading}
-              className="flex-1 bg-[#ffbe2a] text-black font-bold py-3.5 rounded-2xl hover:shadow-xl shadow-[#ffbe2a]/30 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed">
+              className="flex-1 bg-[#ffbe2a] text-black font-bold py-3 sm:py-3.5 rounded-2xl hover:shadow-xl shadow-[#ffbe2a]/30 transition-all transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base">
               {loading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12hz2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Creating User...
+                  Creating...
                 </span>
               ) : "Create User"}
             </button>
@@ -268,10 +270,10 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
   );
 };
 
-// ─── Main Page Component ──────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 const CreateUser = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [users, setUsers] = useState([]); // ← fetch real users for StatsCards
+  const [users, setUsers] = useState([]);
 
   const fetchUsers = async () => {
     try {
@@ -286,39 +288,45 @@ const CreateUser = () => {
   useEffect(() => { fetchUsers(); }, []);
 
   return (
-    <div className="min-h-screen bg-[#ffbe2a] py-12 pl-35">
+    <div className="min-h-screen bg-[#ffbe2a]">
       <SuperNav />
 
-      <div className="max-w-6xl mx-auto pt-24 md:pt-32 space-y-10">
+      {/*
+        pl-35 was hardcoded for a desktop sidebar — removed.
+        Use responsive padding that works on all screen sizes.
+        SuperNav likely reserves ~64px (pt-16) or ~80px (pt-20) at top.
+      */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-32 pb-12 space-y-8 sm:space-y-10">
 
-        {/* Stats Cards — now powered by real API data */}
+        {/* Stats Cards */}
         <StatsCards users={users} />
 
-        {/* Page Header with Clickable Create Button */}
-        <div className="flex items-center gap-5">
+        {/* Page Header */}
+        <div className="flex items-center gap-4 sm:gap-5">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="relative group focus:outline-none cursor-pointer"
+            className="relative group focus:outline-none cursor-pointer shrink-0"
             title="Create New User"
           >
-            <div className="w-20 h-20 rounded-2xl bg-white flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-active:scale-95">
-              <User className="w-10 h-10 text-black" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white flex items-center justify-center shadow-xl transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-active:scale-95">
+              <User className="w-8 h-8 sm:w-10 sm:h-10 text-black" />
             </div>
-            <div className="absolute -top-2 -right-2 w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-lg group-hover:bg-slate-700 transition-colors">
-              <Plus className="w-5 h-5 text-white" />
+            <div className="absolute -top-2 -right-2 w-7 h-7 sm:w-8 sm:h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-lg group-hover:bg-slate-700 transition-colors">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
           </button>
 
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Create New User</h1>
-            <p className="text-gray-600 text-lg">
-              Click the icon or the button to add a new user to the ERP system
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-1 sm:mb-2 leading-tight">
+              Create New User
+            </h1>
+            <p className="text-gray-700 text-sm sm:text-base md:text-lg">
+              Click the icon to add a new user to the ERP system
             </p>
           </div>
         </div>
       </div>
 
-      {/* Modal — onUserCreated refreshes stats */}
       <CreateUserModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

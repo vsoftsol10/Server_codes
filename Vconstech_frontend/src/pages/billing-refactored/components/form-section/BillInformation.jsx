@@ -31,7 +31,6 @@ const BillInformation = ({ formData, handleInputChange, activeTab }) => {
             Date <span className="text-red-500">*</span>
           </label>
           <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="date"
               name="billDate"
@@ -49,7 +48,6 @@ const BillInformation = ({ formData, handleInputChange, activeTab }) => {
               Due Date
             </label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="date"
                 name="dueDate"

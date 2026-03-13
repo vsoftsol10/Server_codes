@@ -8,129 +8,78 @@ import AddEngineerModal from "../../components/AddSiteEngineer/AddEngineerModal"
 import EditEngineerModal from "../../components/AddSiteEngineer/EditEngineerModal";
 import Toast from "../../components/common/Toast";
 
-// ✅ FIXED HELPER FUNCTION - Construct proper backend URL
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
   if (profileImage.startsWith("http")) return profileImage;
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   return `${backendUrl}${profileImage}`;
 };
 
-// API functions
 const getAllEngineers = async () => {
   const token = localStorage.getItem("token");
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
+  if (!token) throw new Error("No authentication token found");
   const response = await fetch("/api/engineers", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
-
   if (!response.ok) {
-    if (response.status === 401) {
-      throw { error: "Session expired. Please login again." };
-    }
+    if (response.status === 401) throw { error: "Session expired. Please login again." };
     throw new Error("Failed to fetch engineers");
   }
-
   return await response.json();
 };
 
 const createEngineer = async (engineerData) => {
   const token = localStorage.getItem("token");
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
- const formData = new FormData();
-formData.append("name", engineerData.name);
-formData.append("phone", engineerData.phone);
-formData.append("alternatePhone", engineerData.alternatePhone);
-formData.append("designation", engineerData.designation || "");  // <-- add this
-formData.append("empId", engineerData.empId);
-formData.append("address", engineerData.address);
-formData.append("username", engineerData.username);
-formData.append("password", engineerData.password);
-  if (engineerData.profileImage) {
-    formData.append("profileImage", engineerData.profileImage);
-  }
-
+  if (!token) throw new Error("No authentication token found");
+  const formData = new FormData();
+  formData.append("name", engineerData.name);
+  formData.append("phone", engineerData.phone);
+  formData.append("alternatePhone", engineerData.alternatePhone);
+  formData.append("designation", engineerData.designation || "");
+  formData.append("empId", engineerData.empId);
+  formData.append("address", engineerData.address);
+  formData.append("username", engineerData.username);
+  formData.append("password", engineerData.password);
+  if (engineerData.profileImage) formData.append("profileImage", engineerData.profileImage);
   const response = await fetch("/api/engineers", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw error;
-  }
-
+  if (!response.ok) { const error = await response.json(); throw error; }
   return await response.json();
 };
 
 const updateEngineer = async (id, engineerData) => {
   const token = localStorage.getItem("token");
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
-const formData = new FormData();
-formData.append("name", engineerData.name);
-formData.append("phone", engineerData.phone);
-formData.append("alternatePhone", engineerData.alternatePhone);
-formData.append("designation", engineerData.designation || "");  // <-- add this
-formData.append("empId", engineerData.empId);
-formData.append("address", engineerData.address);
-formData.append("username", engineerData.username);
-  if (engineerData.password) {
-    formData.append("password", engineerData.password);
-  }
-  if (engineerData.profileImage) {
-    formData.append("profileImage", engineerData.profileImage);
-  }
-
+  if (!token) throw new Error("No authentication token found");
+  const formData = new FormData();
+  formData.append("name", engineerData.name);
+  formData.append("phone", engineerData.phone);
+  formData.append("alternatePhone", engineerData.alternatePhone);
+  formData.append("designation", engineerData.designation || "");
+  formData.append("empId", engineerData.empId);
+  formData.append("address", engineerData.address);
+  formData.append("username", engineerData.username);
+  if (engineerData.password) formData.append("password", engineerData.password);
+  if (engineerData.profileImage) formData.append("profileImage", engineerData.profileImage);
   const response = await fetch(`/api/engineers/${id}`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { Authorization: `Bearer ${token}` },
     body: formData,
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw error;
-  }
-
+  if (!response.ok) { const error = await response.json(); throw error; }
   return await response.json();
 };
 
 const deleteEngineer = async (id) => {
   const token = localStorage.getItem("token");
-  if (!token) {
-    throw new Error("No authentication token found");
-  }
-
+  if (!token) throw new Error("No authentication token found");
   const response = await fetch(`/api/engineers/${id}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw error;
-  }
-
+  if (!response.ok) { const error = await response.json(); throw error; }
   return await response.json();
 };
 
@@ -145,126 +94,60 @@ const AddEngineers = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [packageInfo, setPackageInfo] = useState(null);
-  
-  // ✅ Toast notification state
   const [toast, setToast] = useState(null);
 
-  // ✅ Helper function to show toast
-  const showToast = (message, type = 'info') => {
-    setToast({ message, type });
-  };
+  const showToast = (message, type = "info") => setToast({ message, type });
 
   const fetchEngineers = async () => {
     setIsLoading(true);
-
     const token = localStorage.getItem("token");
-    if (!token) {
-      setEngineers([]);
-      setIsLoading(false);
-      return;
-    }
-
+    if (!token) { setEngineers([]); setIsLoading(false); return; }
     try {
       const response = await getAllEngineers();
-
-      if (response && response.success && response.engineers) {
-        setEngineers(response.engineers);
-      } else {
-        setEngineers([]);
-      }
+      if (response?.success && response.engineers) setEngineers(response.engineers);
+      else setEngineers([]);
     } catch (error) {
       console.error("Error fetching engineers:", error);
-
-      if (
-        error.error === "Session expired. Please login again." ||
-        error.message === "Session expired. Please login again." ||
-        error.error === "Unauthorized" ||
-        error.message === "Unauthorized"
-      ) {
+      if (["Session expired. Please login again.", "Unauthorized"].includes(error.error || error.message)) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
-      } else {
-        setEngineers([]);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+      } else setEngineers([]);
+    } finally { setIsLoading(false); }
   };
 
   const fetchPackageInfo = async () => {
     const token = localStorage.getItem("token");
-    const userString = localStorage.getItem("user");
-    
-    console.log("=== PACKAGE INFO DEBUG ===");
-    console.log("Raw user string from localStorage:", userString);
-    
-    const user = JSON.parse(userString || "{}");
-    console.log("Parsed user object:", user);
-    console.log("User package:", user.package);
-    console.log("User customMembers:", user.customMembers);
-
-    // First try to get from localStorage
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user.package) {
-  const pkg = user.package.toLowerCase();
-  let limit;
-  if (pkg === "basic") limit = 5;
-  else if (pkg === "premium") limit = 10;
-  else if (pkg === "advanced") limit = user.customMembers || 999;
-  else limit = 5; // fallback
-
-  console.log("Setting packageInfo with limit:", limit);
-  setPackageInfo({ package: user.package, limit });
-}else {
-      console.log("No package in localStorage, fetching from API...");
-      // If not in localStorage, fetch from API
+      const pkg = user.package.toLowerCase();
+      let limit = pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (user.customMembers || 999) : 5;
+      setPackageInfo({ package: user.package, limit });
+    } else {
       try {
         const response = await fetch("/api/engineers/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
-
-        console.log("API response status:", response.status);
-
         if (response.ok) {
           const data = await response.json();
-          console.log("API response data:", data);
-          
           if (data.success && data.user) {
-            const pkg = user.package?.toLowerCase(); // use data.user.package in the API branch
-let limit;
-if (pkg === "basic") limit = 5;
-else if (pkg === "premium") limit = 10;
-else if (pkg === "advanced") limit = user.customMembers || 999; // data.user.customMembers in API branch
-else limit = 5;
-            console.log("Setting packageInfo from API with limit:", limit);
+            const pkg = data.user.package?.toLowerCase();
+            let limit = pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (data.user.customMembers || 999) : 5;
             setPackageInfo({ package: data.user.package, limit });
-            
-            // Update localStorage
             localStorage.setItem("user", JSON.stringify(data.user));
           }
-        } else {
-          console.log("API response not OK");
         }
-      } catch (error) {
-        console.error("Error fetching package info:", error);
-      }
+      } catch (error) { console.error("Error fetching package info:", error); }
     }
-    console.log("=== END DEBUG ===");
   };
 
-  useEffect(() => {
-    fetchEngineers();
-    fetchPackageInfo();
-  }, []);
+  useEffect(() => { fetchEngineers(); fetchPackageInfo(); }, []);
 
   const filteredEngineers = engineers.filter(
-    (engineer) =>
-      engineer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engineer.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      engineer.phone.includes(searchTerm),
+    (eng) =>
+      eng.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      eng.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      eng.phone.includes(searchTerm)
   );
 
   const handleDelete = async (id) => {
@@ -277,41 +160,32 @@ else limit = 5;
         showToast("Engineer deleted successfully!", "success");
       }
     } catch (error) {
-      console.error("Error deleting engineer:", error);
       showToast(error.error || "Failed to delete engineer", "error");
     }
   };
 
-  const handleEdit = (engineer) => {
-    setSelectedEngineer(engineer);
-    setShowEditModal(true);
-  };
+  const handleEdit = (engineer) => { setSelectedEngineer(engineer); setShowEditModal(true); };
 
   const handleAddEngineer = async (engineerData) => {
-  try {
-    setIsSubmitting(true);
-    const response = await createEngineer(engineerData);
-    if (response.success) {
-      setShowAddModal(false);
-      await fetchEngineers();
-      showToast("Engineer added successfully!", "success");
-      return { success: true };
-    }
-    return { success: false };
-  } catch (error) {
-    console.error("Add engineer error:", error);
-    return { success: false, error: error.error || error.message || "Failed to add engineer" };
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+    try {
+      setIsSubmitting(true);
+      const response = await createEngineer(engineerData);
+      if (response.success) {
+        setShowAddModal(false);
+        await fetchEngineers();
+        showToast("Engineer added successfully!", "success");
+        return { success: true };
+      }
+      return { success: false };
+    } catch (error) {
+      return { success: false, error: error.error || error.message || "Failed to add engineer" };
+    } finally { setIsSubmitting(false); }
+  };
 
   const handleUpdateEngineer = async (id, engineerData) => {
     setIsSubmitting(true);
-
     try {
       const response = await updateEngineer(id, engineerData);
-
       if (response.success) {
         await fetchEngineers();
         setShowEditModal(false);
@@ -321,174 +195,127 @@ else limit = 5;
       }
       return false;
     } catch (error) {
-      console.error("Error updating engineer:", error);
       showToast(error.error || "Failed to update engineer", "error");
       return false;
-    } finally {
-      setIsSubmitting(false);
+    } finally { setIsSubmitting(false); }
+  };
+
+  const handleAddClick = () => {
+    if (packageInfo && engineers.length >= packageInfo.limit) {
+      showToast(
+        `Cannot add more engineers. Your ${packageInfo.package} package allows ${packageInfo.limit} engineers. Please upgrade to add more.`,
+        "warning"
+      );
+      return;
     }
+    setShowAddModal(true);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ✅ Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* Toast */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
+      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
         <Navbar />
       </nav>
 
-      <aside className="fixed left-0 top-16 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
-        <SidePannel />
-      </aside>
+      {/* SidePannel — handles desktop sidebar + mobile bottom nav internally */}
+      <SidePannel />
 
-      <div className="pt-25 pl-16 md:pl-64 pr-4 pb-8 min-h-screen">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Main content */}
+      <div className="pt-20 md:pl-64">
+        <div className="px-3 sm:px-4 lg:px-6 pt-4 pb-24 md:pb-8 max-w-7xl mx-auto space-y-4">
+
+          {/* Page header card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Engineers List</h2>
-                <p className="text-gray-600 mt-1">
-                  {isLoading ? 'Loading...' : `${filteredEngineers.length} / ${packageInfo?.limit || '...'} Engineers`}
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Engineers List</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {isLoading ? "Loading..." : `${filteredEngineers.length} / ${packageInfo?.limit ?? "..."} Engineers`}
                 </p>
               </div>
-              
-              <button 
-                onClick={() => {
-                  // Check if limit is reached
-                  if (packageInfo && engineers.length >= packageInfo.limit) {
-                    showToast(
-                      `Cannot add more engineers. Your ${packageInfo.package} package allows ${packageInfo.limit} engineers. Please upgrade your package to add more.`,
-                      "warning"
-                    );
-                    return;
-                  }
-                  setShowAddModal(true);
-                }}
-                className="flex items-center justify-center gap-2 px-4 py-2 text-black rounded-lg transition-colors"
-                style={{ backgroundColor: '#ffbe2a' }}
-                onMouseEnter={(e) => e.target.style.backgroundColor = '#e6ab25'}
-                onMouseLeave={(e) => e.target.style.backgroundColor = '#ffbe2a'}
+              <button
+                onClick={handleAddClick}
+                className="flex items-center gap-1.5 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg text-sm font-medium transition-colors flex-shrink-0"
               >
                 <User className="w-4 h-4" />
                 Add Engineer
               </button>
             </div>
 
-            <div className="mt-4">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search by name, employee ID, or phone..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by name, employee ID, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              />
             </div>
           </div>
 
+          {/* Loading */}
           {isLoading && (
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading engineers...</p>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mx-auto" />
+              <p className="mt-3 text-gray-500 text-sm">Loading engineers...</p>
             </div>
           )}
 
-          {/* ✅ FIXED DESKTOP TABLE VIEW */}
+          {/* ── Desktop Table (lg+) ── */}
           {!isLoading && (
-            <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-yellow-400">
                     <tr>
-                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Employee ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Designation
-                      </th>
-                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-3 text-left text-l font-bold text-black uppercase tracking-wider">
-                        Address
-                      </th>
-                      <th className="px-6 py-3 text-right text-l font-bold text-black uppercase tracking-wider">
-                        Actions
-                      </th>
+                      {["Name", "Employee ID", "Designation", "Contact", "Address", "Actions"].map((h) => (
+                        <th
+                          key={h}
+                          className={`px-5 py-3 text-left text-xs font-bold text-black uppercase tracking-wider ${h === "Actions" ? "text-right" : ""}`}
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white divide-y divide-gray-100">
                     {filteredEngineers.map((engineer) => (
-                      <tr
-                        key={engineer.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="ml-4">
-                              <div className="text-sm font-medium  text-gray-700">
-                                {engineer.name}
-                              </div>
-                              
+                      <tr key={engineer.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {engineer.profileImage ? (
+                                <img src={getImageUrl(engineer.profileImage)} alt={engineer.name} className="h-full w-full object-cover" />
+                              ) : (
+                                <span className="text-blue-600 font-semibold text-sm">
+                                  {engineer.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
+                                </span>
+                              )}
                             </div>
+                            <span className="text-sm font-medium text-gray-800">{engineer.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium  text-gray-900">
-                            {engineer.empId}
-                          </div>
+                        <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">{engineer.empId}</td>
+                        <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700">{engineer.designation || "—"}</td>
+                        <td className="px-5 py-4">
+                          <p className="text-sm text-gray-800">{engineer.phone}</p>
+                          {engineer.alternatePhone && <p className="text-xs text-gray-500 mt-0.5">{engineer.alternatePhone}</p>}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium  text-gray-900">
-                            {engineer.designation || "-----"}
-                          </div>
+                        <td className="px-5 py-4">
+                          <p className="text-sm text-gray-700 max-w-xs truncate">{engineer.address}</p>
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium  text-gray-900">
-                            {engineer.phone}
-                          </div>
-                          {engineer.alternatePhone && (
-                            <div className="text-sm font-medium  text-gray-500">
-                              {engineer.alternatePhone}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm font-medium  text-gray-900 max-w-xs truncate">
-                            {engineer.address}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-bold">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleEdit(engineer)}
-                              className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded transition-colors"
-                              title="Edit"
-                            >
+                        <td className="px-5 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-1">
+                            <button onClick={() => handleEdit(engineer)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                               <Edit className="w-4 h-4" />
                             </button>
-                            <button
-                              onClick={() => {
-                                setSelectedEngineer(engineer);
-                                setShowDeleteModal(true);
-                              }}
-                              className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
-                              title="Delete"
-                            >
+                            <button onClick={() => { setSelectedEngineer(engineer); setShowDeleteModal(true); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -498,158 +325,104 @@ else limit = 5;
                   </tbody>
                 </table>
               </div>
-
               {filteredEngineers.length === 0 && (
                 <div className="text-center py-12">
-                  <User className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No engineers found
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {searchTerm
-                      ? "Try adjusting your search terms."
-                      : "Get started by adding a new engineer."}
+                  <User className="mx-auto h-10 w-10 text-gray-300" />
+                  <p className="mt-2 text-sm font-medium text-gray-600">No engineers found</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {searchTerm ? "Try adjusting your search." : "Get started by adding a new engineer."}
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* ✅ FIXED MOBILE CARD VIEW */}
+          {/* ── Mobile / Tablet Cards (below lg) ── */}
           {!isLoading && (
-            <div className="lg:hidden space-y-4">
+            <div className="lg:hidden space-y-3">
               {filteredEngineers.map((engineer) => (
-                <div
-                  key={engineer.id}
-                  className="bg-white rounded-lg shadow-md p-4"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
+                <div key={engineer.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  {/* Top: avatar + name + actions */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {engineer.profileImage ? (
-                          <img
-                            src={getImageUrl(engineer.profileImage)}
-                            alt={engineer.name}
-                            className="h-full w-full object-cover"
-                            // onError={(e) => {
-                            //   console.error(
-                            //     "Image failed to load:",
-                            //     // engineer.profileImage,
-                            //   );
-                            //   e.target.style.display = "none";
-                            //   e.target.parentElement.innerHTML = `<span class="text-blue-600 font-semibold text-lg">${engineer.name
-                            //     .split(" ")
-                            //     .map((n) => n[0])
-                            //     .join("")
-                            //     .toUpperCase()}</span>`;
-                            // }}
-                          />
+                          <img src={getImageUrl(engineer.profileImage)} alt={engineer.name} className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-blue-600 font-semibold text-lg">
-                            {engineer.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()}
+                          <span className="text-blue-600 font-semibold text-base">
+                            {engineer.name.split(" ").map((n) => n[0]).join("").toUpperCase()}
                           </span>
                         )}
                       </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {engineer.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {engineer.empId}
-                        </p>
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900">{engineer.name}</h3>
+                        <p className="text-xs text-gray-500">{engineer.empId}</p>
+                        {engineer.designation && (
+                          <p className="text-xs text-yellow-700 font-medium mt-0.5">{engineer.designation}</p>
+                        )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(engineer)}
-                        className="text-blue-600 hover:text-blue-900 p-2 hover:bg-blue-50 rounded transition-colors"
-                      >
-                        <Edit className="w-5 h-5" />
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEdit(engineer)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        <Edit className="w-4 h-4" />
                       </button>
-                      <button
-                        onClick={() => {
-                          setSelectedEngineer(engineer);
-                          setShowDeleteModal(true);
-                        }}
-                        className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
+                      <button onClick={() => { setSelectedEngineer(engineer); setShowDeleteModal(true); }} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-start">
-                      <Phone className="w-4 h-4 text-gray-400 mt-1 mr-2 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm text-gray-900">
-                          {engineer.phone}
-                        </p>
-                        {engineer.alternatePhone && (
-                          <p className="text-sm text-gray-500">
-                            {engineer.alternatePhone}
-                          </p>
-                        )}
+                  {/* Bottom: contact + address */}
+                  <div className="space-y-1.5 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <div className="text-xs text-gray-700">
+                        {engineer.phone}
+                        {engineer.alternatePhone && <span className="text-gray-400"> · {engineer.alternatePhone}</span>}
                       </div>
                     </div>
-                    <div className="flex items-start">
-                      <MapPin className="w-4 h-4 text-gray-400 mt-1 mr-2 flex-shrink-0" />
-                      <p className="text-sm text-gray-600">
-                        {engineer.address}
-                      </p>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-gray-600">{engineer.address}</p>
                     </div>
                   </div>
                 </div>
               ))}
 
               {filteredEngineers.length === 0 && (
-                <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                  <User className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
-                    No engineers found
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {searchTerm
-                      ? "Try adjusting your search terms."
-                      : "Get started by adding a new engineer."}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 text-center">
+                  <User className="mx-auto h-10 w-10 text-gray-300" />
+                  <p className="mt-2 text-sm font-medium text-gray-600">No engineers found</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {searchTerm ? "Try adjusting your search." : "Get started by adding a new engineer."}
                   </p>
                 </div>
               )}
             </div>
           )}
+
         </div>
       </div>
 
+      {/* Modals */}
       <AddEngineerModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddEngineer}
         isSubmitting={isSubmitting}
       />
-
       <EditEngineerModal
         isOpen={showEditModal}
-        onClose={() => {
-          setShowEditModal(false);
-          setSelectedEngineer(null);
-        }}
+        onClose={() => { setShowEditModal(false); setSelectedEngineer(null); }}
         onSubmit={handleUpdateEngineer}
         isSubmitting={isSubmitting}
         engineer={selectedEngineer}
       />
-
       <DeleteConfirmationModal
         isOpen={showDeleteModal}
         engineer={selectedEngineer}
         onConfirm={handleDelete}
-        onCancel={() => {
-          setShowDeleteModal(false);
-          setSelectedEngineer(null);
-        }}
+        onCancel={() => { setShowDeleteModal(false); setSelectedEngineer(null); }}
       />
     </div>
   );

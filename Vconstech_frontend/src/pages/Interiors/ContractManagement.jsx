@@ -3,6 +3,7 @@ import { Edit2, Trash2, Plus, Save, X } from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import * as contractAPI from '../../api/contractAPI';
+import LoadingScreen from '../../components/common/Loadingscreen';
 
 export default function ContractManagement() {
   const [contracts, setContracts] = useState([]);
@@ -153,13 +154,7 @@ export default function ContractManagement() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading contracts...</div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingScreen message="Loading contracts..." />;
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -271,7 +271,7 @@ const LabourManagement = () => {
       <EmployeeNavbar />
 
       {/* ── Header ── */}
-      <div className="mt-16 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
+      <div className="mt-25 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Labour Management</h1>

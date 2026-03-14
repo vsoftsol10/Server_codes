@@ -19,6 +19,7 @@ import { projectAPI } from "../../api/projectAPI";
 import costCalculationService from "../../api/costCalculationService";
 import projectReportService from "../../services/projectReportService";
 import { Download } from "lucide-react";
+import LoadingScreen from "../../components/common/Loadingscreen";
 
 const ProjectManagement = () => {
   const [activeTab, setActiveTab] = useState("all");
@@ -245,15 +246,8 @@ const ProjectManagement = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-sm">Loading projects...</p>
-        </div>
-      </div>
-    );
-  }
+  return <LoadingScreen message="Loading Projects..." />;
+}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -263,10 +257,12 @@ const ProjectManagement = () => {
       </nav>
 
       {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
-      <SidePannel />
+         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+        <SidePannel />
+      </aside>
 
       {/* Main content: push right on desktop, no push on mobile */}
-      <div className="pt-25 md:pl-64">
+      <div className="pt-21 md:pl-64">
 
         {/* ── Mobile sticky sub-header ── */}
         <div className="md:hidden bg-white border-b border-gray-200 px-3 py-3 flex items-center justify-between sticky top-16 z-30">

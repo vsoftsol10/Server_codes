@@ -392,10 +392,12 @@ const FileManagement = () => {
       </nav>
 
       {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
-      <SidePannel />
+         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+        <SidePannel />
+      </aside>
 
       {/* Main content */}
-      <div className="pt-16 md:pl-64">
+      <div className="pt-16 md:pl-64 md:pt-25">
         <div className="px-3 sm:px-4 lg:px-8 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto">
 
           {/* Page heading */}

@@ -19,6 +19,7 @@ import InfoField from "../../components/Profile/InfoField";
 import ProfileHeader from "../../components/Profile/ProfileHeader";
 import CompanyLogoUpload from "../../components/Profile/CompanyLogoUpload";
 import PasswordChangeForm from "../../components/Profile/PasswordChangeForm";
+import LoadingScreen from "../../components/common/Loadingscreen";
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState(null);
@@ -156,24 +157,7 @@ const Profile = () => {
     setTimeout(() => setSuccess(""), 3000);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <nav className="fixed top-0 left-0 right-0 z-50 h-16">
-          <Navbar />
-        </nav>
-        <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
-          <SidePannel />
-        </aside>
-<div className="pt-16 pl-0 md:pl-64 pb-20 md:pb-0 flex items-center justify-center min-h-screen">          
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#ffbe2a] mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading profile...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+ if (loading) return <LoadingScreen message="Loading billing data..." />;
 
   if (!userInfo) {
     return (
@@ -208,7 +192,7 @@ const Profile = () => {
         <SidePannel />
       </aside>
 
-<div className="pt-20 pl-0 md:pl-64 pb-20 md:pb-0">        <div className="p-4 sm:p-6 lg:p-8">
+<div className="pt-20 pl-0 md:pl-64 md:pt-25 pb-20 md:pb-0">        <div className="p-4 sm:p-6 lg:p-8">
           <div className="max-w-5xl mx-auto">
 
             {/* Header */}

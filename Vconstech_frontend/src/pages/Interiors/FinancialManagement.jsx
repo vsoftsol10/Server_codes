@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Edit2, Printer, Plus, Save, X, AlertTriangle, T
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import { financialAPI } from '../../api/financialAPI';
+import LoadingScreen from '../../components/common/Loadingscreen';
 
 const FinancialManagement = () => {
   const [projects, setProjects] = useState([]);
@@ -192,13 +193,7 @@ const FinancialManagement = () => {
     return expenses.reduce((sum, exp) => sum + exp.amount, 0);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl font-semibold text-gray-600">Loading projects...</div>
-      </div>
-    );
-  }
+ if (loading) return <LoadingScreen message="Loading Projects..." />;
 
   return (
     <div className="min-h-screen bg-gray-50">

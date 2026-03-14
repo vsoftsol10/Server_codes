@@ -4,6 +4,7 @@ import labourApi from '../../api/labourAPI'
 import { projectAPI } from '../../api/projectAPI'
 import Navbar from '../../components/common/Navbar'
 import SidePannel from '../../components/common/SidePannel'
+import LoadingScreen from '../../components/common/Loadingscreen'
 
 const AdminLabourManagement = () => {
   const [labourers, setLabourers] = useState([])
@@ -265,14 +266,7 @@ const AdminLabourManagement = () => {
     </div>
   )
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-yellow-600" size={48} />
-      </div>
-    )
-  }
-
+  if (loading) return <LoadingScreen message="Loading billing data..." />;
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
@@ -283,7 +277,7 @@ const AdminLabourManagement = () => {
         <SidePannel />
       </aside>
 
-      <div className="pt-16 pl-3 md:pl-64 pr-4 pb-20 md:pb-8 min-h-screen">
+      <div className="pt-16 pl-3 md:pl-64 md:pt-25 pr-4 pb-20 md:pb-8 min-h-screen">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>

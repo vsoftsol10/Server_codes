@@ -162,10 +162,12 @@ const MaterialManagement = () => {
       </nav>
 
       {/* SidePannel — renders desktop sidebar + mobile bottom nav internally */}
-      <SidePannel />
+         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+        <SidePannel />
+      </aside>
 
       {/* Main content */}
-      <div className="pt-20 md:pl-64">
+      <div className="pt-20 md:pl-64 md:p-25">
 
         {/* Page header */}
         <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4">

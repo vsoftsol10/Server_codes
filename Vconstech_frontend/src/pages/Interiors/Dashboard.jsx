@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
+import LoadingScreen from '../../components/common/Loadingscreen';
 
 const API_BASE_URL = '/api';
 
@@ -174,15 +175,8 @@ const Dashboard = () => {
   }, [dashboardData.projects]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="animate-spin text-yellow-500 mx-auto mb-4" size={40} />
-          <p className="text-gray-500 text-sm">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  return <LoadingScreen message="Loading dashboard..." />;
+}
 
   if (error) {
     return (
@@ -215,10 +209,12 @@ const Dashboard = () => {
       </nav>
 
       {/* SidePannel renders both desktop sidebar AND mobile bottom nav internally */}
-      <SidePannel />
+      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+        <SidePannel />
+      </aside>
 
       {/* Main content */}
-      <div className="pt-22 md:pl-64">
+      <div className="pt-22 md:pl-64 md:pt-25 ">
         <div className="px-3 sm:px-6 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto space-y-5">
 
           {/* Page heading */}

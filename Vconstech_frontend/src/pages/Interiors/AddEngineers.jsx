@@ -7,6 +7,7 @@ import DeleteConfirmationModal from "../../components/AddSiteEngineer/DeleteConf
 import AddEngineerModal from "../../components/AddSiteEngineer/AddEngineerModal";
 import EditEngineerModal from "../../components/AddSiteEngineer/EditEngineerModal";
 import Toast from "../../components/common/Toast";
+import LoadingScreen from "../../components/common/Loadingscreen";
 
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
@@ -210,6 +211,7 @@ const AddEngineers = () => {
     }
     setShowAddModal(true);
   };
+  if (isLoading) return <LoadingScreen message="Loading engineers..." />;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -222,10 +224,12 @@ const AddEngineers = () => {
       </nav>
 
       {/* SidePannel — handles desktop sidebar + mobile bottom nav internally */}
-      <SidePannel />
+         <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+        <SidePannel />
+      </aside>
 
       {/* Main content */}
-      <div className="pt-20 md:pl-64">
+      <div className="pt-20 md:pl-64 md:pt-25">
         <div className="px-3 sm:px-4 lg:px-6 pt-4 pb-24 md:pb-8 max-w-7xl mx-auto space-y-4">
 
           {/* Page header card */}
@@ -259,13 +263,7 @@ const AddEngineers = () => {
             </div>
           </div>
 
-          {/* Loading */}
-          {isLoading && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yellow-500 mx-auto" />
-              <p className="mt-3 text-gray-500 text-sm">Loading engineers...</p>
-            </div>
-          )}
+        
 
           {/* ── Desktop Table (lg+) ── */}
           {!isLoading && (

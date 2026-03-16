@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader } from 'lucide-react';
+import image from '../../assets/logo.jpg';
 
 /**
  * LoadingScreen — full-page loading state
@@ -15,12 +16,16 @@ const LoadingScreen = ({ message = 'Loading...' }) => {
         {/* Spinner */}
         <div className="relative">
           {/* Outer decorative ring */}
-          <div className="w-16 h-16 rounded-full border-4 border-yellow-100" />
+          <div className="w-16 h-16 rounded-full border-4 border-gray-300" />
           {/* Spinning arc */}
-          <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-yellow-500 animate-spin" />
-          {/* Inner icon */}
+          <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-transparent border-t-black animate-spin" />
+          {/* Logo — static while arc spins around it */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader size={20} className="text-yellow-500 animate-pulse" />
+            <img
+              src={image}
+              alt="Logo"
+              className="w-8 h-8 object-contain"
+            />
           </div>
         </div>
 

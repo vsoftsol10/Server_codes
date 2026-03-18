@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
 
 import InputField from "../../components/SuperAdmin/Dashboard/Inputfield";
-import SelectField from "../../components/SuperAdmin/Dashboard/SelectField";
-import { validateCreateForm } from "../../components/SuperAdmin/Dashboard/validation";
+import SelectField from "../../components/SuperAdmin/Dashboard/Selectfield";
+import { validateCreateForm } from "../../components/SuperAdmin/Dashboard/Validation";
 import StatsCards from "../../components/SuperAdmin/Dashboard/StatsCards";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";

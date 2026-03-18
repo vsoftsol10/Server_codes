@@ -14,7 +14,7 @@ const EmployeeNavbar = () => {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('authToken'); // ✅ match whatever auth.js uses
-      const res = await fetch('http://https://test.vconstech.in/api/engineers/my-profile', { // ✅ full backend URL
+      const res = await fetch('http://test.vconstech.in/api/engineers/my-profile', { // ✅ full backend URL
         headers: {
           'Authorization': `Bearer ${token}`
         }

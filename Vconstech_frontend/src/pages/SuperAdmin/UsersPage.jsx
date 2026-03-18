@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Users, CheckCircle, X } from "lucide-react";
 import SuperNav from "../../components/SuperAdmin/SuperNav";
-import UsersTable from "../../components/SuperAdmin/Dashboard/UsersTable";
-import EditUserModal from "../../components/SuperAdmin/Dashboard/EditUserModal";
-import DeleteUserModal from "../../components/SuperAdmin/Dashboard/DeleteUserModal";
-import { validateEditForm } from "../../components/SuperAdmin/Dashboard/validation";
+import UsersTable from "../../components/SuperAdmin/Dashboard/Userstable";
+import EditUserModal from "../../components/SuperAdmin/Dashboard/Editusermodal";
+import DeleteUserModal from "../../components/SuperAdmin/Dashboard/Deleteusermodal";
+import { validateEditForm } from "../../components/SuperAdmin/Dashboard/Validation";
 
 const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
 

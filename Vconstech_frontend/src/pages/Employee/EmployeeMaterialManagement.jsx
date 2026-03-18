@@ -7,9 +7,9 @@ import { materialRequestAPI, usageLogAPI, notificationAPI } from "../../api/mate
 
 import useEmployeeMaterialData from "../../hooks/Useemployeematerialdata";
 import NotificationsDropdown from "../../components/Employee/EmployeeMaterial/Notificationsdropdown";
-import AddMaterialModal from "../../components/Employee/EmployeeMaterial/AddMaterialModal";
-import AddProjectMaterialModal from "../../components/Employee/EmployeeMaterial/AddProjectMaterialModal";
-import LogUsageModal from "../../components/Employee/EmployeeMaterial/LogUsageModal";
+import AddMaterialModal from "../../components/Employee/EmployeeMaterial/Addmaterialmodal";
+import AddProjectMaterialModal from "../../components/Employee/EmployeeMaterial/Addprojectmaterialmodal";
+import LogUsageModal from "../../components/Employee/EmployeeMaterial/Logusagemodal";
 
 const TABS = ["materials", "projects", "my-requests"];
 

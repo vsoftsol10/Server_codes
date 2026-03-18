@@ -118,7 +118,7 @@ const Billing = () => {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/bills`, {
@@ -141,7 +141,7 @@ const Billing = () => {
 
   const fetchClients = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/clients`, {
@@ -302,7 +302,7 @@ const Billing = () => {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const billData = {
@@ -344,7 +344,7 @@ const Billing = () => {
     if (!editingBill) return;
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const billData = {
@@ -1051,7 +1051,7 @@ const Billing = () => {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/bills/${billId}`, {
@@ -1077,7 +1077,7 @@ const Billing = () => {
 
   const handleUpdateStatus = async (billId, newStatus) => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/bills/${billId}`, {
@@ -1110,7 +1110,7 @@ const Billing = () => {
     }
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://https://test.vconstech.in';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://test.vconstech.in';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/clients`, {

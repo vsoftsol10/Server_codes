@@ -15,10 +15,10 @@ import {
 } from "lucide-react";
 import Navbar from "../../components/common/Navbar";
 import SidePannel from "../../components/common/SidePannel";
-import InfoField from "../../components/Profile/InfoField";
-import ProfileHeader from "../../components/Profile/ProfileHeader";
-import CompanyLogoUpload from "../../components/Profile/CompanyLogoUpload";
-import PasswordChangeForm from "../../components/Profile/PasswordChangeForm";
+import InfoField from "../../components/Profile/Infofield";
+import ProfileHeader from "../../components/Profile/Profileheader";
+import CompanyLogoUpload from "../../components/Profile/Companylogoupload";
+import PasswordChangeForm from "../../components/Profile/Passwordchangeform";
 import LoadingScreen from "../../components/common/Loadingscreen";
 
 const Profile = () => {

@@ -2,7 +2,7 @@ import { Bell, LogOut, X, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://https://test.vconstech.in';
 
 const Navbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);

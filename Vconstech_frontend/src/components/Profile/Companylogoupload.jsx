@@ -34,7 +34,7 @@ const CompanyLogoUpload = ({ userInfo, apiBaseUrl, onUploadSuccess, onError }) =
 
     try {
       const API_URL =
-        import.meta.env.VITE_API_URL || "http://test.vconstech.in/api";
+        import.meta.env.VITE_API_URL || "http://test.vconstech.in /api";
       const userId = localStorage.getItem("userId");
       const token = localStorage.getItem("token");
 

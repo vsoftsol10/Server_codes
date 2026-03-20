@@ -219,7 +219,7 @@ const EmployeeMaterialManagement = () => {
         }, 0),
       };
 
-      const response = await fetch("http://test.vconstech.in/api/reports/usage-pdf", {
+      const response = await fetch("http://test.vconstech.in /api/reports/usage-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),

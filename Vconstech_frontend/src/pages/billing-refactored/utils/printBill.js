@@ -38,7 +38,7 @@ export const printBill = (bill) => {
   const companyLogo =
     bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  let API_BASE_URL = "http://test.vconstech.in";
+  let API_BASE_URL = "http://test.vconstech.in ";
   if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) {
     API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
   } else if (typeof process !== "undefined" && process.env?.VITE_API_URL) {

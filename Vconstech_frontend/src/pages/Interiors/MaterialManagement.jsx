@@ -167,7 +167,7 @@ const MaterialManagement = () => {
       </aside>
 
       {/* Main content */}
-      <div className="pt-20 md:pl-64 md:p-25">
+      <div className="pt-20 md:pl-64 md:pt-25">
 
         {/* Page header */}
         <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4">

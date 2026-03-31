@@ -6,9 +6,9 @@ import {
 
 const ROLES = [{ value: "Admin", label: "Admin" }];
 const PACKAGES = [
-  { value: "Basic",    label: "Basic (5 members)" },
-  { value: "Premium",  label: "Premium (10 members)" },
-  { value: "Advanced", label: "Advanced (Custom members)" },
+  { value: "Basic",    label: "Basic " },
+  { value: "Premium",  label: "Premium " },
+  { value: "Advanced", label: "Advanced " },
 ];
 
 const inputClass = (hasError) =>

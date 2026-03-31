@@ -231,7 +231,7 @@ const FileManagement = () => {
   const [viewLoading, setViewLoading]         = useState(false);
 
   const documentTypes = ["Contract", "Invoice", "Blueprint", "Report", "Certificate", "Permit", "Drawing", "Specification", "Other"];
-  const API_BASE_URL  = import.meta.env.VITE_API_URL || "http://test.vconstech.in /api";
+  const API_BASE_URL  = import.meta.env.VITE_API_URL || "https://test.vconstech.in/api";
 
   const showSuccessMessage = (message) => {
     setSaveMessage(message);

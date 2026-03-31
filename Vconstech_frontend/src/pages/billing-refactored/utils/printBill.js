@@ -1,10 +1,9 @@
-// printBill.js - Fixed Print Alignment + Summary Table
+// printBill.js
+// Screen preview: splits content across real A4 cards (794×1123px each).
+// Print:          browser handles pagination naturally via @page margins.
 
 export const printBill = (bill) => {
-  if (!bill) {
-    alert("Invalid bill data");
-    return;
-  }
+  if (!bill) { alert("Invalid bill data"); return; }
 
   const printWindow = window.open("", "_blank");
   const items = Array.isArray(bill?.BillItem)
@@ -21,11 +20,8 @@ export const printBill = (bill) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric",
     });
   };
 
@@ -34,18 +30,15 @@ export const printBill = (bill) => {
   const dueDate       = formatDate(bill.dueDate);
   const billType      = bill.billType || "invoice";
   const documentTitle = billType === "quotation" ? "QUOTATION" : "TAX INVOICE";
+  const companyLogo   = bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  const companyLogo =
-    bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
-
-  let API_BASE_URL = "http://test.vconstech.in ";
-  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) {
+  let API_BASE_URL = "https://test.vconstech.in";
+  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
     API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
-  } else if (typeof process !== "undefined" && process.env?.VITE_API_URL) {
+  else if (typeof process !== "undefined" && process.env?.VITE_API_URL)
     API_BASE_URL = process.env.VITE_API_URL.replace("/api", "");
-  }
 
-  const subtotal     = items.reduce((sum, item) => sum + Number(item?.amount || 0), 0);
+  const subtotal     = items.reduce((s, i) => s + Number(i?.amount || 0), 0);
   const grossAmount  = subtotal
     + Number(bill?.labourCharges    || 0)
     + Number(bill?.transportCharges || 0)
@@ -65,337 +58,378 @@ export const printBill = (bill) => {
   const retention    = (totalWithTax * retentionPercent) / 100;
   const advance      = Number(bill?.advancePaid || 0);
 
-  const netPayable =
-    billType === "quotation"
-      ? totalWithTax - tds - retention + advance + Number(bill?.previousBills || 0)
-      : totalWithTax - tds - retention - advance + Number(bill?.previousBills || 0);
+  const netPayable = billType === "quotation"
+    ? totalWithTax - tds - retention + advance + Number(bill?.previousBills || 0)
+    : totalWithTax - tds - retention - advance + Number(bill?.previousBills || 0);
 
+  const companyPhone = bill.companyPhone || "";
+  const companyEmail = bill.companyEmail || "";
+
+  // ─── Shared HTML fragments ────────────────────────────────────────────────
+
+  const footerHTML = `
+    <div class="doc-footer">
+      <div class="footer-contact">
+        ${companyPhone ? `<div class="contact-item"><div class="icon">📞</div><span>${companyPhone}</span></div>` : ""}
+        ${companyEmail ? `<div class="contact-item"><div class="icon">✉</div><span>${companyEmail}</span></div>` : ""}
+      </div>
+      <div class="tagline">Thank You For Your Business</div>
+    </div>`;
+
+  const headerHTML = `
+    <div class="header">
+      <div class="logo-area">
+        <div class="logo-box">
+          ${companyLogo
+            ? `<img src="${API_BASE_URL}${companyLogo}" alt="Logo" />`
+            : `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="48" height="48" rx="4" fill="#1a1a1a"/>
+                <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle"
+                  font-family="Arial" font-weight="900" font-size="22" fill="#f5b800">
+                  ${(bill.companyName || "C").charAt(0).toUpperCase()}
+                </text>
+              </svg>`}
+        </div>
+        <div class="company-name-header">${bill.companyName || "COMPANY"}</div>
+      </div>
+      <div class="header-right">
+        <div class="doc-title">${documentTitle}</div>
+        <div class="bill-meta">
+          <div class="meta-row">
+            <span class="meta-label">${billType === "quotation" ? "Quote No:" : "Invoice No:"}</span>
+            <span class="meta-value">${billNumber}</span>
+          </div>
+          <div class="meta-row"><span class="meta-label">Date:</span><span class="meta-value">${billDate}</span></div>
+          ${billType === "invoice" && dueDate !== "N/A"
+            ? `<div class="meta-row"><span class="meta-label">Due Date:</span><span class="meta-value">${dueDate}</span></div>`
+            : ""}
+        </div>
+      </div>
+    </div>`;
+
+  const mainBodyHTML = `
+    <div class="body-content" id="mainBody">
+      <div class="two-column">
+        <div class="from-col">
+          <div class="col-title">From <span>(Contractor / Company)</span></div>
+          ${bill.companyName    ? `<div class="info-line"><span class="lbl">Name:</span><span class="val">${bill.companyName}</span></div>` : `<div class="info-line"><span class="lbl">Name:</span><span class="val">N/A</span></div>`}
+          ${bill.companyAddress ? `<div class="info-line"><span class="lbl">Address:</span><span class="val">${bill.companyAddress}</span></div>` : ""}
+          ${bill.companyGST     ? `<div class="info-line"><span class="lbl">GST:</span><span class="val">${bill.companyGST}</span></div>` : ""}
+          ${bill.companyPhone   ? `<div class="info-line"><span class="lbl">Phone:</span><span class="val">${bill.companyPhone}</span></div>` : ""}
+          ${bill.companyEmail   ? `<div class="info-line"><span class="lbl">Email:</span><span class="val">${bill.companyEmail}</span></div>` : ""}
+        </div>
+        <div class="to-col">
+          <div class="col-title">To <span>(Client)</span></div>
+          ${bill.clientName    ? `<div class="info-line"><span class="lbl">Name:</span><span class="val">${bill.clientName}</span></div>` : `<div class="info-line"><span class="lbl">Name:</span><span class="val">N/A</span></div>`}
+          ${bill.clientAddress ? `<div class="info-line"><span class="lbl">Address:</span><span class="val">${bill.clientAddress}</span></div>` : ""}
+          ${bill.clientGST     ? `<div class="info-line"><span class="lbl">GST:</span><span class="val">${bill.clientGST}</span></div>` : ""}
+          ${bill.clientPhone   ? `<div class="info-line"><span class="lbl">Phone:</span><span class="val">${bill.clientPhone}</span></div>` : ""}
+          ${bill.clientEmail   ? `<div class="info-line"><span class="lbl">Email:</span><span class="val">${bill.clientEmail}</span></div>` : ""}
+        </div>
+      </div>
+
+      <div class="project-section">
+        <div class="section-heading">Project Details</div>
+        <div class="project-grid">
+          <div class="proj-row"><span class="proj-lbl">Project:</span><span class="proj-val">${bill.projectName || "N/A"}</span></div>
+          ${bill.projectLocation ? `<div class="proj-row"><span class="proj-lbl">Location:</span><span class="proj-val">${bill.projectLocation}</span></div>` : ""}
+          ${bill.workOrderNo     ? `<div class="proj-row"><span class="proj-lbl">Work Order:</span><span class="proj-val">${bill.workOrderNo}</span></div>` : ""}
+        </div>
+      </div>
+
+      <table class="items-table">
+        <colgroup>
+          <col class="col-sno"/><col class="col-description"/>
+          <col class="col-hsn"/><col class="col-unit"/>
+          <col class="col-qty"/><col class="col-rate"/><col class="col-amount"/>
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="text-center">S.No</th><th>Description</th>
+            <th class="text-center">HSN/SAC</th><th class="text-center">Unit</th>
+            <th class="text-right">Qty</th><th class="text-right">Rate</th>
+            <th class="text-right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map((item, i) => `
+            <tr>
+              <td class="text-center">${String(i + 1).padStart(2, "0")}</td>
+              <td>${item.description || "N/A"}</td>
+              <td class="text-center">${item.HSN || "-"}</td>
+              <td class="text-center">${item.unit || "Nos"}</td>
+              <td class="text-right">${Number(item.quantity || 0).toFixed(2)}</td>
+              <td class="text-right">₹ ${Number(item.rate || 0).toFixed(2)}</td>
+              <td class="text-right">₹ ${Number(item.amount || 0).toFixed(2)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+
+      <div class="summary-wrapper">
+        <table class="summary-table">
+          <tr><td class="s-label">Subtotal:</td><td class="s-value">₹ ${subtotal.toFixed(2)}</td></tr>
+          ${bill.labourCharges    > 0 ? `<tr><td class="s-label">Labour Charges:</td><td class="s-value">₹ ${Number(bill.labourCharges).toFixed(2)}</td></tr>` : ""}
+          ${bill.transportCharges > 0 ? `<tr><td class="s-label">Transport Charges:</td><td class="s-value">₹ ${Number(bill.transportCharges).toFixed(2)}</td></tr>` : ""}
+          ${bill.otherCharges     > 0 ? `<tr><td class="s-label">Other Charges${bill.otherChargesDescription ? " (" + bill.otherChargesDescription + ")" : ""}:</td><td class="s-value">₹ ${Number(bill.otherCharges).toFixed(2)}</td></tr>` : ""}
+          ${(bill.labourCharges > 0 || bill.transportCharges > 0 || bill.otherCharges > 0)
+            ? `<tr class="subtotal-row"><td class="s-label"><strong>Gross Amount:</strong></td><td class="s-value"><strong>₹ ${grossAmount.toFixed(2)}</strong></td></tr>` : ""}
+          ${cgstPercent > 0 ? `<tr><td class="s-label">CGST Amount (${cgstPercent}%):</td><td class="s-value">₹ ${cgst.toFixed(2)}</td></tr>` : ""}
+          ${sgstPercent > 0 ? `<tr><td class="s-label">SGST Amount (${sgstPercent}%):</td><td class="s-value">₹ ${sgst.toFixed(2)}</td></tr>` : ""}
+          ${igstPercent > 0 ? `<tr><td class="s-label">IGST Amount (${igstPercent}%):</td><td class="s-value">₹ ${igst.toFixed(2)}</td></tr>` : ""}
+          ${(cgstPercent > 0 || sgstPercent > 0 || igstPercent > 0)
+            ? `<tr><td class="s-label">Total Tax:</td><td class="s-value">₹ ${(cgst + sgst + igst).toFixed(2)}</td></tr>` : ""}
+          <tr class="total-row">
+            <td><strong>Total with Tax:</strong></td>
+            <td style="text-align:right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
+          </tr>
+          ${billType === "invoice" ? `
+            ${tdsPercent       > 0 ? `<tr class="deduction-row"><td class="s-label">TDS (${tdsPercent}%):</td><td class="s-value">- ₹ ${tds.toFixed(2)}</td></tr>` : ""}
+            ${retentionPercent > 0 ? `<tr class="deduction-row"><td class="s-label">Retention (${retentionPercent}%):</td><td class="s-value">- ₹ ${retention.toFixed(2)}</td></tr>` : ""}
+            ${bill.advancePaid  > 0 ? `<tr class="deduction-row"><td class="s-label">Advance Paid:</td><td class="s-value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td></tr>` : ""}
+            ${bill.previousBills > 0 ? `<tr class="addition-row"><td class="s-label">Previous Bills:</td><td class="s-value">+ ₹ ${Number(bill.previousBills).toFixed(2)}</td></tr>` : ""}
+            <tr class="net-payable-row">
+              <td><strong>FINAL TOTAL:</strong></td>
+              <td style="text-align:right;"><strong>₹ ${netPayable.toFixed(2)}</strong></td>
+            </tr>
+          ` : `
+            <tr class="net-payable-row">
+              <td><strong>FINAL TOTAL:</strong></td>
+              <td style="text-align:right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
+            </tr>
+          `}
+        </table>
+      </div>
+
+      ${billType === "quotation" && bill.advancePaid > 0 ? `
+        <div class="additional-info" style="background:#e3f2fd;border-left:3px solid #2196f3;">
+          <h4 style="color:#1565c0;">Payment Information</h4>
+          <p><strong>Advance to be Paid:</strong> ₹ ${Number(bill.advancePaid).toFixed(2)}</p>
+        </div>` : ""}
+
+      ${bill.remarks ? `<div class="additional-info"><h4>Remarks</h4><p>${bill.remarks}</p></div>` : ""}
+
+      ${bill.termsAndConditions ? `
+        <div class="additional-info tc-inline">
+          <div class="section-heading" style="margin-bottom:8px;">Terms &amp; Conditions</div>
+          <p>${bill.termsAndConditions}</p>
+        </div>` : ""}
+
+      <div class="bottom-area">
+        <div class="terms-note">
+          This is a computer-generated ${billType === "quotation" ? "quotation" : "invoice"} and does not require a physical signature.<br>
+          Generated on ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+        </div>
+        <div class="signature-box">
+          <div style="height:38px;"></div>
+          <div class="signature-line"></div>
+          <div class="signature-label">Authorised Sign</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ─── Full HTML document ───────────────────────────────────────────────────
   printWindow.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <title>${billType === "quotation" ? "Quotation" : "Invoice"} - ${billNumber}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
-    /* =============================================================
-       PRINT STYLES
-       Key fixes:
-       1. @page margin: 0  →  removes browser date/title/page-num headers
-       2. body padding handles margins instead
-       3. Single content div flows naturally — browser handles page breaks
-       4. No min-height anywhere in print
-       ============================================================= */
+    /* ============================================================
+       PRINT
+       ============================================================ */
     @media print {
-      /* margin:0 + named margin boxes = no browser date/URL/page headers */
-      @page {
-        size: A4 portrait;
-        margin: 12mm 14mm;
-      }
-      @top-left    { content: ""; }
-      @top-center  { content: ""; }
-      @top-right   { content: ""; }
-      @bottom-left { content: ""; }
-      @bottom-center { content: ""; }
-      @bottom-right  { content: ""; }
-
+      @page { size: A4 portrait; margin: 10mm 12mm; }
       html, body {
-        margin: 0 !important;
-        padding: 0 !important;
+        margin: 0 !important; padding: 0 !important;
         background: white !important;
         font-family: 'Segoe UI', Arial, sans-serif;
-        font-size: 13px;
+        font-size: 12px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
         color-adjust: exact;
+        width: 100% !important;
       }
-
+      /* Hide screen shell; show only the hidden print wrapper */
       .screen-toolbar,
-      .page-badge,
-      .screen-scroll-wrapper {
-        display: none !important;
-      }
+      #screenScroll       { display: none !important; }
+      #printOnlyWrapper   { display: block !important; }
 
-      /*
-        .print-content uses padding to simulate page margins.
-        Since @page margin is 0, we add padding here.
-        Left/right padding applies to every line on every page.
-        Top padding applies once (page 1 top).
-        For subsequent page tops — we accept the 0 top gap since
-        @page named boxes are cleared, keeping content flush but clean.
-        A repeating top margin is NOT achievable with padding alone;
-        it requires @page margin which brings back browser headers.
-        Compromise: use 10mm top padding so page 1 looks good, and
-        accept that page 2+ starts right at the top edge.
-        To fix page 2 top: we use a large enough font/line-height so
-        content doesn't start at the absolute edge visually.
-      */
-      .print-content {
-        display: block !important;
-        width: 210mm !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-      }
-
-      /* ── Items table: allow natural row breaks ── */
-      table.items-table tr {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      table.items-table thead {
-        display: table-header-group;
-      }
-
-      /* ── Summary: flow naturally, only rows stay intact ── */
-      .summary-wrapper {
-        display: block !important;
-        width: 100% !important;
-        /* NO break-inside avoid — let it flow after the table */
-      }
-      .summary-heading {
-        break-after: avoid !important;
-        page-break-after: avoid !important;
-      }
-      table.summary-table {
-        width: 100% !important;
-      }
-      table.summary-table tr {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      .total-row,
-      .net-payable-row {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-
-      /* ── Small blocks: keep together ── */
-      .header {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      .additional-info {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      .signature-box {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-      .footer {
-        break-inside: avoid !important;
-        page-break-inside: avoid !important;
-      }
-
-      /* ── Let two-column and info sections flow ── */
-      .two-column,
-      .info-section {
-        break-inside: auto !important;
-        page-break-inside: auto !important;
-      }
+      table.items-table tr   { break-inside: avoid !important; page-break-inside: avoid !important; }
+      table.items-table thead { display: table-header-group; }
+      .tc-inline { page-break-inside: auto; }
     }
 
-    /* =============================================================
+    /* ============================================================
        RESET
-       ============================================================= */
+       ============================================================ */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* =============================================================
-       SCREEN — PDF viewer shell
-       ============================================================= */
-    body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: #606060;
-    }
-
-    /* Print-only div is hidden on screen */
-    .print-content {
-      display: none;
-    }
+    /* ============================================================
+       SCREEN — dark scaffold
+       ============================================================ */
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #606060; }
 
     .screen-toolbar {
-      position: fixed;
-      top: 0; left: 0; right: 0; height: 50px;
-      background: #3c3c3c;
+      position: fixed; top: 0; left: 0; right: 0; height: 50px;
+      background: #1a1a1a;
       display: flex; align-items: center; justify-content: flex-end;
-      padding: 0 20px;
-      z-index: 1000;
+      padding: 0 20px; z-index: 1000;
       box-shadow: 0 2px 8px rgba(0,0,0,.5);
     }
-
     .print-btn {
-      background: #ffbe2a; color: #000;
-      padding: 9px 22px; border: none; border-radius: 4px;
+      background: #f5b800; color: #000;
+      padding: 9px 22px; border: none; border-radius: 3px;
       cursor: pointer; font-size: 13px; font-weight: 700;
       display: inline-flex; align-items: center; gap: 7px;
-      transition: background .2s;
+      letter-spacing: 0.3px; transition: background .2s;
     }
-    .print-btn:hover { background: #ffd166; }
+    .print-btn:hover { background: #ffd033; }
 
-    .screen-scroll-wrapper {
+    /* ============================================================
+       SCREEN SCROLL AREA
+       ============================================================ */
+    #screenScroll {
       margin-top: 50px;
       padding: 28px 0 48px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 22px;
     }
 
-    /* A4 page card — screen only */
+    /* ============================================================
+       A4 CARD — 794 × 1123 px (96 dpi)
+       Each card is an exact A4 sheet. Content is measured after
+       render and distributed across cards by the JS paginator.
+       ============================================================ */
     .a4-card {
       background: white;
-      width: 210mm;
-      min-height: 297mm;
-      padding: 12mm 15mm;
+      width: 794px;
+      height: 1123px;           /* hard A4 height — no min-height */
+      overflow: hidden;         /* never overflow the card boundary */
       box-shadow: 0 3px 18px rgba(0,0,0,.45);
       position: relative;
-      margin-bottom: 22px;
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
     }
 
+    /* page-body scrolls virtually; footer is always pinned at bottom */
+    .a4-card .page-body   { flex: 1; overflow: hidden; position: relative; }
+    .a4-card .doc-footer  { flex-shrink: 0; }
+
+    /* badge */
     .page-badge {
-      position: absolute; top: 5mm; right: 6mm;
-      font-size: 9px; color: #aaa;
+      text-align: right; font-size: 9px; color: #999;
       letter-spacing: .4px; user-select: none;
+      padding: 3px 10px 0;
     }
 
-    /* =============================================================
-       SHARED CONTENT STYLES  (used in both .a4-card and .print-content)
-       ============================================================= */
+    /* ============================================================
+       MEASUREMENT SANDBOX — off-screen, full width, no height cap
+       ============================================================ */
+    #measureSandbox {
+      position: fixed;
+      top: 0; left: -9999px;
+      width: 794px;
+      visibility: hidden;
+      pointer-events: none;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 12px;
+      background: white;
+    }
 
-    /* Header */
+    /* ============================================================
+       HEADER
+       ============================================================ */
     .header {
       display: flex; justify-content: space-between; align-items: flex-start;
-      border-bottom: 4px solid #ffbe2a;
-      padding-bottom: 18px; margin-bottom: 22px;
+      padding: 18px 22px 16px 22px;
+      border-bottom: 3px solid #f5b800;
+      background: #fff;
+      overflow: hidden; position: relative;
     }
-    .logo-placeholder {
-      width: 120px; height: 120px;
-      display: flex; align-items: center; justify-content: center; overflow: hidden;
-      flex-shrink: 0;
+    .header::after {
+      content: "";
+      position: absolute; top: 0; right: 0;
+      width: 80px; height: 50px;
+      background: linear-gradient(135deg, transparent 40%, #1a1a1a 40%, #1a1a1a 65%, #f5b800 65%);
+      pointer-events: none; z-index: 0;
     }
-    .logo-placeholder img { max-width: 100%; max-height: 100%; object-fit: contain; }
-    .header-center { flex: 1; text-align: center; padding: 0 16px; }
-    .header-center h1 { font-size: 36px; color: #333; letter-spacing: 2px; font-weight: 700; }
-    .header-right { flex-shrink: 0; text-align: right; min-width: 175px; }
+    .logo-area  { display: flex; align-items: center; gap: 10px; z-index: 2; flex: 1; }
+    .logo-box   { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+    .logo-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .company-name-header { font-size: 20px; font-weight: 800; color: #1a1a1a; letter-spacing: 1px; text-transform: uppercase; }
+    .header-right { flex-shrink: 0; text-align: right; z-index: 2; position: relative; padding-left: 20px; }
+    .doc-title  { font-size: 26px; font-weight: 800; color: #f5b800; letter-spacing: 2px; text-transform: uppercase; line-height: 1; margin-bottom: 10px; margin-right: 90px; }
+    .bill-meta  { font-size: 11.5px; color: #555; line-height: 2; }
+    .bill-meta .meta-row   { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .bill-meta .meta-label { color: #777; font-weight: 500; white-space: nowrap; }
+    .bill-meta .meta-value { color: #111; font-weight: 600; border-bottom: 1px solid #ccc; min-width: 110px; text-align: right; padding-bottom: 1px; white-space: nowrap; }
 
-    .bill-details {
-      background: #f9f9f9; padding: 11px 13px;
-      border-left: 4px solid #ffbe2a; border-radius: 3px;
-    }
-    .bill-details p {
-      margin: 6px 0; font-size: 14px; color: #555;
-      display: flex; justify-content: space-between; gap: 12px;
-    }
-    .bill-details strong { color: #333; font-weight: 600; min-width: 72px; }
-    .bill-details .value { color: #000; font-weight: 600; }
+    /* ============================================================
+       BODY CONTENT
+       ============================================================ */
+    .body-content { padding: 16px 22px; }
 
-    /* Info sections */
-    .info-section {
-      margin-bottom: 16px; padding: 11px 13px;
-      background: #f9f9f9; border-left: 4px solid #ffbe2a;
-    }
-    .section-title {
-      font-weight: 700; font-size: 13px; color: #333;
-      text-transform: uppercase; margin-bottom: 9px; letter-spacing: 1px;
-    }
-    .info-section p { margin: 4px 0; font-size: 13px; color: #555; line-height: 1.5; }
-    .info-section strong { color: #333; font-weight: 600; }
-    .two-column {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 14px; margin-bottom: 16px;
-    }
+    .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-bottom: 14px; border: 1px solid #e0e0e0; }
+    .from-col, .to-col { padding: 12px 14px; }
+    .from-col { border-right: 1px solid #e0e0e0; }
+    .col-title { font-size: 12.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid #f5b800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .col-title span { color: #f5b800; }
+    .info-line { display: flex; gap: 6px; font-size: 11.5px; color: #555; margin-bottom: 4px; line-height: 1.5; }
+    .info-line .lbl { color: #888; font-weight: 500; min-width: 56px; }
+    .info-line .val { color: #222; font-weight: 600; }
 
-    /* Items table */
-    table.items-table {
-      width: 100%; border-collapse: collapse;
-      margin: 14px 0 0; font-size: 14px; table-layout: fixed;
-    }
-    col.col-sno         { width: 5%;  }
-    col.col-description { width: 35%; }
+    .project-section { margin-bottom: 14px; }
+    .section-heading { font-size: 13px; font-weight: 800; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 2px solid #f5b800; display: inline-block; }
+    .project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 11.5px; color: #555; }
+    .project-grid .proj-row  { display: flex; gap: 6px; align-items: baseline; }
+    .project-grid .proj-lbl  { color: #888; font-weight: 500; min-width: 72px; }
+    .project-grid .proj-val  { color: #222; font-weight: 600; }
+
+    table.items-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; table-layout: fixed; }
+    col.col-sno         { width: 6%;  }
+    col.col-description { width: 34%; }
     col.col-hsn         { width: 10%; }
     col.col-unit        { width: 8%;  }
     col.col-qty         { width: 9%;  }
     col.col-rate        { width: 14%; }
     col.col-amount      { width: 19%; }
+    table.items-table th { background: #f5b800; color: #1a1a1a; padding: 9px 8px; text-align: left; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.3px; }
+    table.items-table td { border: 1px solid #e8e8e8; padding: 9px 8px; color: #444; word-wrap: break-word; overflow-wrap: break-word; }
+    table.items-table tbody tr:nth-child(even) { background: #fafafa; }
+    table.items-table tbody tr:nth-child(odd)  { background: #fff;    }
 
-    table.items-table th {
-      background: #333; color: white;
-      padding: 10px 8px; text-align: left;
-      font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .4px;
-      word-wrap: break-word;
-    }
-    table.items-table td {
-      border: 1px solid #ddd; padding: 11px 9px; color: #555;
-      word-wrap: break-word; overflow-wrap: break-word;
-    }
-    table.items-table tbody tr:nth-child(even) { background: #f9f9f9; }
-
-    /* Summary wrapper — full width block */
-    .summary-wrapper {
-      display: block;
-      width: 100%;
-      margin-top: 18px;
-    }
-
-    /* Summary heading */
-    .summary-heading {
-      font-weight: 700; font-size: 13px; color: #333;
-      text-transform: uppercase; letter-spacing: 1px;
-      padding: 9px 13px;
-      background: #f9f9f9;
-      border-left: 4px solid #ffbe2a;
-      margin-bottom: 0;
-    }
-
-    /* Summary table — full width, bordered */
-    table.summary-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-      border: 1px solid #ddd;
-    }
-    table.summary-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid #eee;
-    }
+    .summary-wrapper { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+    table.summary-table { width: 55%; border-collapse: collapse; font-size: 12px; }
+    table.summary-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
     table.summary-table tr:last-child td { border-bottom: none; }
-    table.summary-table .label { font-weight: 500; color: #555; width: 75%; }
-    table.summary-table .value { text-align: right; font-weight: 600; color: #333; width: 25%; white-space: nowrap; }
-    table.summary-table .subtotal-row td { border-top: 2px solid #ddd; background: #f9f9f9; }
+    table.summary-table .s-label { font-weight: 500; color: #555; width: 65%; }
+    table.summary-table .s-value { text-align: right; font-weight: 600; color: #333; white-space: nowrap; }
+    table.summary-table .subtotal-row td { border-top: 2px solid #ddd; background: #f9f9f9; font-weight: 700; color: #111; }
+    .total-row { background: #2a2a2a !important; }
+    .total-row td { color: #fff !important; padding: 8px 10px !important; border-bottom: none !important; font-weight: 700 !important; font-size: 12.5px; }
+    .net-payable-row { background: #f5b800 !important; }
+    .net-payable-row td { color: #111 !important; padding: 10px !important; font-size: 14px; font-weight: 800 !important; letter-spacing: 0.3px; border-bottom: none !important; }
+    .deduction-row td { color: #c0392b !important; }
+    .addition-row  td { color: #1a7d2e !important; }
 
-    .total-row { background: #333 !important; }
-    .total-row td {
-      color: #fff !important; padding: 10px 12px !important;
-      border-bottom: none !important; font-size: 15px;
-    }
-    .net-payable-row { background: #ffbe2a !important; }
-    .net-payable-row td {
-      color: #000 !important; padding: 12px !important;
-      font-size: 16px; font-weight: 700 !important;
-    }
+    .additional-info { margin-bottom: 12px; padding: 10px 12px; background: #fafafa; border-left: 3px solid #f5b800; font-size: 12px; }
+    .additional-info h4 { font-size: 12px; color: #1a1a1a; margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; font-weight: 700; }
+    .additional-info p  { font-size: 12px; color: #555; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
+    .tc-inline { margin-top: 14px; margin-bottom: 14px; }
+    .tc-inline .section-heading { display: block; margin-bottom: 8px; }
 
-    /* Additional info */
-    .additional-info {
-      margin-top: 18px; padding: 11px 13px;
-      background: #f9f9f9; border-left: 4px solid #ffbe2a;
-    }
-    .additional-info h4 {
-      font-size: 13px; color: #333; margin-bottom: 6px;
-      text-transform: uppercase; letter-spacing: .5px;
-    }
-    .additional-info p {
-      font-size: 13px; color: #555; line-height: 1.6;
-      white-space: pre-wrap; word-wrap: break-word;
-    }
+    .bottom-area { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 20px; padding-top: 12px; border-top: 1px solid #eee; }
+    .terms-note    { font-size: 10.5px; color: #999; font-style: italic; max-width: 55%; line-height: 1.5; }
+    .signature-box { text-align: center; min-width: 160px; }
+    .signature-line  { border-top: 2px solid #1a1a1a; margin-bottom: 6px; }
+    .signature-label { font-size: 12px; color: #444; font-weight: 600; letter-spacing: 0.3px; }
 
-    /* Signature */
-    .signature-box { width: 220px; margin-left: auto; margin-top: 55px; text-align: center; }
-    .signature-line { border-top: 2px solid #333; margin-top: 38px; margin-bottom: 7px; }
-    .signature-label { font-size: 13px; color: #666; font-weight: 600; }
-
-    /* Footer */
-    .footer {
-      margin-top: 24px; text-align: center;
-      padding-top: 14px; border-top: 2px solid #eee;
-    }
-    .footer p { font-size: 12px; color: #999; font-style: italic; margin: 2px 0; }
+    .doc-footer { background: #1a1a1a; color: #fff; padding: 12px 22px; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; }
+    .doc-footer .footer-contact { display: flex; align-items: center; gap: 18px; }
+    .doc-footer .contact-item   { display: flex; align-items: center; gap: 6px; color: #ccc; }
+    .doc-footer .contact-item .icon { width: 20px; height: 20px; border-radius: 50%; background: #f5b800; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #1a1a1a; font-weight: 700; flex-shrink: 0; }
+    .doc-footer .tagline { font-size: 12px; font-weight: 600; color: #f5b800; letter-spacing: 0.5px; text-transform: uppercase; }
 
     .text-right  { text-align: right;  }
     .text-center { text-align: center; }
@@ -403,110 +437,180 @@ export const printBill = (bill) => {
 </head>
 <body>
 
-  <!-- ============================================================
-       SCREEN TOOLBAR (hidden on print)
-       ============================================================ -->
+  <!-- SCREEN TOOLBAR -->
   <div class="screen-toolbar">
     <button class="print-btn" onclick="window.print()">
       🖨️ Print ${billType === "quotation" ? "Quotation" : "Invoice"}
     </button>
   </div>
 
-  <!-- ============================================================
-       SCREEN PREVIEW  (hidden on print via .screen-scroll-wrapper)
-       JS splits #page1 into multiple A4 cards after load
-       ============================================================ -->
-  <div class="screen-scroll-wrapper" id="screenScroll">
-    <div class="a4-card" id="page1">
-      <span class="page-badge" id="badge1">Page 1</span>
-      <div id="invoiceContent">
-        ${invoiceHTML(bill, billNumber, billDate, dueDate, billType, documentTitle, companyLogo, API_BASE_URL, items, subtotal, grossAmount, cgstPercent, sgstPercent, igstPercent, cgst, sgst, igst, totalWithTax, tdsPercent, retentionPercent, tds, retention, advance, netPayable)}
-      </div>
+  <!-- OFF-SCREEN MEASUREMENT SANDBOX -->
+  <div id="measureSandbox"></div>
+
+  <!-- SCREEN PAGE CARDS — built dynamically by paginator -->
+  <div id="screenScroll"></div>
+
+  <!-- PRINT-ONLY WRAPPER — single continuous flow, browser paginates -->
+  <div id="printOnlyWrapper" style="display:none;">
+    <div style="font-family:'Segoe UI',Arial,sans-serif; font-size:12px;">
+      ${headerHTML}
+      ${mainBodyHTML}
+      ${footerHTML}
     </div>
   </div>
 
-  <!-- ============================================================
-       PRINT-ONLY CONTENT  (hidden on screen, shown on print)
-       This is a clean single div — no A4 card wrappers, no JS splitting.
-       The browser flows it naturally across A4 pages.
-       ============================================================ -->
-  <div class="print-content" id="printContent">
-    ${invoiceHTML(bill, billNumber, billDate, dueDate, billType, documentTitle, companyLogo, API_BASE_URL, items, subtotal, grossAmount, cgstPercent, sgstPercent, igstPercent, cgst, sgst, igst, totalWithTax, tdsPercent, retentionPercent, tds, retention, advance, netPayable)}
-  </div>
-
   <script>
-  /* ── inline template helper — defined before use ── */
-  /* (the HTML was pre-rendered server-side in the template literal above) */
-
-  /* ============================================================
-     SCREEN-ONLY PAGINATOR
-     Splits #page1 into multiple A4 cards for the preview.
-     Print uses .print-content exclusively — this never affects print.
-     ============================================================ */
   (function () {
-    function mmToPx(mm) {
-      const d = document.createElement('div');
-      d.style.cssText = 'position:absolute;visibility:hidden;width:' + mm + 'mm';
-      document.body.appendChild(d);
-      const px = d.offsetWidth;
-      document.body.removeChild(d);
-      return px;
+
+    /* ================================================================
+       CONSTANTS
+       A4 at 96 dpi = 794 × 1123 px
+       Footer height ≈ 46 px (measured once)
+       Header height: measured per card (first card has full header;
+       continuation cards repeat the header for context)
+       ================================================================ */
+    var A4_W = 794;
+    var A4_H = 1123;
+
+    /* ----------------------------------------------------------------
+       Measure an HTML string in the sandbox, return its rendered height
+       ---------------------------------------------------------------- */
+    function measureHTML(html) {
+      var sandbox = document.getElementById('measureSandbox');
+      sandbox.innerHTML = html;
+      var h = sandbox.scrollHeight;
+      sandbox.innerHTML = '';
+      return h;
     }
 
+    /* ----------------------------------------------------------------
+       Build a footer element and return [element, height]
+       ---------------------------------------------------------------- */
+    var footerHTML = ${JSON.stringify(footerHTML)};
+    var headerHTML = ${JSON.stringify(headerHTML)};
+
+    function makeFooter() {
+      var el = document.createElement('div');
+      el.innerHTML = footerHTML;
+      return el.firstElementChild;
+    }
+    function makeHeader() {
+      var el = document.createElement('div');
+      el.innerHTML = headerHTML;
+      return el.firstElementChild;
+    }
+
+    /* ----------------------------------------------------------------
+       Measure fixed heights once
+       ---------------------------------------------------------------- */
+    var footerHeight = measureHTML(footerHTML);
+    var headerHeight = measureHTML(headerHTML);
+    // Badge row: 14 px
+    var BADGE_H = 14;
+
+    /* ----------------------------------------------------------------
+       Build the screen preview cards
+       ---------------------------------------------------------------- */
     window.addEventListener('load', function () {
-      const A4_H  = mmToPx(297);
-      const PAD_V = mmToPx(12) * 2;
-      const AVAIL = A4_H - PAD_V;
 
-      const scroll  = document.getElementById('screenScroll');
-      const page1   = document.getElementById('page1');
-      const content = document.getElementById('invoiceContent');
+      // 1. Render the full body-content into the sandbox to get a live
+      //    DOM we can slice children from.
+      var sandbox = document.getElementById('measureSandbox');
+      sandbox.innerHTML = ${JSON.stringify(mainBodyHTML)};
+      var bodyContent = sandbox.querySelector('#mainBody');
 
-      // Collect direct children of invoiceContent
-      const allChildren = Array.from(content.children);
-      allChildren.forEach(el => content.removeChild(el));
+      // Collect top-level children of .body-content (each is a "block")
+      var blocks = Array.from(bodyContent.children);
 
-      let pageNum     = 1;
-      let currentContent = content;
-      let usedH       = 0;
+      var scroll    = document.getElementById('screenScroll');
+      var pageIndex = 0;        // 0-based page counter
+      var pages     = [];       // array of { card, pageBody, usedHeight }
 
-      function makeCard(num) {
-        const card = document.createElement('div');
+      /* ---- helper: create a fresh A4 card ---- */
+      function newCard() {
+        var card = document.createElement('div');
         card.className = 'a4-card';
-        card.id = 'page' + num;
 
-        const badge = document.createElement('span');
+        var badge = document.createElement('div');
         badge.className = 'page-badge';
-        badge.id = 'badge' + num;
         card.appendChild(badge);
 
-        const inner = document.createElement('div');
-        card.appendChild(inner);
+        // header
+        card.appendChild(makeHeader());
+
+        // page-body container
+        var pageBody = document.createElement('div');
+        pageBody.className = 'page-body';
+        var inner = document.createElement('div');
+        inner.className = 'body-content';
+        pageBody.appendChild(inner);
+        card.appendChild(pageBody);
+
+        // footer
+        card.appendChild(makeFooter());
+
         scroll.appendChild(card);
-        return inner;
+        pageIndex++;
+
+        // available height for content on this card
+        var available = A4_H - BADGE_H - headerHeight - footerHeight - 32; // 32 = body padding top+bottom
+        pages.push({ card: card, inner: inner, usedHeight: 0, available: available });
+        return pages[pages.length - 1];
       }
 
-      for (const child of allChildren) {
-        currentContent.appendChild(child);
-        void currentContent.offsetHeight;
-        const h = child.getBoundingClientRect().height;
+      /* ---- start first card ---- */
+      var current = newCard();
 
-        if (usedH > 0 && usedH + h > AVAIL) {
-          currentContent.removeChild(child);
-          pageNum++;
-          currentContent = makeCard(pageNum);
-          usedH = 0;
-          currentContent.appendChild(child);
+      /* ---- distribute blocks across cards ---- */
+      blocks.forEach(function (block) {
+        // Clone the block so we can measure it
+        var clone = block.cloneNode(true);
+
+        // Measure its height
+        sandbox.innerHTML = '';
+        var wrapper = document.createElement('div');
+        wrapper.style.width = A4_W + 'px';
+        wrapper.style.padding = '0 22px';
+        wrapper.style.fontSize = '12px';
+        wrapper.style.fontFamily = "'Segoe UI', Arial, sans-serif";
+        wrapper.appendChild(clone.cloneNode(true));
+        sandbox.appendChild(wrapper);
+        var blockH = wrapper.scrollHeight;
+        sandbox.innerHTML = '';
+
+        // If it doesn't fit, open a new card
+        if (current.usedHeight + blockH > current.available && current.usedHeight > 0) {
+          current = newCard();
         }
-        usedH += h;
-      }
 
-      // Update badges
-      for (let i = 1; i <= pageNum; i++) {
-        const b = document.getElementById(i === 1 ? 'badge1' : 'badge' + i);
-        if (b) b.textContent = 'Page ' + i + ' of ' + pageNum;
-      }
+        // Append original block (from sandbox DOM) to current card
+        current.inner.appendChild(block.cloneNode(true));
+        current.usedHeight += blockH;
+      });
+
+      /* ---- stamp page badges ---- */
+      var total = pages.length;
+      pages.forEach(function (p, i) {
+        var badge = p.card.querySelector('.page-badge');
+        if (badge) badge.textContent = 'Page ' + (i + 1) + ' of ' + total;
+      });
+
+      /* ---- clean up sandbox ---- */
+      sandbox.innerHTML = '';
     });
+
+    /* ----------------------------------------------------------------
+       Print swap
+       ---------------------------------------------------------------- */
+    window.addEventListener('beforeprint', function () {
+      document.getElementById('screenScroll').style.display = 'none';
+      document.getElementById('printOnlyWrapper').style.display = 'block';
+    });
+    window.addEventListener('afterprint', function () {
+      document.getElementById('screenScroll').style.display = '';
+      document.getElementById('printOnlyWrapper').style.display = 'none';
+    });
+
   })();
   </script>
 
@@ -515,164 +619,3 @@ export const printBill = (bill) => {
 
   printWindow.document.close();
 };
-
-/* ================================================================
-   SHARED HTML BUILDER — renders once for screen, once for print
-   ================================================================ */
-function invoiceHTML(
-  bill, billNumber, billDate, dueDate, billType, documentTitle,
-  companyLogo, API_BASE_URL, items,
-  subtotal, grossAmount,
-  cgstPercent, sgstPercent, igstPercent,
-  cgst, sgst, igst, totalWithTax,
-  tdsPercent, retentionPercent,
-  tds, retention, advance, netPayable
-) {
-  return `
-    <!-- HEADER -->
-    <div class="header">
-      <div class="logo-placeholder">
-        ${companyLogo ? `<img src="${API_BASE_URL}${companyLogo}" alt="Company Logo" />` : ""}
-      </div>
-      <div class="header-center"><h1>${documentTitle}</h1></div>
-      <div class="header-right">
-        <div class="bill-details">
-          <p>
-            <strong>${billType === "quotation" ? "Quote No:" : "Invoice No:"}</strong>
-            <span class="value">${billNumber}</span>
-          </p>
-          <p><strong>Date:</strong><span class="value">${billDate}</span></p>
-          ${billType === "invoice" && dueDate !== "N/A"
-            ? `<p><strong>Due Date:</strong><span class="value">${dueDate}</span></p>`
-            : ""}
-        </div>
-      </div>
-    </div>
-
-    <!-- FROM / TO -->
-    <div class="two-column">
-      <div class="info-section">
-        <div class="section-title">FROM (Contractor/Company)</div>
-        <p><strong>${bill.companyName || "N/A"}</strong></p>
-        ${bill.companyAddress ? `<p>${bill.companyAddress}</p>` : ""}
-        ${bill.companyGST    ? `<p><strong>GST:</strong> ${bill.companyGST}</p>` : ""}
-        ${bill.companyPhone  ? `<p><strong>Phone:</strong> ${bill.companyPhone}</p>` : ""}
-        ${bill.companyEmail  ? `<p><strong>Email:</strong> ${bill.companyEmail}</p>` : ""}
-      </div>
-      <div class="info-section">
-        <div class="section-title">TO (Client)</div>
-        <p><strong>${bill.clientName || "N/A"}</strong></p>
-        ${bill.clientAddress ? `<p>${bill.clientAddress}</p>` : ""}
-        ${bill.clientGST    ? `<p><strong>GST:</strong> ${bill.clientGST}</p>` : ""}
-        ${bill.clientPhone  ? `<p><strong>Phone:</strong> ${bill.clientPhone}</p>` : ""}
-        ${bill.clientEmail  ? `<p><strong>Email:</strong> ${bill.clientEmail}</p>` : ""}
-      </div>
-    </div>
-
-    <!-- PROJECT DETAILS -->
-    <div class="info-section">
-      <div class="section-title">PROJECT DETAILS</div>
-      <p><strong>Project:</strong> ${bill.projectName || "N/A"}</p>
-      ${bill.projectLocation ? `<p><strong>Location:</strong> ${bill.projectLocation}</p>` : ""}
-      ${bill.workOrderNo ? `<p><strong>Work Order No:</strong> ${bill.workOrderNo}</p>` : ""}
-    </div>
-
-    <!-- ITEMS TABLE -->
-    <table class="items-table">
-      <colgroup>
-        <col class="col-sno" /><col class="col-description" />
-        <col class="col-hsn" /><col class="col-unit" />
-        <col class="col-qty" /><col class="col-rate" /><col class="col-amount" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th class="text-center">S.No</th>
-          <th>Description of Work</th>
-          <th class="text-center">HSN/SAC</th>
-          <th class="text-center">Unit</th>
-          <th class="text-right">Qty</th>
-          <th class="text-right">Rate</th>
-          <th class="text-right">Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${items.map((item, i) => `
-          <tr>
-            <td class="text-center">${i + 1}</td>
-            <td>${item.description || "N/A"}</td>
-            <td class="text-center">${item.HSN || "-"}</td>
-            <td class="text-center">${item.unit || "Nos"}</td>
-            <td class="text-right">${Number(item.quantity || 0).toFixed(2)}</td>
-            <td class="text-right">₹ ${Number(item.rate || 0).toFixed(2)}</td>
-            <td class="text-right">₹ ${Number(item.amount || 0).toFixed(2)}</td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-
-    <!-- SUMMARY TABLE -->
-    <div class="summary-wrapper">
-      <div class="summary-heading">Amount Summary</div>
-      <table class="summary-table">
-        <tr>
-          <td class="label">Subtotal (Items)</td>
-          <td class="value">₹ ${subtotal.toFixed(2)}</td>
-        </tr>
-        ${bill.labourCharges    > 0 ? `<tr><td class="label">Labour Charges</td><td class="value">₹ ${Number(bill.labourCharges).toFixed(2)}</td></tr>` : ""}
-        ${bill.transportCharges > 0 ? `<tr><td class="label">Transport Charges</td><td class="value">₹ ${Number(bill.transportCharges).toFixed(2)}</td></tr>` : ""}
-        ${bill.otherCharges     > 0 ? `<tr><td class="label">Other Charges${bill.otherChargesDescription ? " (" + bill.otherChargesDescription + ")" : ""}</td><td class="value">₹ ${Number(bill.otherCharges).toFixed(2)}</td></tr>` : ""}
-        <tr class="subtotal-row">
-          <td class="label"><strong>Gross Amount</strong></td>
-          <td class="value"><strong>₹ ${grossAmount.toFixed(2)}</strong></td>
-        </tr>
-        ${cgstPercent > 0 ? `<tr><td class="label">CGST (${cgstPercent}%)</td><td class="value">₹ ${cgst.toFixed(2)}</td></tr>` : ""}
-        ${sgstPercent > 0 ? `<tr><td class="label">SGST (${sgstPercent}%)</td><td class="value">₹ ${sgst.toFixed(2)}</td></tr>` : ""}
-        ${igstPercent > 0 ? `<tr><td class="label">IGST (${igstPercent}%)</td><td class="value">₹ ${igst.toFixed(2)}</td></tr>` : ""}
-        <tr class="total-row">
-          <td><strong>Total with Tax</strong></td>
-          <td style="text-align:right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
-        </tr>
-        ${billType === "invoice" ? `
-          ${tdsPercent       > 0 ? `<tr style="color:#d32f2f;"><td class="label">TDS (${tdsPercent}%)</td><td class="value">- ₹ ${tds.toFixed(2)}</td></tr>` : ""}
-          ${retentionPercent > 0 ? `<tr style="color:#d32f2f;"><td class="label">Retention (${retentionPercent}%)</td><td class="value">- ₹ ${retention.toFixed(2)}</td></tr>` : ""}
-          ${bill.advancePaid  > 0 ? `<tr style="color:#d32f2f;"><td class="label">Advance Paid</td><td class="value">- ₹ ${Number(bill.advancePaid).toFixed(2)}</td></tr>` : ""}
-          ${bill.previousBills > 0 ? `<tr style="color:#2e7d32;"><td class="label">Previous Bills</td><td class="value">+ ₹ ${Number(bill.previousBills).toFixed(2)}</td></tr>` : ""}
-          <tr class="net-payable-row">
-            <td><strong>NET PAYABLE AMOUNT</strong></td>
-            <td style="text-align:right;"><strong>₹ ${netPayable.toFixed(2)}</strong></td>
-          </tr>
-        ` : `
-          <tr class="net-payable-row">
-            <td><strong>TOTAL QUOTED AMOUNT</strong></td>
-            <td style="text-align:right;"><strong>₹ ${totalWithTax.toFixed(2)}</strong></td>
-          </tr>
-        `}
-      </table>
-    </div>
-
-    ${billType === "quotation" && bill.advancePaid > 0 ? `
-      <div class="additional-info" style="background:#e3f2fd;border-left:4px solid #2196f3;margin-top:18px;">
-        <h4 style="color:#1565c0;">Payment Information</h4>
-        <p style="font-size:13px;color:#333;"><strong>Advance to be Paid:</strong> ₹ ${Number(bill.advancePaid).toFixed(2)}</p>
-      </div>
-    ` : ""}
-
-    ${bill.remarks ? `
-      <div class="additional-info"><h4>Remarks</h4><p>${bill.remarks}</p></div>
-    ` : ""}
-
-    ${bill.termsAndConditions ? `
-      <div class="additional-info"><h4>Terms &amp; Conditions</h4><p>${bill.termsAndConditions}</p></div>
-    ` : ""}
-
-    <div class="signature-box">
-      <div class="signature-line"></div>
-      <div class="signature-label">Authorized Signature</div>
-    </div>
-
-    <div class="footer">
-      <p>This is a computer-generated ${billType === "quotation" ? "quotation" : "invoice"} and does not require a signature</p>
-      <p>Generated on ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</p>
-    </div>
-  `;
-}

@@ -10,7 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://test.vconstech.in ',
+        target: 'https://test.vconstech.in',
         changeOrigin: true,
       }
     }

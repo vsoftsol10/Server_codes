@@ -71,7 +71,7 @@ export const validateCreateForm = (userData) => {
   };
   if (!userData.role) errors.role = "Please select a role";
   if (!userData.package) errors.package = "Please select a package";
-  if (userData.package === "Premium") errors.customMembers = validateCustomMembers(userData.customMembers);
+  if (userData.package === "Advanced") errors.customMembers = validateCustomMembers(userData.customMembers);
   return Object.fromEntries(Object.entries(errors).filter(([, v]) => v !== ""));
 };
 
@@ -86,7 +86,7 @@ export const validateEditForm = (user) => {
   };
   if (!user.role) errors.role = "Please select a role";
   if (!user.package) errors.package = "Please select a package";
-  if (user.package === "Premium") errors.customMembers = validateCustomMembers(user.customMembers);
+  if (user.package === "Advanced") errors.customMembers = validateCustomMembers(user.customMembers);
   if (user.password) {
     errors.password = validatePassword(user.password);
     errors.confirmPassword = validateConfirmPassword(user.password, user.confirmPassword);

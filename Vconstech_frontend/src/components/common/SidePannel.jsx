@@ -47,7 +47,7 @@ const SidePannel = () => {
       name: "Financial Management",
       icon: financialIcon,
       submenu: [
-        { name: "Financial Management", path: "/financial-management", icon: financialIcon },
+        { name: "Project Expenses", path: "/financial-management", icon: financialIcon },
         { name: "Billing", path: "/financial-management/billing", icon: billingIcon },
       ],
     },

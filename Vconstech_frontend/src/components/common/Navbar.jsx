@@ -252,7 +252,7 @@ const Navbar = () => {
             {/* Left – Brand */}
             <div className="flex items-center space-x-2 sm:space-x-8 flex-1 min-w-0">
               <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
-                <div className="text-xl sm:text-base font-Spartan md:text-xl lg:text-2xl xl:text-3xl uppercase font-black text-slate-900 tracking-tight flex items-center gap-1">
+                <div className="text-xl sm:text-base font-league Spartan md:text-xl lg:text-2xl xl:text-3xl uppercase font-black text-slate-900 tracking-tight flex items-center gap-1">
                   <span className="sm:inline whitespace-nowrap">Welcome</span>
                   <span className="text-xl sm:text-base md:text-xl lg:text-2xl xl:text-3xl underline decoration-2 tracking-tight text-black truncate max-w-[150px] sm:max-w-[200px] md:max-w-none inline-block">
                     {companyName}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { materialRequestAPI, projectMaterialAPI, materialAPI } from '../../api/materialService';
 import { projectAPI } from "../../api/projectAPI";
+import { getToken } from '../../utils/tabToken';
 
 const RequestTab = () => {
   const [requestStatusFilter, setRequestStatusFilter] = useState("All");
@@ -55,7 +56,7 @@ const RequestTab = () => {
   const fetchMaterialRequests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getToken();
       let userRole = 'Site_Engineer';
       if (token) {
         try {
@@ -151,8 +152,7 @@ const RequestTab = () => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+const token = getToken();    if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
         setUserRole(payload.role);

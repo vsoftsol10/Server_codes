@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Bell, LogOut, X, Menu } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { logout } from '../../utils/auth'; // ✅ Import auth utility
+import { getToken } from '../../utils/tabToken';
 
 const EmployeeNavbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -13,8 +14,8 @@ const EmployeeNavbar = () => {
   useEffect(() => {
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem('authToken'); // ✅ match whatever auth.js uses
-      const res = await fetch('https://test.vconstech.in/api/engineers/my-profile', { // ✅ full backend URL
+      const token = getToken();
+      const res = await fetch('http://localhost:5000/api/engineers/my-profile', { // ✅ full backend URL
         headers: {
           'Authorization': `Bearer ${token}`
         }

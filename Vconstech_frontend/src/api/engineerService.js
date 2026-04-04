@@ -1,12 +1,10 @@
 // src/services/engineerService.js
 import axios from 'axios';
+import { getToken, setToken, removeToken } from '../utils/tabToken';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
+const getAuthToken = () => getToken();
 
 // Check if token is expired
 const isTokenExpired = () => {
@@ -25,7 +23,7 @@ const isTokenExpired = () => {
 
 // Clear auth data and redirect to login
 const handleAuthError = () => {
-  localStorage.removeItem('token');
+  removeToken();
   localStorage.removeItem('user');
   window.location.href = '/';
 };
@@ -86,7 +84,7 @@ export const loginEngineer = async (username, password) => {
     
     if (response.data.success) {
       // Store token and engineer data
-      localStorage.setItem('token', response.data.token);
+      setToken(response.data.token);
       localStorage.setItem('engineer', JSON.stringify(response.data.engineer));
       return response.data;
     }

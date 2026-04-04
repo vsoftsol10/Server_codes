@@ -2,6 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 import { getAuthToken } from '../utils/auth';
 
+
 // Helper to handle API responses
 const handleResponse = async (response) => {
   const data = await response.json();

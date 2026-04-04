@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Calendar, User, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { getToken } from '../../utils/tabToken';
 
 const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
   const [updates, setUpdates] = useState([]);
@@ -16,7 +17,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
   const fetchDailyUpdates = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = getToken(); // Get token from tabToken utility
       
       const response = await fetch(`${API_BASE_URL}/daily-progress/project/${projectId}`, {
         headers: {

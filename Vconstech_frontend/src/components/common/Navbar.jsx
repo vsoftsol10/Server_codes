@@ -1,8 +1,9 @@
 import { Bell, LogOut, X, User } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getToken, removeToken } from '../../utils/tabToken';
 
-const API_BASE = 'https://test.vconstech.in';
+const API_BASE = 'http://localhost:5000';
 
 const Navbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -21,7 +22,7 @@ const Navbar = () => {
   // ─── Helpers ────────────────────────────────────────────────────────────────
 
   const getAuth = () => {
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token');
+    const token = getToken();
     const userDataString = sessionStorage.getItem('user') || localStorage.getItem('user');
     const userData = userDataString ? JSON.parse(userDataString) : null;
     return { token, userData };
@@ -228,10 +229,8 @@ const Navbar = () => {
   const handleLogout = () => { setShowSettingsDropdown(false); setShowLogoutModal(true); };
   const cancelLogout  = () => setShowLogoutModal(false);
   const confirmLogout = () => {
-    ['token', 'user'].forEach((k) => {
-      sessionStorage.removeItem(k);
-      localStorage.removeItem(k);
-    });
+   removeToken();
+localStorage.removeItem('user');
     setShowLogoutModal(false);
     navigate('/');
     window.location.reload();
@@ -252,8 +251,7 @@ const Navbar = () => {
             {/* Left – Brand */}
             <div className="flex items-center space-x-2 sm:space-x-8 flex-1 min-w-0">
               <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2 md:gap-3 min-w-0">
-                <div className="text-xl sm:text-base font-league Spartan md:text-xl lg:text-2xl xl:text-3xl uppercase font-black text-slate-900 tracking-tight flex items-center gap-1">
-                  <span className="sm:inline whitespace-nowrap">Welcome</span>
+<div className="text-xl sm:text-base font-league-spartan md:text-xl lg:text-2xl xl:text-3xl uppercase font-black text-slate-900 tracking-tight flex items-center gap-1">                  <span className="sm:inline whitespace-nowrap">Welcome</span>
                   <span className="text-xl sm:text-base md:text-xl lg:text-2xl xl:text-3xl underline decoration-2 tracking-tight text-black truncate max-w-[150px] sm:max-w-[200px] md:max-w-none inline-block">
                     {companyName}
                   </span>

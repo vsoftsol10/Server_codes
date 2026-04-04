@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Lock } from "lucide-react";
+import { getToken } from '../../utils/tabToken';
 
 const PasswordChangeForm = ({ onError, onSuccess }) => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
@@ -24,10 +25,9 @@ const PasswordChangeForm = ({ onError, onSuccess }) => {
 
     try {
       const API_URL =
-        import.meta.env.VITE_API_URL || "https://test.vconstech.in/api";
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
-
+const token = getToken();
       const response = await fetch(
         `${API_URL}/users/change-password/${userId}`,
         {

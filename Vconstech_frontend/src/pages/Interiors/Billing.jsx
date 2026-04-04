@@ -9,6 +9,7 @@ import AddClientModal from "../billing-refactored/components/form-section/AddCli
 import EditBillModal from "../billing-refactored/components/EditBillModal";
 import { useBillingState } from "../billing-refactored/hooks/useBillingState";
 import { useBillingActions } from "../billing-refactored/hooks/useBillingActions";
+import { getToken } from '../../utils/tabToken';
 
 const Billing = () => {
   // State management
@@ -95,9 +96,9 @@ const Billing = () => {
   // Fetch company data
   const fetchCompanyData = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://test.vconstech.in/api';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
+      const token = getToken();
 
       if (!userId || !token) return;
 

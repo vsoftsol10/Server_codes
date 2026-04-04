@@ -1,11 +1,12 @@
 // src/api/contractAPI.js
 import axios from 'axios';
+import { getToken } from '../utils/tabToken'; // ← ADD THIS
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Helper function to get auth token
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = getToken(); 
   return {
     headers: {
       Authorization: `Bearer ${token}`,

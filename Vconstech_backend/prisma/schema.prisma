@@ -15,7 +15,6 @@ model User {
   companyId          String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
-  isActive    Boolean  @default(true)
   role               String
   phoneNumber        String              @default("")
   city               String              @default("")
@@ -23,6 +22,7 @@ model User {
   package            String?
   customMembers      Int?
   gstNumber          String              @default("")
+  isActive           Boolean             @default(false)
   Bill               Bill[]
   uploadedFiles      File[]
   projectAssignments ProjectAssignment[]
@@ -283,7 +283,6 @@ model Engineer {
   empId                  String
   phone                  String
   alternatePhone         String?
-  designation            String?
   address                String
   profileImage           String?
   companyId              String
@@ -292,6 +291,7 @@ model Engineer {
   password               String?
   username               String?
   plainPassword          String?
+  designation            String?
   uploadedFiles          File[]
   materialRequests       MaterialRequest[]        @relation("EmployeeRequests")
   reviewedRequests       MaterialRequest[]        @relation("ReviewedRequests")
@@ -309,19 +309,19 @@ model Engineer {
 }
 
 model Labour {
-  id        Int             @id @default(autoincrement())
-  name      String
-  phone     String
-  address   String?
-   designation String?        
-  projectName     String? 
-  companyId String
-  projectId Int?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  company   Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  project   Project?        @relation(fields: [projectId], references: [id])
-  payments  LabourPayment[]
+  id          Int             @id @default(autoincrement())
+  name        String
+  phone       String
+  address     String?
+  companyId   String
+  projectId   Int?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  designation String?
+  projectName String?
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  project     Project?        @relation(fields: [projectId], references: [id])
+  payments    LabourPayment[]
 
   @@index([companyId])
   @@index([projectId])
@@ -417,6 +417,23 @@ model Bill {
   @@index([companyId])
   @@index([projectId])
   @@index([status])
+}
+
+model PaymentNotification {
+  id            Int      @id @default(autoincrement())
+  title         String
+  message       String
+  customerName  String
+  customerEmail String
+  companyName   String
+  plan          String
+  amount        Float
+  paymentId     String   @unique
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model BillItem {

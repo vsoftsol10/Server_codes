@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
+import { getToken } from '../../utils/tabToken';
 
 const EmployeeFileManagement = () => {
   const [projects, setProjects] = useState([]);
@@ -45,8 +46,8 @@ const EmployeeFileManagement = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
-  const getAuthToken = () => localStorage.getItem("authToken");
-
+  const getAuthToken = () => getToken();
+  
   const showSuccessMessage = (message) => {
     setSaveMessage(message);
     setErrorMessage("");

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Upload, Image } from "lucide-react";
+import { getToken } from '../../utils/tabToken';
 
 const CompanyLogoUpload = ({ userInfo, apiBaseUrl, onUploadSuccess, onError }) => {
   const [logoFile, setLogoFile] = useState(null);
@@ -34,9 +35,9 @@ const CompanyLogoUpload = ({ userInfo, apiBaseUrl, onUploadSuccess, onError }) =
 
     try {
       const API_URL =
-        import.meta.env.VITE_API_URL || "https://test.vconstech.in/api";
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
+      const token = getToken();
 
       const formData = new FormData();
       formData.append("logo", logoFile);

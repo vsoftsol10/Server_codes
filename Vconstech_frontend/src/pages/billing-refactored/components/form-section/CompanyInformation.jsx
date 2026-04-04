@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getToken } from '../../../../utils/tabToken';
 
 const CompanyInformation = ({ formData, handleInputChange }) => {
   const [loading, setLoading] = useState(false);
@@ -25,9 +26,9 @@ const CompanyInformation = ({ formData, handleInputChange }) => {
     setHasFetched(true);
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://test.vconstech.in/api';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
       const userId = localStorage.getItem('userId');
-      const token = localStorage.getItem('token');
+      const token = getToken();
 
       if (!userId || !token) {
         setLoading(false);

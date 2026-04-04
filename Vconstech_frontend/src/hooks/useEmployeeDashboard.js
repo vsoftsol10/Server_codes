@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { projectAPI } from '../api/projectAPI';
 import { materialRequestAPI } from '../api/materialService';
+import { getToken, setToken } from '../utils/tabToken';
 
 const useEmployeeDashboard = () => {
   const [employeeName, setEmployeeName] = useState('Loading...');
@@ -79,8 +80,7 @@ const useEmployeeDashboard = () => {
   const fetchDailyProgressHistory = async (engineerId) => {
     try {
       setLoadingHistory(true);
-      const token = localStorage.getItem('token');
-      
+const token = getToken();      
       const response = await fetch(`${API_BASE_URL}/daily-progress/engineer/${engineerId}?limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -141,7 +141,7 @@ const useEmployeeDashboard = () => {
     setIsSubmittingMessage({ ...isSubmittingMessage, [projectId]: true });
     
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/daily-progress`, {
         method: 'POST',
         headers: {
@@ -183,15 +183,13 @@ const useEmployeeDashboard = () => {
         setLoading(true);
         setError(null);
         
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+       const token = getToken();
         
         if (!token) {
           setError('Authentication required. Please login.');
           return;
         }
         
-        localStorage.setItem('token', token);
-        localStorage.setItem('authToken', token);
 
         const profileResponse = await fetch(`${API_BASE_URL.replace('/api', '')}/api/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }

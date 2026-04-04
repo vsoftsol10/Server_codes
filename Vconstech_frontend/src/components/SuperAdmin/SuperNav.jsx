@@ -2,6 +2,7 @@ import { Bell, LogOut, X, Users, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import logo from '../../assets/constech-logo.png'
+import { removeToken } from '../../utils/tabToken';
 
 const SuperNav = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -13,9 +14,7 @@ const SuperNav = () => {
 
   const confirmLogout = () => {
     // Clear all storage
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('user');
-    localStorage.removeItem('token');
+    removeToken();
     localStorage.removeItem('user');
     
     // Close modal

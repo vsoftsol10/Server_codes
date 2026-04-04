@@ -1,23 +1,15 @@
-// src/utils/auth.js
-// Centralized authentication utilities to prevent token mismatch issues
+import { getToken, setToken, removeToken } from './tabToken';
+const TOKEN_KEY = 'token'; 
 
-// ============================================
-// CONFIGURATION - Use the same key everywhere
-// ============================================
-const TOKEN_KEY = 'token'; // ✅ Changed from 'authToken' to 'token' to match login components
-
-// ============================================
-// TOKEN MANAGEMENT
-// ============================================
 export const setAuthToken = (token) => {
   if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
+    setToken(token); 
     console.log('✅ Auth token saved');
   }
 };
 
 export const getAuthToken = () => {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token = getToken();
   if (!token) {
     console.warn('⚠️ No auth token found');
   }
@@ -25,7 +17,7 @@ export const getAuthToken = () => {
 };
 
 export const removeAuthToken = () => {
-  localStorage.removeItem(TOKEN_KEY);
+  removeToken(); 
   console.log('🗑️ Auth token removed');
 };
 
@@ -108,11 +100,7 @@ export const logout = (navigate = null) => {
   
   const role = getUserRole();
   // Clear all authentication data
-  removeAuthToken();
-  
-  // Also clear any legacy token keys (cleanup)
-  localStorage.removeItem('authToken'); // Legacy key
-  
+  removeAuthToken();  
   // Clear user data
   localStorage.removeItem('userId');
   localStorage.removeItem('userName');

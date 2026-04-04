@@ -37,6 +37,9 @@ import labourRoutes from './src/routes/labourRoutes.js';
 // ✅ Billing Management Routes
 import billingRoutes from './src/routes/billingRoutes.js';
 
+import webhookRoute from './src/routes/webhookRoute.js';
+import paymentNotificationRoute from './src/routes/paymentNotificationRoute.js';
+
 import { authenticateToken, authorizeRole } from './src/middlewares/authMiddlewares.js';
 import { PrismaClient } from '@prisma/client';
 
@@ -50,6 +53,7 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
+app.use('/webhook', webhookRoute);
 // ========== MIDDLEWARE ==========
 app.use(cors());
 app.use(express.json({ limit: '100mb' }));
@@ -69,6 +73,7 @@ app.use('/api/engineers', engineerRoutes);
 app.use('/api/users', userRoute);
 app.use('/api/clients', clientRoutes);
 
+app.use('/api/payment-notifications', paymentNotificationRoute);
 console.log('\n🔍 Checking /api/users routes:');
 if (userRoute && userRoute.stack) {
   userRoute.stack.forEach((layer) => {

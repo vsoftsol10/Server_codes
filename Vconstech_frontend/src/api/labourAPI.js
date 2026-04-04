@@ -1,10 +1,12 @@
 // src/services/labourApi.js
 
 const API_URL = '/api/labours';
+import { getAuthToken } from '../utils/auth';
+
 
 // Helper function to get auth token
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`

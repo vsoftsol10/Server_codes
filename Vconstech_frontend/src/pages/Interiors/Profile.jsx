@@ -20,6 +20,7 @@ import ProfileHeader from "../../components/Profile/Profileheader";
 import CompanyLogoUpload from "../../components/Profile/Companylogoupload";
 import PasswordChangeForm from "../../components/Profile/Passwordchangeform";
 import LoadingScreen from "../../components/common/Loadingscreen";
+import { getToken } from '../../utils/tabToken';
 
 const Profile = () => {
   const [userInfo, setUserInfo] = useState(null);
@@ -31,7 +32,7 @@ const Profile = () => {
   const [success, setSuccess] = useState("");
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_URL?.replace("/api", "") || "https://test.vconstech.in";
+    import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5000";
 
   useEffect(() => {
     fetchUserProfile();
@@ -41,10 +42,9 @@ const Profile = () => {
     setLoading(true);
     try {
       const API_URL =
-        import.meta.env.VITE_API_URL || "https://test.vconstech.in/api";
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
-
+      const token = getToken();
       if (!userId) {
         setError("User not logged in");
         setLoading(false);
@@ -103,10 +103,9 @@ const Profile = () => {
 
     try {
       const API_URL =
-        import.meta.env.VITE_API_URL || "https://test.vconstech.in/api";
+        import.meta.env.VITE_API_URL || "http://localhost:5000/api";
       const userId = localStorage.getItem("userId");
-      const token = localStorage.getItem("token");
-
+const token = getToken();
       const response = await fetch(`${API_URL}/users/profile/${userId}`, {
         method: "PUT",
         headers: {

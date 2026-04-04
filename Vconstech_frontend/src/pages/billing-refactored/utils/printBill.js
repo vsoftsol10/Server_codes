@@ -32,7 +32,7 @@ export const printBill = (bill) => {
   const documentTitle = billType === "quotation" ? "QUOTATION" : "TAX INVOICE";
   const companyLogo   = bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  let API_BASE_URL = "https://test.vconstech.in";
+  let API_BASE_URL = "http://localhost:5000";
   if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
     API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
   else if (typeof process !== "undefined" && process.env?.VITE_API_URL)

@@ -1,4 +1,5 @@
 import { printBill } from '../utils/printBill';
+import { getToken } from '../../../utils/tabToken';
 
 export const useBillingActions = ({
   formData,
@@ -17,7 +18,7 @@ export const useBillingActions = ({
   setNewClient,
   activeTab,
 }) => {
-  const API_URL = import.meta.env.VITE_API_URL || 'https://test.vconstech.in/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   // Fetch bills
   const fetchBills = async () => {
@@ -45,7 +46,7 @@ export const useBillingActions = ({
   // Fetch clients
   const fetchClients = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const companyId = localStorage.getItem('companyId');
       
       const response = await fetch(`${API_URL}/clients?companyId=${companyId}`, {

@@ -8,16 +8,17 @@ import AddEngineerModal from "../../components/AddSiteEngineer/AddEngineerModal"
 import EditEngineerModal from "../../components/AddSiteEngineer/EditEngineerModal";
 import Toast from "../../components/common/Toast";
 import LoadingScreen from "../../components/common/Loadingscreen";
+import { getToken } from '../../utils/tabToken';
 
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
   if (profileImage.startsWith("http")) return profileImage;
-  const backendUrl = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   return `${backendUrl}${profileImage}`;
 };
 
 const getAllEngineers = async () => {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No authentication token found");
   const response = await fetch("/api/engineers", {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -30,7 +31,7 @@ const getAllEngineers = async () => {
 };
 
 const createEngineer = async (engineerData) => {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No authentication token found");
   const formData = new FormData();
   formData.append("name", engineerData.name);
@@ -52,7 +53,7 @@ const createEngineer = async (engineerData) => {
 };
 
 const updateEngineer = async (id, engineerData) => {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No authentication token found");
   const formData = new FormData();
   formData.append("name", engineerData.name);
@@ -74,7 +75,7 @@ const updateEngineer = async (id, engineerData) => {
 };
 
 const deleteEngineer = async (id) => {
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) throw new Error("No authentication token found");
   const response = await fetch(`/api/engineers/${id}`, {
     method: "DELETE",
@@ -101,7 +102,7 @@ const AddEngineers = () => {
 
   const fetchEngineers = async () => {
     setIsLoading(true);
-    const token = localStorage.getItem("token");
+    const token = getToken();
     if (!token) { setEngineers([]); setIsLoading(false); return; }
     try {
       const response = await getAllEngineers();
@@ -118,7 +119,7 @@ const AddEngineers = () => {
   };
 
   const fetchPackageInfo = async () => {
-    const token = localStorage.getItem("token");
+    const token = getToken();
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user.package) {
       const pkg = user.package.toLowerCase();

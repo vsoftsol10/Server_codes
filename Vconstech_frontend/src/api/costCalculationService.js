@@ -4,10 +4,10 @@ import { materialAPI } from '../api/materialService.js';
 import { projectAPI } from '../api/projectAPI.js';
 import labourApi from './labourAPI.js';
 import { getContractsByProject } from '../api/contractAPI.js';
+import { getToken } from '../utils/tabToken.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-const getAuthToken = () => localStorage.getItem('token');
 
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -163,7 +163,7 @@ export const costCalculationService = {
    */
   updateProjectSpent: async (projectId) => {
     try {
-      const token = getAuthToken();
+      const token = getToken();
       
       // Calculate current spent
       const { totalSpent, breakdown } = await costCalculationService.calculateProjectSpent(projectId);

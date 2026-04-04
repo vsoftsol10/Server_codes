@@ -8,6 +8,7 @@ import {
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import LoadingScreen from '../../components/common/Loadingscreen';
+import { getToken } from '../../utils/tabToken';
 
 const API_BASE_URL = '/api';
 
@@ -24,7 +25,7 @@ const Dashboard = () => {
     contracts: []
   });
 
-  const getAuthToken = () => localStorage.getItem('authToken') || localStorage.getItem('token');
+  const getAuthToken = () => getToken();
 
   const fetchData = async (endpoint) => {
     const token = getAuthToken();

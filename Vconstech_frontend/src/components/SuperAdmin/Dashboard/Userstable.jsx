@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { Edit, Trash2, Download, Loader2, Eye, X, User, Mail, Phone, Building2, MapPin, Package, Users, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { getToken } from '../../../utils/tabToken';
 
-const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ROWS_PER_PAGE = 10;
 
@@ -391,7 +392,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
   const handleDownload = async (user) => {
     setDownloadingId(user.id);
     try {
-      const token    = localStorage.getItem("token") || "";
+      const token = getToken() || "";
       const response = await fetch(`/api/superadmin/users/${user.id}/export`, {
         method:  "GET",
         headers: {

@@ -24,7 +24,7 @@ export const useBillingActions = ({
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(`${API_URL}/bills`, {
         method: 'GET',
         headers: {
@@ -229,7 +229,7 @@ const handleInputChange = (e) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const billData = {
         ...formData,
         status: isDraft ? 'DRAFT' : 'SENT'
@@ -266,7 +266,7 @@ const handleInputChange = (e) => {
     if (!editingBill) return;
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const billData = {
         ...formData,
         status: isDraft ? 'DRAFT' : 'SENT'
@@ -407,7 +407,7 @@ const handleInputChange = (e) => {
     }
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(`${API_URL}/bills/${billId}`, {
         method: 'DELETE',
         headers: {
@@ -432,7 +432,7 @@ const handleInputChange = (e) => {
   // Update status
   const handleUpdateStatus = async (billId, newStatus) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const response = await fetch(`${API_URL}/bills/${billId}`, {
         method: 'PATCH',
         headers: {
@@ -463,7 +463,7 @@ const handleAddClient = async () => {
   }
 
   try {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     const companyId = localStorage.getItem('companyId');
     
     const response = await fetch(`${API_URL}/clients`, {

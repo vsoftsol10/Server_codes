@@ -1,5 +1,5 @@
 // src/services/projectReportService.js
-
+import { getToken } from '../utils/tabToken';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
@@ -14,7 +14,7 @@ const projectReportService = {
    */
   generateReport: async (project) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       
       if (!token) {
         throw new Error('No authentication token found');
@@ -676,7 +676,7 @@ const projectReportService = {
  */
 downloadAllProjectsReport: async (projects) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     
     if (!token) {
       throw new Error('No authentication token found');

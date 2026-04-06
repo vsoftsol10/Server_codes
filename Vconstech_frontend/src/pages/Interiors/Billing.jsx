@@ -96,7 +96,7 @@ const Billing = () => {
   // Fetch company data
   const fetchCompanyData = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = import.meta.env.VITE_API_URL || 'https://test.vconstech.in/api';
       const userId = localStorage.getItem('userId');
       const token = getToken();
 

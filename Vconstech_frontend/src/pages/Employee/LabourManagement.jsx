@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2, Briefcase, FolderOpen } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2, Briefcase, FolderOpen, Search } from 'lucide-react'
 import labourApi from '../../api/labourAPI'
 import { projectAPI } from '../../api/projectAPI'
 import EmployeeNavbar from '../../components/Employee/EmployeeNavbar'
@@ -8,34 +8,76 @@ const LabourManagement = () => {
   const [labourers, setLabourers] = useState([])
   const [loading, setLoading] = useState(true)
   const [projects, setProjects] = useState([])
+  const [engineerProjectIds, setEngineerProjectIds] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false)
   const [selectedLabour, setSelectedLabour] = useState(null)
-  
+
+  // ── Get logged-in engineer from localStorage ──
+  const engineer = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('engineer')) || null
+    } catch {
+      return null
+    }
+  }, [])
+
+  const getProjectAssigneeId = (project) => {
+    return (
+      project.assignedUserId ||
+      project.assignedEngineer?.id ||
+      project.assignedEngineer?.empId ||
+      project.assignedEmployee ||
+      project.assignedEngineerEmpId ||
+      project.assignedEngineerId
+    )
+  }
+
+  const getProjectId = (project) => {
+    return project.id || project.dbId || project.projectId || project.project_id
+  }
+
+  const getLabourProjectId = (labour) => {
+    return (
+      labour.projectId ||
+      labour.project?.id ||
+      labour.project?.projectId ||
+      labour.project?.dbId ||
+      labour.project?.project_id
+    )
+  }
+
+  const getLabourProjectName = (labour) => {
+    return (
+      labour.projectName ||
+      (typeof labour.project === 'string' ? labour.project : undefined) ||
+      labour.project?.name ||
+      labour.project?.projectName
+    )
+  }
+
+  const isProjectAssignedToEngineer = (project) => {
+    if (!engineer) return false
+
+    const assignedProjectId = getProjectAssigneeId(project)
+    const engineerIds = [engineer.id, engineer.empId]
+
+    return engineerIds.some((id) => id !== undefined && String(id) === String(assignedProjectId))
+  }
+
   const [newLabour, setNewLabour] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    designation: '',
-    project: '',
-    projectId: null
+    name: '', phone: '', address: '', designation: '', project: '', projectId: null
   })
-  
+
   const [editLabour, setEditLabour] = useState({
-    id: null,
-    name: '',
-    phone: '',
-    address: '',
-    designation: '',
-    project: '',
-    projectId: null
+    id: null, name: '', phone: '', address: '', designation: '', project: '', projectId: null
   })
-  
+
   const [payment, setPayment] = useState({
-    amount: '',
-    date: new Date().toISOString().split('T')[0]
+    amount: '', date: new Date().toISOString().split('T')[0]
   })
 
   const fetchLabourers = async () => {
@@ -58,6 +100,9 @@ const LabourManagement = () => {
       const data = await projectAPI.getProjects()
       if (data.projects) {
         setProjects(data.projects)
+
+        const myProjects = data.projects.filter(isProjectAssignedToEngineer)
+        setEngineerProjectIds(myProjects.map((p) => String(getProjectId(p))))
       }
     } catch (error) {
       console.error('Failed to fetch projects:', error)
@@ -69,6 +114,54 @@ const LabourManagement = () => {
     fetchProjects()
   }, [])
 
+  // ── Projects this engineer is assigned to (for dropdowns) ──
+  const assignedProjects = useMemo(() => {
+    if (!engineer) return projects
+    return projects.filter(isProjectAssignedToEngineer)
+  }, [projects, engineer])
+
+  // ── Labourers belonging to engineer's projects, filtered by search ──
+  const filteredLabourers = useMemo(() => {
+    let list = labourers
+
+    const assignedProjectNames = assignedProjects
+      .map((project) => project.name || project.projectName || project.project?.name)
+      .filter(Boolean)
+      .map((name) => String(name).toLowerCase())
+
+    // Filter by engineer's assigned projects
+    if (engineerProjectIds.length > 0 || assignedProjectNames.length > 0) {
+      list = list.filter((l) => {
+        const labourProjectId = getLabourProjectId(l)
+        const labourProjectName = getLabourProjectName(l)
+
+        const matchesById = labourProjectId ? engineerProjectIds.includes(String(labourProjectId)) : false
+        const matchesByName = labourProjectName
+          ? assignedProjectNames.includes(String(labourProjectName).toLowerCase())
+          : false
+
+        return matchesById || matchesByName
+      })
+    }
+
+    // Apply search query
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter(
+        (l) =>
+          l.name?.toLowerCase().includes(q) ||
+          l.phone?.toLowerCase().includes(q) ||
+          l.designation?.toLowerCase().includes(q) ||
+          l.project?.toLowerCase().includes(q) ||
+          l.address?.toLowerCase().includes(q) ||
+          l.projectName?.toLowerCase().includes(q) ||
+          l.project?.name?.toLowerCase().includes(q)
+      )
+    }
+
+    return list
+  }, [labourers, engineerProjectIds, assignedProjects, searchQuery])
+
   const handleAddLabour = async () => {
     if (!newLabour.name || !newLabour.phone) {
       alert('Please fill in all required fields')
@@ -78,7 +171,7 @@ const LabourManagement = () => {
       const data = await labourApi.createLabourer(newLabour)
       if (data.success) {
         await fetchLabourers()
-        setNewLabour({ name: '', phone: '', address: '', designation: '', project: '' })
+        setNewLabour({ name: '', phone: '', address: '', designation: '', project: '', projectId: null })
         setShowAddForm(false)
         alert('Labourer added successfully!')
       }
@@ -95,7 +188,7 @@ const LabourManagement = () => {
       address: labour.address || '',
       designation: labour.designation || '',
       project: labour.project || '',
-      projectId: labour.projectId || null 
+      projectId: labour.projectId || null
     })
     setShowEditForm(true)
   }
@@ -115,7 +208,7 @@ const LabourManagement = () => {
       })
       if (data.success) {
         await fetchLabourers()
-        setEditLabour({ id: null, name: '', phone: '', address: '', designation: '', project: '' })
+        setEditLabour({ id: null, name: '', phone: '', address: '', designation: '', project: '', projectId: null })
         setShowEditForm(false)
         alert('Labourer updated successfully!')
       }
@@ -143,15 +236,8 @@ const LabourManagement = () => {
     }
   }
 
-  const openPaymentModal = (labour) => {
-    setSelectedLabour(labour)
-    setShowPaymentModal(true)
-  }
-
-  const openViewPaymentsModal = (labour) => {
-    setSelectedLabour(labour)
-    setShowViewPaymentsModal(true)
-  }
+  const openPaymentModal = (labour) => { setSelectedLabour(labour); setShowPaymentModal(true) }
+  const openViewPaymentsModal = (labour) => { setSelectedLabour(labour); setShowViewPaymentsModal(true) }
 
   const deleteLabour = async (id) => {
     if (window.confirm('Are you sure you want to delete this labourer? This will also delete all their payment records.')) {
@@ -167,11 +253,9 @@ const LabourManagement = () => {
     }
   }
 
-  const getPaymentCount = (labour) => {
-    return labour.payments ? labour.payments.length : 0
-  }
+  const getPaymentCount = (labour) => labour.payments ? labour.payments.length : 0
 
-  // Reusable form fields for Add/Edit
+  // ── Reusable form fields (only shows engineer's assigned projects) ──
   const renderLabourFields = (formState, setFormState) => (
     <div className="space-y-4">
       <div>
@@ -216,6 +300,7 @@ const LabourManagement = () => {
         </div>
       </div>
 
+      {/* Only engineer's assigned projects shown in dropdown */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Project</label>
         <div className="relative">
@@ -223,9 +308,9 @@ const LabourManagement = () => {
           <select
             value={formState.project}
             onChange={(e) => {
-              const selectedProject = projects.find(p => p.name === e.target.value)
-              setFormState({ 
-                ...formState, 
+              const selectedProject = assignedProjects.find(p => p.name === e.target.value)
+              setFormState({
+                ...formState,
                 project: e.target.value,
                 projectId: selectedProject ? selectedProject.id : null
               })
@@ -233,7 +318,7 @@ const LabourManagement = () => {
             className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent bg-white appearance-none"
           >
             <option value="">Select a project</option>
-            {projects.map((proj) => (
+            {assignedProjects.map((proj) => (
               <option key={proj.id} value={proj.name}>
                 {proj.name} {proj.projectId ? `(${proj.projectId})` : ''}
               </option>
@@ -275,7 +360,11 @@ const LabourManagement = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Labour Management</h1>
-            <p className="text-gray-600 mt-1 text-sm">Manage labourers and track daily payments</p>
+            <p className="text-gray-600 mt-1 text-sm">
+              {engineer?.name
+                ? `Showing labourers for ${engineer.name}'s assigned projects`
+                : 'Manage labourers and track daily payments'}
+            </p>
           </div>
           <button
             onClick={() => setShowAddForm(true)}
@@ -303,16 +392,10 @@ const LabourManagement = () => {
               </div>
               {renderLabourFields(newLabour, setNewLabour)}
               <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
+                <button onClick={() => setShowAddForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  onClick={handleAddLabour}
-                  className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
-                >
+                <button onClick={handleAddLabour} className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium">
                   Add Labour
                 </button>
               </div>
@@ -332,16 +415,10 @@ const LabourManagement = () => {
               </div>
               {renderLabourFields(editLabour, setEditLabour)}
               <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setShowEditForm(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
+                <button onClick={() => setShowEditForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
-                <button
-                  onClick={handleUpdateLabour}
-                  className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
-                >
+                <button onClick={handleUpdateLabour} className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium">
                   Update Labour
                 </button>
               </div>
@@ -355,10 +432,7 @@ const LabourManagement = () => {
             <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Add Payment</h2>
-                <button
-                  onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
+                <button onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }} className="text-gray-500 hover:text-gray-700">
                   <X size={24} />
                 </button>
               </div>
@@ -372,9 +446,7 @@ const LabourManagement = () => {
                   <div className="relative">
                     <IndianRupee className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
+                      type="number" min="0" step="0.01"
                       value={payment.amount}
                       onChange={(e) => setPayment({ ...payment, amount: e.target.value })}
                       className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
@@ -395,16 +467,10 @@ const LabourManagement = () => {
                   </div>
                 </div>
                 <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                  >
+                  <button onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                     Cancel
                   </button>
-                  <button
-                    onClick={handleAddPayment}
-                    className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium"
-                  >
+                  <button onClick={handleAddPayment} className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium">
                     Add Payment
                   </button>
                 </div>
@@ -422,10 +488,7 @@ const LabourManagement = () => {
                   <h2 className="text-2xl font-bold text-gray-900">Payment History</h2>
                   <p className="text-sm text-gray-600 mt-1">{selectedLabour.name}</p>
                 </div>
-                <button
-                  onClick={() => { setShowViewPaymentsModal(false); setSelectedLabour(null) }}
-                  className="text-gray-500 hover:text-gray-700"
-                >
+                <button onClick={() => { setShowViewPaymentsModal(false); setSelectedLabour(null) }} className="text-gray-500 hover:text-gray-700">
                   <X size={24} />
                 </button>
               </div>
@@ -485,19 +548,66 @@ const LabourManagement = () => {
           </div>
         )}
 
-        {/* Table — original design, scroll-wrapped for mobile */}
-        {labourers.length === 0 ? (
+        {/* ── Search Bar ── */}
+        {labourers.length > 0 && (
+          <div className="mb-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, phone, designation..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-xs text-gray-500 mt-1 ml-1">
+                {filteredLabourers.length} result{filteredLabourers.length !== 1 ? 's' : ''} found
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Table ── */}
+        {filteredLabourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Labourers Yet</h3>
-            <p className="text-gray-600 mb-6">Get started by adding your first labourer</p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg hover:bg-[#e5ab26] transition font-medium"
-            >
-              <Plus size={20} />
-              Add First Labour
-            </button>
+            {searchQuery ? (
+              <>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Results Found</h3>
+                <p className="text-gray-600 mb-4">No labourers match "{searchQuery}"</p>
+                <button onClick={() => setSearchQuery('')} className="text-yellow-600 font-medium hover:underline text-sm">
+                  Clear search
+                </button>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Labourers Yet</h3>
+                <p className="text-gray-600 mb-6">
+                  {engineerProjectIds.length === 0
+                    ? 'You have no assigned projects. Contact your admin.'
+                    : 'Get started by adding your first labourer'}
+                </p>
+                {engineerProjectIds.length > 0 && (
+                  <button
+                    onClick={() => setShowAddForm(true)}
+                    className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg hover:bg-[#e5ab26] transition font-medium"
+                  >
+                    <Plus size={20} />
+                    Add First Labour
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -515,7 +625,7 @@ const LabourManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {labourers.map((labour, index) => (
+                  {filteredLabourers.map((labour, index) => (
                     <tr key={labour.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
 
@@ -556,32 +666,16 @@ const LabourManagement = () => {
 
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => openViewPaymentsModal(labour)}
-                            className="p-2 text-black hover:bg-yellow-50 rounded-lg transition"
-                            title="View Payments"
-                          >
+                          <button onClick={() => openViewPaymentsModal(labour)} className="p-2 text-black hover:bg-yellow-50 rounded-lg transition" title="View Payments">
                             <Eye size={18} />
                           </button>
-                          <button
-                            onClick={() => openPaymentModal(labour)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition"
-                            title="Add Payment"
-                          >
+                          <button onClick={() => openPaymentModal(labour)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Add Payment">
                             <Plus size={18} />
                           </button>
-                          <button
-                            onClick={() => openEditForm(labour)}
-                            className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition"
-                            title="Edit"
-                          >
+                          <button onClick={() => openEditForm(labour)} className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition" title="Edit">
                             <Edit2 size={18} />
                           </button>
-                          <button
-                            onClick={() => deleteLabour(labour.id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Delete"
-                          >
+                          <button onClick={() => deleteLabour(labour.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Delete">
                             <Trash2 size={18} />
                           </button>
                         </div>

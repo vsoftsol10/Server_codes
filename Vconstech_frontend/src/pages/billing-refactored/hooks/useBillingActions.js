@@ -18,7 +18,7 @@ export const useBillingActions = ({
   setNewClient,
   activeTab,
 }) => {
-  const API_URL = import.meta.env.VITE_API_URL || 'https://test.vconstech.in/api';
+  const API_URL = import.meta.env.VITE_API_URL || '  http://localhost:5000/api';
 
   // Fetch bills
   const fetchBills = async () => {

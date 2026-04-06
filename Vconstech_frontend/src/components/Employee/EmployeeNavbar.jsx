@@ -15,7 +15,7 @@ const EmployeeNavbar = () => {
   const fetchProfile = async () => {
     try {
       const token = getToken();
-      const res = await fetch('https://test.vconstech.in/api/engineers/my-profile', { // ✅ full backend URL
+      const res = await fetch('  http://localhost:5000/api/engineers/my-profile', { // ✅ full backend URL
         headers: {
           'Authorization': `Bearer ${token}`
         }

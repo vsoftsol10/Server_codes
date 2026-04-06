@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2, Briefcase, FolderOpen } from 'lucide-react'
+import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2, Briefcase, FolderOpen, Search, Filter } from 'lucide-react'
 import labourApi from '../../api/labourAPI'
 import { projectAPI } from '../../api/projectAPI'
 import Navbar from '../../components/common/Navbar'
@@ -15,6 +15,8 @@ const AdminLabourManagement = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false)
   const [selectedLabour, setSelectedLabour] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState('')
 
   const [newLabour, setNewLabour] = useState({
     name: '',
@@ -173,6 +175,23 @@ const AdminLabourManagement = () => {
   const getPaymentCount = (labour) => {
     return labour.payments ? labour.payments.length : 0
   }
+
+  // Filter labourers based on search term and project filter
+  const filteredLabourers = labourers.filter(labour => {
+  const matchesSearch = !searchTerm ||
+    labour.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    labour.phone.includes(searchTerm) ||
+    (labour.designation && labour.designation.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (labour.projectName && labour.projectName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (labour.address && labour.address.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const selectedProject = projects.find(p => p.id == selectedProjectFilter);
+  const matchesProject = !selectedProjectFilter ||
+    String(labour.projectId) === String(selectedProjectFilter) ||
+    (selectedProject && (selectedProject.name === labour.projectName || selectedProject.name === labour.project));
+
+  return matchesSearch && matchesProject;
+});
 
   // Reusable form fields
   const renderLabourFields = (formState, setFormState) => (
@@ -488,19 +507,56 @@ const AdminLabourManagement = () => {
           </div>
         )}
 
+        {/* Search and Filter Bar */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+          <div className="flex justify-between items-center">
+            <div className="flex-1 max-w-md relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder="Search labourers by name, phone, designation, project, or address..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+              />
+            </div>
+            <div className="ml-4 flex items-center gap-2">
+              <Filter className="text-gray-400" size={20} />
+              <select
+                value={selectedProjectFilter}
+                onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white"
+              >
+                <option value="">All Projects</option>
+                {projects.map((proj) => (
+                  <option key={proj.id} value={proj.id}>
+                    {proj.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
         {/* Table View */}
-        {labourers.length === 0 ? (
+        {filteredLabourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Labourers Yet</h3>
-            <p className="text-gray-600 mb-6">Get started by adding your first labourer</p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg hover:bg-[#e5ab26] transition font-medium"
-            >
-              <Plus size={20} />
-              Add First Labour
-            </button>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {labourers.length === 0 ? 'No Labourers Yet' : 'No Labourers Match Your Search/Filters'}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {labourers.length === 0 ? 'Get started by adding your first labourer' : 'Try adjusting your search or filter criteria'}
+            </p>
+            {labourers.length === 0 && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="inline-flex items-center gap-2 bg-[#ffbe2a] text-black px-6 py-3 rounded-lg hover:bg-[#e5ab26] transition font-medium"
+              >
+                <Plus size={20} />
+                Add First Labour
+              </button>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -518,7 +574,7 @@ const AdminLabourManagement = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {labourers.map((labour, index) => (
+                  {filteredLabourers.map((labour, index) => (
                     <tr key={labour.id} className="hover:bg-gray-50 transition">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{index + 1}</td>
 

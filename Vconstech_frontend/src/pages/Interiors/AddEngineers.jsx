@@ -13,7 +13,7 @@ import { getToken } from '../../utils/tabToken';
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
   if (profileImage.startsWith("http")) return profileImage;
-  const backendUrl = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+  const backendUrl = import.meta.env.VITE_API_URL || "  http://localhost:5000";
   return `${backendUrl}${profileImage}`;
 };
 

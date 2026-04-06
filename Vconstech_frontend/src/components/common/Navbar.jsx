@@ -107,6 +107,12 @@ const Navbar = () => {
         } else {
           setProfilePic(null);
         }
+
+        // Also update company name from profile if available
+        if (data.user?.company?.name) {
+          setCompanyName(data.user.company.name);
+          localStorage.setItem('companyName', data.user.company.name);
+        }
       }
     } catch (e) {
       console.error('fetchUserProfile error:', e);

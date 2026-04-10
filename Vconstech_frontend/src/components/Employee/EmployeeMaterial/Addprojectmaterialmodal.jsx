@@ -37,7 +37,7 @@ const AddProjectMaterialModal = ({ isOpen, onClose, onSubmit, materials, loading
           <button
             onClick={handleSubmit}
             disabled={!newProjectMaterial.materialId || !newProjectMaterial.assigned || loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Submitting..." : "Submit Request"}
           </button>

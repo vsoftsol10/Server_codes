@@ -4,8 +4,8 @@ import EmployeeMaterialForm from "../../Employee/EmployeeMaterial/EmployeeMateri
 
 const EMPTY_MATERIAL = {
   name: "",
-  category: "Paint",
-  unit: "piece",
+  category: "",
+  unit: "",
   defaultRate: "",
   vendor: "",
   description: "",
@@ -56,7 +56,7 @@ const AddMaterialModal = ({ isOpen, onClose, onSubmit, categories, projects, loa
           <button
             onClick={handleSubmit}
             disabled={isSubmitDisabled}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Submitting..." : "Submit Request"}
           </button>
@@ -64,36 +64,44 @@ const AddMaterialModal = ({ isOpen, onClose, onSubmit, categories, projects, loa
       }
     >
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-ld font-bold text-gray-900 mb-2">
           Request Type
         </label>
-        <div className="flex gap-4">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="GLOBAL"
-              checked={requestType === "GLOBAL"}
-              onChange={() => {
-                setRequestType("GLOBAL");
-                setNewMaterial((m) => ({ ...m, projectId: "", quantity: "" }));
-              }}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">
-              Global Material (Available for all projects)
-            </span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              value="PROJECT"
-              checked={requestType === "PROJECT"}
-              onChange={() => setRequestType("PROJECT")}
-              className="mr-2"
-            />
-            <span className="text-sm text-gray-700">Project-Specific Material</span>
-          </label>
+
+        {/* Toggle Button */}
+        <div className="inline-flex rounded-xl border border-gray-200 bg-gray-100 p-1 gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              setRequestType("GLOBAL");
+              setNewMaterial((m) => ({ ...m, projectId: "", quantity: "" }));
+            }}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              requestType === "GLOBAL"
+                ? "bg-white text-yellow-700 shadow-sm border border-gray-200"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Global Material
+          </button>
+          <button
+            type="button"
+            onClick={() => setRequestType("PROJECT")}
+            className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              requestType === "PROJECT"
+                ? "bg-white text-yellow-700 shadow-sm border border-gray-200"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Project-Specific
+          </button>
         </div>
+
+        <p className="mt-2 text-xs text-gray-400">
+          {requestType === "GLOBAL"
+            ? "Available for all projects"
+            : "Linked to a specific project"}
+        </p>
       </div>
 
       <EmployeeMaterialForm

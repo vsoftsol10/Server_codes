@@ -276,11 +276,20 @@ export const getAllMaterials = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    res.json({ 
-      success: true,
-      count: materials.length,
-      materials 
-    });
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+const formattedMaterials = materials.map(m => ({
+  ...m,
+  files: (m.files || []).map(fileUrl => {
+    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+    return {
+      url: fullUrl,
+      fileUrl: fullUrl,
+      name: fileUrl.split('/').pop(),
+      fileName: fileUrl.split('/').pop(),
+    };
+  })
+}));
+res.json({ success: true, count: formattedMaterials.length, materials: formattedMaterials });
   } catch (error) {
     console.error('Get materials error:', error);
     res.status(500).json({ 
@@ -345,10 +354,20 @@ export const getMaterialById = async (req, res) => {
       });
     }
 
-    res.json({ 
-      success: true,
-      material 
-    });
+   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+const formattedMaterial = {
+  ...material,
+  files: (material.files || []).map(fileUrl => {
+    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+    return {
+      url: fullUrl,
+      fileUrl: fullUrl,
+      name: fileUrl.split('/').pop(),
+      fileName: fileUrl.split('/').pop(),
+    };
+  })
+};
+res.json({ success: true, material: formattedMaterial });
   } catch (error) {
     console.error('Get material error:', error);
     res.status(500).json({ 
@@ -365,18 +384,17 @@ export const getMaterialById = async (req, res) => {
  */
 export const createMaterial = async (req, res) => {
   try {
-    console.log('📥 Incoming body:', req.body);
     const { companyId } = req.user;
-    const { name, category, unit, defaultRate, vendor, description, dueDate } = req.body; // ✅ Added dueDate
+    const { name, category, unit, defaultRate, vendor, description, dueDate, quantity } = req.body;
 
     if (!name || !category || !unit) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Name, category, and unit are required' 
-      });
+      return res.status(400).json({ success: false, error: 'Name, category, and unit are required' });
     }
 
     const materialId = await generateMaterialId();
+
+    // ← Build file URL array from uploaded files
+    const fileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
 
     const material = await prisma.material.create({
       data: {
@@ -385,26 +403,19 @@ export const createMaterial = async (req, res) => {
         category,
         unit,
         defaultRate: defaultRate ? parseFloat(defaultRate) : null,
-        vendor,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : null, // ✅ Added dueDate
+        vendor: vendor || null,
+        description: description || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        quantity: quantity ? parseFloat(quantity) : null, // ← new
+        files: fileUrls,                                   // ← new
         companyId
       }
     });
 
-    res.status(201).json({ 
-      success: true,
-      message: 'Material created successfully',
-      material 
-    });
+    res.status(201).json({ success: true, message: 'Material created successfully', material });
   } catch (error) {
-    console.log('📥 Incoming body:', req.body);
     console.error('Create material error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to create material',
-      details: error.message 
-    });
+    res.status(500).json({ success: false, error: 'Failed to create material', details: error.message });
   }
 };
 
@@ -416,7 +427,7 @@ export const updateMaterial = async (req, res) => {
   try {
     const { id } = req.params;
     const { companyId } = req.user;
-    const { name, category, unit, defaultRate, vendor, description, dueDate } = req.body; // ✅ Added dueDate
+    const { name, category, unit, defaultRate, vendor, description, dueDate, quantity, removeFiles } = req.body;
 
     const existingMaterial = await prisma.material.findFirst({
       where: { id: parseInt(id), companyId }
@@ -425,6 +436,19 @@ export const updateMaterial = async (req, res) => {
     if (!existingMaterial) {
       return res.status(404).json({ success: false, error: 'Material not found' });
     }
+
+    // ← New files uploaded in this request
+    const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
+
+    // ← Optionally remove specific files (pass array of URLs to remove)
+    const filesToRemove = removeFiles ? JSON.parse(removeFiles) : [];
+    const existingFiles = (existingMaterial.files || []).filter(f => !filesToRemove.includes(f));
+
+    // ← Delete removed files from disk
+    filesToRemove.forEach(fileUrl => {
+      const filePath = path.join(__dirname, '../../', fileUrl);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    });
 
     const material = await prisma.material.update({
       where: { id: parseInt(id) },
@@ -435,7 +459,9 @@ export const updateMaterial = async (req, res) => {
         defaultRate: defaultRate !== undefined ? parseFloat(defaultRate) : existingMaterial.defaultRate,
         vendor: vendor !== undefined ? vendor : existingMaterial.vendor,
         description: description !== undefined ? description : existingMaterial.description,
-        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existingMaterial.dueDate // ✅ Added dueDate
+        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existingMaterial.dueDate,
+        quantity: quantity !== undefined ? parseFloat(quantity) : existingMaterial.quantity, // ← new
+        files: [...existingFiles, ...newFileUrls],  // ← merge existing + new
       }
     });
 
@@ -455,48 +481,34 @@ export const deleteMaterial = async (req, res) => {
     const { id } = req.params;
     const { companyId } = req.user;
 
-    // Check if material exists and belongs to company
     const material = await prisma.material.findFirst({
-      where: {
-        id: parseInt(id),
-        companyId
-      }
+      where: { id: parseInt(id), companyId }
     });
 
     if (!material) {
-      return res.status(404).json({ 
-        success: false,
-        error: 'Material not found' 
-      });
+      return res.status(404).json({ success: false, error: 'Material not found' });
     }
 
-    // Check if material is used in any project
     const usageCount = await prisma.projectMaterial.count({
       where: { materialId: parseInt(id) }
     });
 
     if (usageCount > 0) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Cannot delete material that is assigned to projects' 
-      });
+      return res.status(400).json({ success: false, error: 'Cannot delete material that is assigned to projects' });
     }
 
-    await prisma.material.delete({
-      where: { id: parseInt(id) }
+    // ← Delete files from disk before deleting record
+    (material.files || []).forEach(fileUrl => {
+      const filePath = path.join(__dirname, '../../', fileUrl);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     });
 
-    res.json({ 
-      success: true,
-      message: 'Material deleted successfully' 
-    });
+    await prisma.material.delete({ where: { id: parseInt(id) } });
+
+    res.json({ success: true, message: 'Material deleted successfully' });
   } catch (error) {
     console.error('Delete material error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to delete material',
-      details: error.message 
-    });
+    res.status(500).json({ success: false, error: 'Failed to delete material', details: error.message });
   }
 };
 

@@ -372,7 +372,7 @@ const DashboardTab = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Project Price (₹) <span className="text-red-500">*</span>
+                  Material Price (₹) <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"

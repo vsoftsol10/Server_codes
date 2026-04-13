@@ -43,11 +43,24 @@ export const getMyRequests = async (req, res) => {
       projectName: req.project?.name || null
     }));
 
-    res.json({ 
-      success: true,
-      count: requestsWithProjectName.length,
-      requests: requestsWithProjectName 
-    });
+   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+const formattedRequests = requestsWithProjectName.map(r => ({
+  ...r,
+  files: (r.files || []).map(fileUrl => {
+    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+    return {
+      url: fullUrl,
+      fileUrl: fullUrl,
+      name: fileUrl.split('/').pop(),
+      fileName: fileUrl.split('/').pop(),
+    };
+  })
+}));
+res.json({ 
+  success: true,
+  count: formattedRequests.length,
+  requests: formattedRequests
+});
   } catch (error) {
     console.error('Get my requests error:', error);
     res.status(500).json({ 
@@ -55,6 +68,55 @@ export const getMyRequests = async (req, res) => {
       error: 'Failed to fetch requests',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
+  }
+};
+
+export const updateMaterialRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id || req.user?.userId;
+    const { name, vendor, defaultRate, quantity, unit, dueDate, description } = req.body;
+
+    const existing = await prisma.materialRequest.findFirst({
+      where: { id: parseInt(id), employeeId: parseInt(userId) }
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Request not found' });
+    }
+    if (existing.status !== 'PENDING') {
+      return res.status(400).json({ success: false, error: 'Cannot edit a reviewed request' });
+    }
+
+    // Handle new uploaded files
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
+    const existingFiles = existing.files || [];
+
+    const updated = await prisma.materialRequest.update({
+      where: { id: parseInt(id) },
+      data: {
+        name: name || existing.name,
+        vendor: vendor !== undefined ? vendor : existing.vendor,
+        defaultRate: defaultRate ? parseFloat(defaultRate) : existing.defaultRate,
+        quantity: quantity ? parseFloat(quantity) : existing.quantity,
+        unit: unit || existing.unit,
+        dueDate: dueDate ? new Date(dueDate) : existing.dueDate,
+        description: description !== undefined ? description : existing.description,
+        files: [...existingFiles, ...newFileUrls],
+      }
+    });
+
+    // Format files for response
+    const formattedFiles = (updated.files || []).map(fileUrl => {
+      const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+      return { url: fullUrl, fileUrl: fullUrl, name: fileUrl.split('/').pop(), fileName: fileUrl.split('/').pop() };
+    });
+
+    res.json({ success: true, message: 'Request updated successfully', request: { ...updated, files: formattedFiles } });
+  } catch (error) {
+    console.error('Update material request error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update request', details: error.message });
   }
 };
 
@@ -174,6 +236,7 @@ export const createMaterialRequest = async (req, res) => {
     }
 
     const requestId = await generateRequestId();
+    const fileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
 
     const request = await prisma.materialRequest.create({
       data: {
@@ -192,6 +255,7 @@ export const createMaterialRequest = async (req, res) => {
         status: 'PENDING',
         requestDate: new Date(),
         dueDate: dueDate ? new Date(dueDate) : null, // ✅ Save dueDate
+          files: fileUrls,
       },
       include: {
         project: {

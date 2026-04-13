@@ -147,9 +147,12 @@ export const materialRequestAPI = {
 
   // Create material request (Employee)
   create: async (data) => {
-    const response = await api.post('/material-requests', data);
-    return response.data;
-  },
+  const isFormData = data instanceof FormData;
+  const response = await api.post('/material-requests', data, {
+    headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+  });
+  return response.data;
+},
 
   // Approve request (Admin only)
   approve: async (id, approvalNotes = '') => {

@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 // Create uploads directories if they don't exist
 const projectFilesDir = path.join(__dirname, '../../uploads/project-files');
 const logosDir = path.join(__dirname, '../../uploads/logos');
+const materialFilesDir = path.join(__dirname, '../../uploads/material-files');
 
 if (!fs.existsSync(projectFilesDir)) {
   fs.mkdirSync(projectFilesDir, { recursive: true });
@@ -17,6 +18,7 @@ if (!fs.existsSync(projectFilesDir)) {
 if (!fs.existsSync(logosDir)) {
   fs.mkdirSync(logosDir, { recursive: true });
 }
+if (!fs.existsSync(materialFilesDir)) fs.mkdirSync(materialFilesDir, { recursive: true });
 
 // ==================== PROJECT FILES UPLOAD ====================
 
@@ -89,4 +91,32 @@ export const uploadLogo = multer({
     fileSize: 5 * 1024 * 1024 // 5MB
   },
   fileFilter: logoFileFilter
+});
+
+// ==================== MATERIAL FILES UPLOAD ====================  ← ADD THIS BLOCK
+
+const materialFilesStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, materialFilesDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'material-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const materialFilesFilter = (req, file, cb) => {
+  const allowedExtensions = ['.pdf', '.jpg', '.jpeg', '.png'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowedExtensions.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Invalid file type: ${ext}. Only PDF, JPG, PNG allowed.`));
+  }
+};
+
+export const uploadMaterialFiles = multer({
+  storage: materialFilesStorage,
+  fileFilter: materialFilesFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });

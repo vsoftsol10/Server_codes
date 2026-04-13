@@ -11,6 +11,7 @@ import {
   getProjectSummary
 } from '../controllers/materialController.js';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddlewares.js';
+import { uploadMaterialFiles } from '../config/multerConfig.js';
 
 const router = express.Router();
 // All routes require authentication
@@ -30,9 +31,9 @@ router.get('/', getAllMaterials);
 // GET /api/materials/:id
 router.get('/:id', getMaterialById);
 // POST /api/materials (Admin only)
-router.post('/', authorizeRole('Admin'), createMaterial);
+router.post('/', authorizeRole('Admin'), uploadMaterialFiles.array('files', 5), createMaterial);
 // PUT /api/materials/:id (Admin only)
-router.put('/:id', authorizeRole('Admin'), updateMaterial);
+router.put('/:id', authorizeRole('Admin'), uploadMaterialFiles.array('files', 5), updateMaterial);
 // DELETE /api/materials/:id (Admin only)
 router.delete('/:id', authorizeRole('Admin'), deleteMaterial);
 export default router;

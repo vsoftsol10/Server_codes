@@ -4,6 +4,7 @@ import EmployeeProjectsTab from "../../components/Employee/EmployeeMaterial/Empl
 import EmployeeRequestTab from "../../components/Employee/EmployeeMaterial/EmployeeRequestTab";
 import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
 import { materialRequestAPI, usageLogAPI, notificationAPI } from "../../api/materialService";
+import { getToken } from '../../utils/tabToken';
 
 import useEmployeeMaterialData from "../../hooks/Useemployeematerialdata";
 import NotificationsDropdown from "../../components/Employee/EmployeeMaterial/Notificationsdropdown";
@@ -47,22 +48,29 @@ const EmployeeMaterialManagement = () => {
 
   // ============ HANDLERS ============
 
-  const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
-    try {
-      setLoading(true);
-      const requestData = {
-        name: newMaterial.name,
-        category: newMaterial.category,
-        unit: newMaterial.unit,
-        defaultRate: parseFloat(newMaterial.defaultRate),
-        vendor: newMaterial.vendor || null,
-        description: newMaterial.description || null,
-        type: requestType,
-        projectId: requestType === "PROJECT" ? parseInt(newMaterial.projectId) : null,
-        quantity: requestType === "PROJECT" ? parseFloat(newMaterial.quantity) : null,
-        dueDate: newMaterial.dueDate || null,
-      };
-      await materialRequestAPI.create(requestData);
+const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
+  try {
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append('name', newMaterial.name || '');
+    formData.append('category', newMaterial.category || '');
+    formData.append('unit', newMaterial.unit || '');
+    formData.append('defaultRate', parseFloat(newMaterial.defaultRate) || 0);
+    formData.append('vendor', newMaterial.vendor || '');
+    formData.append('description', newMaterial.description || '');
+    formData.append('type', requestType);
+    if (newMaterial.dueDate) formData.append('dueDate', newMaterial.dueDate);
+    if (requestType === 'PROJECT') {
+      formData.append('projectId', parseInt(newMaterial.projectId));
+      formData.append('quantity', parseFloat(newMaterial.quantity));
+    }
+    // Attach file if present
+    if (newMaterial.quotationFile) {
+      formData.append('files', newMaterial.quotationFile);
+    }
+
+    await materialRequestAPI.create(formData);
       await fetchMaterialRequests();
       await fetchNotifications();
       setShowAddMaterial(false);
@@ -251,6 +259,35 @@ const EmployeeMaterialManagement = () => {
     }
   };
 
+  const handleUpdateRequest = async (updatedRequest, formData) => {
+  try {
+    setLoading(true);
+    // If there are files, send as FormData; otherwise send as JSON
+    if (formData && [...formData.entries()].some(([k]) => k === 'files')) {
+      await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData,
+      });
+    } else {
+      await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(updatedRequest),
+      });
+    }
+    await fetchMaterialRequests();
+    alert('Request updated successfully!');
+  } catch (err) {
+    alert('Failed to update request');
+  } finally {
+    setLoading(false);
+  }
+};
+
   // ============ RENDER ============
 
   return (
@@ -324,16 +361,18 @@ const EmployeeMaterialManagement = () => {
 
         {/* Tab panels */}
         {!loading && activeTab === "materials" && (
-          <EmployeeMaterialsTab
-            materials={filteredMaterials}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            filterCategory={filterCategory}
-            setFilterCategory={setFilterCategory}
-            categories={categories}
-            onAddMaterial={() => setShowAddMaterial(true)}
-          />
-        )}
+  <EmployeeMaterialsTab
+    materials={filteredMaterials}
+    searchTerm={searchTerm}
+    setSearchTerm={setSearchTerm}
+    filterCategory={filterCategory}
+    setFilterCategory={setFilterCategory}
+    categories={categories}
+    projects={projects}                              // ← was missing
+    loading={loading}                                // ← was missing
+    onAddMaterial={handleSubmitMaterialRequest}      // ← direct handler, not modal opener
+  />
+)}
 
         {!loading && activeTab === "projects" && (
           <EmployeeProjectsTab
@@ -350,8 +389,11 @@ const EmployeeMaterialManagement = () => {
         )}
 
         {!loading && activeTab === "my-requests" && (
-          <EmployeeRequestTab requests={materialRequests} />
-        )}
+  <EmployeeRequestTab 
+    requests={materialRequests} 
+    onUpdateRequest={handleUpdateRequest}   // ← ADD THIS
+  />
+)}
       </div>
 
       {/* ── Modals ── */}

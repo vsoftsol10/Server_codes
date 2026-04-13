@@ -122,16 +122,17 @@ const EmployeeMaterialsTab = ({
         </div>
 
         {/* Slider Body */}
-<div className="flex-1  flex flex-col">
+{/* Slider Body */}
+<div className="flex-1 overflow-y-auto flex flex-col scrollbar-hide">
   {sliderOpen && (
     <AddMaterialFormInline
       categories={categories}
       projects={projects}
       loading={loading}
       onClose={() => setSliderOpen(false)}
-      onSubmit={(data, type) => {
-        onAddMaterial(data, type);
-        setSliderOpen(false);
+      onSubmit={async (data, type) => {   {/* ← await first, close after */}
+        await onAddMaterial(data, type);
+        setSliderOpen(false);             {/* ← only close, don't open modal */}
       }}
     />
   )}

@@ -109,6 +109,8 @@ model Material {
   updatedAt        DateTime          @updatedAt
   vendor           String?
   dueDate          DateTime?
+  quantity         Float?
+  files            String[]          @default([])
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
   requests         MaterialRequest[]
   usages           MaterialUsage[]
@@ -178,6 +180,7 @@ model MaterialRequest {
   employeeId      Int
   reviewedBy      Int?
   dueDate         DateTime?
+  files           String[]            @default([])
   employee        Engineer            @relation("EmployeeRequests", fields: [employeeId], references: [id], onDelete: Cascade)
   material        Material?           @relation(fields: [materialId], references: [id])
   project         Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)

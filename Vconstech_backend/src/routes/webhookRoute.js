@@ -84,7 +84,7 @@ router.post(
     // ── 7. Call your existing /api/superadmin/create-user internally ──────────
     let createResult;
     try {
-      const createRes = await fetch('  http://localhost:5000/api/superadmin/create-user', {
+      const createRes = await fetch('https://test.vconstech.in/api/superadmin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -188,7 +188,7 @@ router.post(
 
           <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:10px;padding:20px;margin:20px 0">
             <p style="margin:0 0 10px;font-size:14px;color:#666">Your login details:</p>
-            <p style="margin:6px 0;font-size:14px"><strong>URL:</strong> <a href="  http://localhost:5000">  http://localhost:5000</a></p>
+            <p style="margin:6px 0;font-size:14px"><strong>URL:</strong> <a href="https://test.vconstech.in">https://test.vconstech.in</a></p>
             <p style="margin:6px 0;font-size:14px"><strong>Email:</strong> ${email}</p>
             <p style="margin:6px 0;font-size:14px"><strong>Password:</strong>
               <code style="background:#f4f4f4;padding:3px 8px;border-radius:4px;font-size:13px">${plainPassword}</code>

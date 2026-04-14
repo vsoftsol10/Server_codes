@@ -6,6 +6,7 @@ import ModalMaterial from '../../components/MaterialManagement/ModalMaterial';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import RequestTab from '../../components/MaterialManagement/RequestTab';
+import { materialAPI } from '../../api/materialService';
 
 const MaterialManagement = () => {
   const [materials, setMaterials] = useState([
@@ -96,12 +97,22 @@ const MaterialManagement = () => {
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  const handleAddMaterial = () => {
-    const newId = `MAT${String(materials.length + 1).padStart(3, '0')}`;
-    setMaterials([...materials, { id: newId, ...newMaterial }]);
-    setNewMaterial({ name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: '' });
-    setShowAddMaterial(false);
-  };
+const handleAddMaterial = async () => {
+  const formData = new FormData();
+  formData.append('name', newMaterial.name);
+  formData.append('category', newMaterial.category);
+  formData.append('unit', newMaterial.unit);
+  formData.append('defaultRate', newMaterial.defaultRate);
+  formData.append('vendor', newMaterial.vendor || '');
+  formData.append('description', newMaterial.description || '');
+  if (newMaterial.quotationFile) {
+    formData.append('files', newMaterial.quotationFile);
+  }
+  // call your API with formData instead of plain object
+  await materialAPI.create(formData);
+  setNewMaterial({ name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: '', quotationFile: null });
+  setShowAddMaterial(false);
+};
 
   const handleUpdateMaterial = () => {
     setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));

@@ -89,7 +89,7 @@ export const updateMaterialRequest = async (req, res) => {
     }
 
     // Handle new uploaded files
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.BASE_URL || 'http://localhost:5000';
     const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
     const existingFiles = existing.files || [];
 

@@ -227,7 +227,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         }, 0),
       };
 
-      const response = await fetch("https://test.vconstech.in/api/reports/usage-pdf", {
+      const response = await fetch("http://localhost:5000/api/reports/usage-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),

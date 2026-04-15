@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Lock, Mail, Shield, AlertCircle, CheckCircle } from 'lucide-react';
 
 
@@ -9,6 +9,9 @@ const SuperLogin = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+    useEffect(() => {
+    document.title = "Vconstech - Super Admin";
+  }, []);
   // Hardcoded super admin credentials
   const SUPER_ADMIN_EMAIL = 'vsoftsolutions8813@gmail.com';
   const SUPER_ADMIN_PASSWORD = 'SmartVarun@9095';

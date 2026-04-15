@@ -87,6 +87,22 @@ export const handleLoginSuccess = (response) => {
       ...response.engineer // Include all engineer data
     });
   }
+
+  const role = response.user?.role || 'Site_Engineer';
+
+  if (role === 'Admin') {
+    document.title = 'Vconstech - Admin';
+  } 
+  else if (role === 'Site_Engineer') {
+    document.title = 'Vconstech - Engineer';
+  } 
+  else if (role === 'Super_Admin') {
+    document.title = 'Vconstech - Super Admin';
+  } 
+  else {
+    document.title = 'Vconstech ERP';
+  }
+  
   
   console.log('✅ Login successful');
   return true;

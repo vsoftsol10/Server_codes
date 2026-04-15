@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Lock, Mail, Home, AlertCircle, CheckCircle } from "lucide-react";
 import { handleLoginSuccess } from "../utils/auth";
 import adminLogin from "../assets/admin login.png";
@@ -13,6 +13,10 @@ const Login = () => {
   const [success, setSuccess] = useState("");
 
   const API_URL = `${import.meta.env.VITE_API_URL}/auth`;
+
+  useEffect(() => {
+  document.title = "Vconstech - Admin";
+}, []);
 
   const handleLoginSubmit = async () => {
     setError("");

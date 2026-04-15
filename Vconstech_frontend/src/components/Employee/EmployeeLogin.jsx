@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import adminLogin from "../../assets/admin login.png";
 import adminTab from "../../assets/AdminTab.png";
@@ -12,6 +12,10 @@ export default function EmployeeLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Vconstech - Engineer";
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

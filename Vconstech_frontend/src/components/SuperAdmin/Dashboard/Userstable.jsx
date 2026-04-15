@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Edit, Trash2, Download, Loader2, Eye, X, User, Mail, Phone, Building2, MapPin, Package, Users, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { getToken } from '../../../utils/tabToken';
 
-const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ROWS_PER_PAGE = 10;
 

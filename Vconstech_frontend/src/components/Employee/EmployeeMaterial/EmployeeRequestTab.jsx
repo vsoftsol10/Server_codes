@@ -1,5 +1,5 @@
 import { CheckCircle, XCircle, Clock, Eye, Pencil, Filter, Search, X, FileText, Image, File, Download } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   const [activeTab, setActiveTab] = useState('GLOBAL');
@@ -8,6 +8,19 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editFiles, setEditFiles] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('ALL'); // ← NEW
+  const [filterOpen, setFilterOpen] = useState(false);     // ← NEW
+  const filterRef = useRef(null);  
+
+   useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (filterRef.current && !filterRef.current.contains(e.target)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -37,11 +50,14 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
       r.vendor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.projectName?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesTab && matchesSearch;
+    const matchesStatus = filterStatus === 'ALL' || r.status === filterStatus; // ← NEW
+
+    return matchesTab && matchesSearch && matchesStatus;
   });
 
-  const openView = (request) => setViewModal(request);
+const openView = (request) => setViewModal(request);
   const closeView = () => setViewModal(null);
+
 
   const openEdit = (request) => {
     setEditForm({
@@ -54,7 +70,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
       description: request.description || '',
       projectName: request.projectName || '',
     });
-    setEditFiles([]); 
+    setEditFiles([]);
     setEditModal(request);
   };
   const closeEdit = () => setEditModal(null);
@@ -64,20 +80,19 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   };
 
   const handleEditSubmit = async () => {
-  if (onUpdateRequest) {
-    const formData = new FormData();
-    Object.entries(editForm).forEach(([key, val]) => {
-      if (val !== undefined && val !== null && val !== '') {
-        formData.append(key, val);
-      }
-    });
-    editFiles.forEach(file => formData.append('files', file));
-    await onUpdateRequest({ ...editModal, ...editForm }, formData);
-  }
-  closeEdit();
-};
+    if (onUpdateRequest) {
+      const formData = new FormData();
+      Object.entries(editForm).forEach(([key, val]) => {
+        if (val !== undefined && val !== null && val !== '') {
+          formData.append(key, val);
+        }
+      });
+      editFiles.forEach(file => formData.append('files', file));
+      await onUpdateRequest({ ...editModal, ...editForm }, formData);
+    }
+    closeEdit();
+  };
 
-  // Determine file icon based on extension
   const getFileIcon = (fileName) => {
     const ext = fileName?.split('.').pop()?.toLowerCase();
     if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return Image;
@@ -85,7 +100,6 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
     return File;
   };
 
-  // Check if file is an image
   const isImage = (fileName) => {
     const ext = fileName?.split('.').pop()?.toLowerCase();
     return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext);
@@ -114,11 +128,17 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
     </div>
   );
 
+  // Status filter options
+  const statusOptions = [
+    { value: 'ALL', label: 'All Statuses' },
+    { value: 'PENDING', label: 'Pending' },
+    { value: 'APPROVED', label: 'Approved' },
+    { value: 'REJECTED', label: 'Rejected' },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-lg shadow p-5">
-
-        {/* Title */}
         <h3 className="text-base font-semibold text-gray-900 mb-3">Material Requests</h3>
 
         {/* Toggle + Search + Filter row */}
@@ -155,14 +175,52 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                 className="pl-8 pr-3 py-1.5 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-yellow-400 w-48"
               />
             </div>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-md text-sm text-gray-600 hover:bg-gray-50">
-              <Filter className="w-4 h-4" />
-              Filters
-            </button>
+
+            {/* ── FILTER BUTTON + DROPDOWN ── */}
+            <div className="relative" ref={filterRef}>
+              <button
+                onClick={() => setFilterOpen(prev => !prev)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-md text-sm transition-colors ${
+                  filterStatus !== 'ALL'
+                    ? 'border-yellow-400 bg-yellow-50 text-yellow-700 font-semibold'
+                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                {filterStatus === 'ALL' ? 'Filters' : statusOptions.find(o => o.value === filterStatus)?.label}
+                {filterStatus !== 'ALL' && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); setFilterStatus('ALL'); setFilterOpen(false); }}
+                    className="ml-1 text-yellow-500 hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </span>
+                )}
+              </button>
+
+              {filterOpen && (
+                <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
+                  <p className="px-3 py-1.5 text-xs font-bold text-gray-400 uppercase tracking-wide">Status</p>
+                  {statusOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setFilterStatus(opt.value); setFilterOpen(false); }}
+                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                        filterStatus === opt.value
+                          ? 'bg-yellow-50 text-yellow-700 font-semibold'
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table — unchanged below */}
         {filteredRequests.length === 0 ? (
           <div className="text-center py-12 text-gray-400 text-sm">No requests found</div>
         ) : (
@@ -200,21 +258,13 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                     <td className="py-3 px-3">{getStatusBadge(request.status)}</td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openView(request)}
-                          className="text-gray-400 hover:text-blue-500 transition-colors"
-                          title="View Details"
-                        >
+                        <button onClick={() => openView(request)} className="text-gray-400 hover:text-blue-500 transition-colors" title="View Details">
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => openEdit(request)}
                           disabled={request.status !== 'PENDING'}
-                          className={`transition-colors ${
-                            request.status === 'PENDING'
-                              ? 'text-gray-400 hover:text-yellow-500'
-                              : 'text-gray-200 cursor-not-allowed'
-                          }`}
+                          className={`transition-colors ${request.status === 'PENDING' ? 'text-gray-400 hover:text-yellow-500' : 'text-gray-200 cursor-not-allowed'}`}
                           title={request.status === 'PENDING' ? 'Edit Request' : 'Cannot edit — already reviewed'}
                         >
                           <Pencil className="w-4 h-4" />

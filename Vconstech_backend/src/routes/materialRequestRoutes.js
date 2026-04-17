@@ -21,9 +21,12 @@ router.get('/pending', authorizeRole('Admin'), getPendingRequests);
 router.get('/', authorizeRole('Admin'), getAllRequests);
 router.post('/', uploadMaterialFiles.array('files', 5), createMaterialRequest);
 
-router.put('/:id/comment', authorizeRole('Admin'), addAdminComment);   // ← ADD THIS ROUTE (before /:id)
-router.put('/:id', uploadMaterialFiles.array('files', 5), updateMaterialRequest);
+// ✅ Specific sub-routes FIRST
 router.put('/:id/approve', authorizeRole('Admin'), approveMaterialRequest);
 router.put('/:id/reject', authorizeRole('Admin'), rejectMaterialRequest);
+router.put('/:id/comment', authorizeRole('Admin'), addAdminComment);
+
+// ✅ Generic /:id route LAST
+router.put('/:id', uploadMaterialFiles.array('files', 5), updateMaterialRequest);
 
 export default router;

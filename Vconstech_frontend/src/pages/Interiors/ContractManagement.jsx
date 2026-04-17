@@ -50,6 +50,9 @@ export default function ContractManagement() {
       console.error('Error fetching projects:', error);
     }
   };
+  useEffect(() => {
+      document.title = "Vconstech - Admin";
+    }, []);
 
   useEffect(() => {
     fetchContracts();

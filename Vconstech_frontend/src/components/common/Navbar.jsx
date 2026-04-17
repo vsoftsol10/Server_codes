@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, removeToken } from '../../utils/tabToken';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://test.vconstech.in';
 
 const Navbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -276,9 +276,9 @@ localStorage.removeItem('user');
                   className="p-2 sm:p-2.5 md:p-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl sm:rounded-2xl transition-colors duration-200 relative"
                   aria-label="Notifications"
                 >
-                  <Bell size={18} className="sm:w-5 sm:h-5 md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
+                  <Bell size={18} className="sm:w-5 sm:h-5 text-black md:w-[22px] md:h-[22px]" strokeWidth={2.5} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 md:top-2 md:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-500 rounded-full" />
+                    <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 md:top-2 md:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-red-500 rounded-full" />
                   )}
                 </button>
 

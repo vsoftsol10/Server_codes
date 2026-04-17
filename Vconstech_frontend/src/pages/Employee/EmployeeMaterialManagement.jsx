@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import EmployeeMaterialsTab from "../../components/Employee/EmployeeMaterial/EmployeeMaterialsTab";
 import EmployeeProjectsTab from "../../components/Employee/EmployeeMaterial/EmployeeProjectsTab";
 import EmployeeRequestTab from "../../components/Employee/EmployeeMaterial/EmployeeRequestTab";
@@ -35,6 +35,10 @@ const EmployeeMaterialManagement = () => {
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [showAddProjectMaterial, setShowAddProjectMaterial] = useState(false);
   const [showUsageLog, setShowUsageLog] = useState(false);
+
+    useEffect(() => {
+        document.title = "Vconstech - Engineer";
+      }, []);
 
   // ============ COMPUTED ============
 
@@ -227,7 +231,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         }, 0),
       };
 
-      const response = await fetch("http://localhost:5000/api/reports/usage-pdf", {
+      const response = await fetch("https://test.vconstech.in/api/reports/usage-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),
@@ -250,6 +254,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     }
   };
 
+
   const handleMarkNotificationAsRead = async (id) => {
     try {
       await notificationAPI.markAsRead(id);
@@ -259,27 +264,22 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     }
   };
 
-  const handleUpdateRequest = async (updatedRequest, formData) => {
+ const handleUpdateRequest = async (updatedRequest, formData) => {
   try {
     setLoading(true);
-    // If there are files, send as FormData; otherwise send as JSON
-    if (formData && [...formData.entries()].some(([k]) => k === 'files')) {
-      await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData,
-      });
-    } else {
-      await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify(updatedRequest),
-      });
-    }
+
+    // ✅ Always send formData — multer handles both file and non-file cases
+    await fetch(`https://test.vconstech.in/api/material-requests/${updatedRequest.id}`, {
+      method: 'PUT',
+      headers: { 
+        Authorization: `Bearer ${getToken()}`,
+        // ✅ Do NOT set Content-Type manually — browser sets it with boundary automatically
+      },
+      body: formData,
+    });
+
     await fetchMaterialRequests();
+    await fetchNotifications(); // ✅ refresh notifications too
     alert('Request updated successfully!');
   } catch (err) {
     alert('Failed to update request');

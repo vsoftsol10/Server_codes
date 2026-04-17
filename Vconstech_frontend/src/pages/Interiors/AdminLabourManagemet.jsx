@@ -67,7 +67,9 @@ const AdminLabourManagement = () => {
       console.error('Failed to fetch projects:', error)
     }
   }
-
+useEffect(() => {
+    document.title = "Vconstech - Admin";
+  }, []);
   useEffect(() => {
     fetchLabourers()
     fetchProjects()

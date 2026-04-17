@@ -12,16 +12,18 @@ const CommandModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
-          Send Command
+        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1">
+          Leave a Comment
         </h3>
-        <p className="text-sm text-gray-600 mb-3">
-          Enter a command or note to send with this approval:
+        <p className="text-sm text-gray-500 mb-4">
+          Your comment will be sent to the engineer. The request will
+          <span className="font-semibold text-yellow-600"> remain pending </span>
+          until you approve or reject it.
         </p>
         <textarea
           value={commandNote}
           onChange={onNoteChange}
-          placeholder="Enter your command or note..."
+          placeholder="e.g. Please reduce the quoted amount or attach a revised quotation..."
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent resize-none text-sm"
           rows="4"
           autoFocus
@@ -36,9 +38,9 @@ const CommandModal = ({
           <button
             onClick={onConfirm}
             disabled={!commandNote.trim()}
-            className="flex-1 px-3 sm:px-4 py-2 bg-[#ffbe2a] text-black text-sm font-semibold rounded-lg hover:bg-[#e6ab25] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="flex-1 px-3 sm:px-4 py-2 bg-yellow-400 text-black text-sm font-semibold rounded-lg hover:bg-yellow-500 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
-            Send
+            Send Comment
           </button>
         </div>
       </div>

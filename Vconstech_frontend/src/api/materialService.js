@@ -145,6 +145,16 @@ export const materialRequestAPI = {
     return response.data;
   },
 
+  // Add admin comment — request stays PENDING (Admin only)
+addComment: async (id, adminComment) => {
+  if (!adminComment || adminComment.trim() === '') {
+    throw new Error('Comment cannot be empty');
+  }
+  const response = await api.put(`/material-requests/${id}/comment`, {
+    adminComment: adminComment.trim(),
+  });
+  return response.data;
+},
   // Create material request (Employee)
   create: async (data) => {
   const isFormData = data instanceof FormData;

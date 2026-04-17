@@ -127,17 +127,18 @@ export const useRequestTabData = () => {
   };
 
   const handleCommandConfirm = async (commandNote, viewRequest) => {
-    if (commandNote.trim() && viewRequest) {
-      try {
-        await materialRequestAPI.approve(viewRequest.id, commandNote);
-        fetchMaterialRequests();
-      } catch (err) {
-        alert(
-          `Failed to send command: ${err.response?.data?.error || err.message}`,
-        );
-      }
+  if (commandNote.trim() && viewRequest) {
+    try {
+      // ✅ Call addComment — does NOT approve the request
+      await materialRequestAPI.addComment(viewRequest.id, commandNote);
+      fetchMaterialRequests();
+    } catch (err) {
+      alert(
+        `Failed to send comment: ${err.response?.data?.error || err.message}`
+      );
     }
-  };
+  }
+};
 
   useEffect(() => {
     const token = getToken();

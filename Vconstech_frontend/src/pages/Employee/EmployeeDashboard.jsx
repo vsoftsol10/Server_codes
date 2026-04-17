@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, AlertCircle, FolderOpen } from "lucide-react";
 import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
@@ -26,6 +26,7 @@ const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
+  
   const {
     employeeName,
     assignedProjects,
@@ -116,6 +117,10 @@ const EmployeeDashboard = () => {
   const completedProjectsCount = assignedProjects.filter(
     (p) => p.status?.toLowerCase() === "completed"
   ).length;
+
+  useEffect(() => {
+      document.title = "Vconstech - Engineer";
+    }, []);
 
   const kpiData = [
     {

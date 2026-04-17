@@ -25,6 +25,10 @@ const Dashboard = () => {
     contracts: []
   });
 
+  useEffect(() => {
+      document.title = "Vconstech - Admin";
+    }, []);
+
   const getAuthToken = () => getToken();
 
   const fetchData = async (endpoint) => {

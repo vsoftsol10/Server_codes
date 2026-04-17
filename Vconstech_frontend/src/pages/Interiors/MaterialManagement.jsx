@@ -9,12 +9,14 @@ import RequestTab from '../../components/MaterialManagement/RequestTab';
 import { materialAPI } from '../../api/materialService';
 
 const MaterialManagement = () => {
+  
   const [materials, setMaterials] = useState([
     { id: 'MAT001', name: 'Asian Paints Premium', category: 'Paint', unit: 'liter', defaultRate: 450, vendor: 'Asian Paints', description: 'Premium interior paint' },
     { id: 'MAT002', name: 'Teak Wood Plywood', category: 'Wood', unit: 'sheet', defaultRate: 2800, vendor: 'Century Ply', description: '8mm marine plywood' },
     { id: 'MAT003', name: 'Ceramic Tiles', category: 'Flooring', unit: 'sq.ft', defaultRate: 65, vendor: 'Kajaria', description: 'Vitrified tiles 2x2' },
     { id: 'MAT004', name: 'LED Lights', category: 'Electrical', unit: 'piece', defaultRate: 350, vendor: 'Philips', description: '12W panel lights' },
   ]);
+  
 
   const [projects, setProjects] = useState([
     { id: 'PRJ001', name: 'Residential - Adyar', status: 'Active' },
@@ -46,6 +48,7 @@ const MaterialManagement = () => {
   const [editingMaterial, setEditingMaterial] = useState(null);
 
   const categories = ['All', 'Paint', 'Wood', 'Flooring', 'Electrical', 'Fabric', 'Hardware', 'Plumbing'];
+
 
   const [newMaterial, setNewMaterial] = useState({
     name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: ''
@@ -164,6 +167,8 @@ const handleAddMaterial = async () => {
   const inputClass = "w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm";
 
   const tabs = ['dashboard', 'projects', 'Requests'];
+
+  
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -43,7 +43,7 @@ export const getMyRequests = async (req, res) => {
       projectName: req.project?.name || null
     }));
 
-   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+   const baseUrl = process.env.BASE_URL || 'https://test.vconstech.in';
 const formattedRequests = requestsWithProjectName.map(r => ({
   ...r,
   files: (r.files || []).map(fileUrl => {
@@ -89,7 +89,7 @@ export const updateMaterialRequest = async (req, res) => {
     }
 
     // Handle new uploaded files
-    const baseUrl = import.meta.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = process.env.BASE_URL || 'https://test.vconstech.in';
     const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
     const existingFiles = existing.files || [];
 
@@ -636,6 +636,74 @@ export const rejectMaterialRequest = async (req, res) => {
       success: false,
       error: 'Failed to reject request',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+export const addAdminComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { adminComment } = req.body;
+    const { companyId } = req.user;
+
+    if (!adminComment || !adminComment.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Comment cannot be empty'
+      });
+    }
+
+    // Find request and verify it belongs to this company
+    const request = await prisma.materialRequest.findUnique({
+      where: { id: parseInt(id) },
+      include: { employee: true }
+    });
+
+    if (!request) {
+      return res.status(404).json({ success: false, error: 'Request not found' });
+    }
+
+    if (request.employee.companyId !== String(companyId)) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
+    }
+
+    // ✅ Only allow commenting on PENDING requests
+    if (request.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        error: 'Can only comment on pending requests'
+      });
+    }
+
+    // Save comment — request stays PENDING
+    const updated = await prisma.materialRequest.update({
+      where: { id: parseInt(id) },
+      data: {
+        adminComment: adminComment.trim()
+        // ✅ status is NOT changed — remains PENDING
+      }
+    });
+
+    // Notify the engineer about the admin's comment
+    await createNotification(
+      request.employeeId,
+      `Admin left a comment on your request for "${request.name}": ${adminComment.trim()}`,
+      'WARNING',
+      'ENGINEER',
+      request.id
+    );
+
+    res.json({
+      success: true,
+      message: 'Comment saved. Request remains pending.',
+      request: updated
+    });
+  } catch (error) {
+    console.error('Add admin comment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save comment',
+      details: error.message
     });
   }
 };

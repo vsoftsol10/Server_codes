@@ -16,6 +16,10 @@ const LabourManagement = () => {
   const [showViewPaymentsModal, setShowViewPaymentsModal] = useState(false)
   const [selectedLabour, setSelectedLabour] = useState(null)
 
+    useEffect(() => {
+        document.title = "Vconstech - Engineer";
+      }, []);
+
   // ── Get logged-in engineer from localStorage ──
   const engineer = useMemo(() => {
     try {

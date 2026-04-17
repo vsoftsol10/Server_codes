@@ -8,11 +8,11 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   const [editModal, setEditModal] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editFiles, setEditFiles] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('ALL'); // ← NEW
-  const [filterOpen, setFilterOpen] = useState(false);     // ← NEW
-  const filterRef = useRef(null);  
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef(null);
 
-   useEffect(() => {
+  useEffect(() => {
     const handleOutsideClick = (e) => {
       if (filterRef.current && !filterRef.current.contains(e.target)) {
         setFilterOpen(false);
@@ -50,14 +50,13 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
       r.vendor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.projectName?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = filterStatus === 'ALL' || r.status === filterStatus; // ← NEW
+    const matchesStatus = filterStatus === 'ALL' || r.status === filterStatus;
 
     return matchesTab && matchesSearch && matchesStatus;
   });
 
-const openView = (request) => setViewModal(request);
+  const openView = (request) => setViewModal(request);
   const closeView = () => setViewModal(null);
-
 
   const openEdit = (request) => {
     setEditForm({
@@ -73,25 +72,40 @@ const openView = (request) => setViewModal(request);
     setEditFiles([]);
     setEditModal(request);
   };
-  const closeEdit = () => setEditModal(null);
+  const closeEdit = () => {
+    setEditModal(null);
+    setEditFiles([]);
+  };
 
   const handleEditChange = (e) => {
     setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleEditSubmit = async () => {
-    if (onUpdateRequest) {
-      const formData = new FormData();
-      Object.entries(editForm).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== '') {
-          formData.append(key, val);
-        }
-      });
-      editFiles.forEach(file => formData.append('files', file));
-      await onUpdateRequest({ ...editModal, ...editForm }, formData);
-    }
-    closeEdit();
+  const handleFileChange = (e) => {
+    const newFiles = Array.from(e.target.files);
+    setEditFiles(prev => [...prev, ...newFiles]);
+    // Reset input so same file can be re-selected if removed
+    e.target.value = '';
   };
+
+  const handleEditSubmit = async () => {
+  if (onUpdateRequest) {
+    const formData = new FormData();
+
+    // ✅ Always include the id
+    formData.append('id', editModal.id);
+
+    Object.entries(editForm).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        formData.append(key, val);
+      }
+    });
+
+    editFiles.forEach(file => formData.append('files', file));
+    await onUpdateRequest(editModal, formData);
+  }
+  closeEdit();
+};
 
   const getFileIcon = (fileName) => {
     const ext = fileName?.split('.').pop()?.toLowerCase();
@@ -128,7 +142,6 @@ const openView = (request) => setViewModal(request);
     </div>
   );
 
-  // Status filter options
   const statusOptions = [
     { value: 'ALL', label: 'All Statuses' },
     { value: 'PENDING', label: 'Pending' },
@@ -176,7 +189,6 @@ const openView = (request) => setViewModal(request);
               />
             </div>
 
-            {/* ── FILTER BUTTON + DROPDOWN ── */}
             <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setFilterOpen(prev => !prev)}
@@ -220,7 +232,6 @@ const openView = (request) => setViewModal(request);
           </div>
         </div>
 
-        {/* Table — unchanged below */}
         {filteredRequests.length === 0 ? (
           <div className="text-center py-12 text-gray-400 text-sm">No requests found</div>
         ) : (
@@ -255,7 +266,16 @@ const openView = (request) => setViewModal(request);
                       {request.dueDate ? new Date(request.dueDate).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="py-3 px-3 text-gray-800">{request.description || '—'}</td>
-                    <td className="py-3 px-3">{getStatusBadge(request.status)}</td>
+                    <td className="py-3 px-3">
+                      <div className="flex flex-col gap-1">
+                        {getStatusBadge(request.status)}
+                        {request.adminComment && request.status === 'PENDING' && (
+                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                            💬 Has comment
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
                         <button onClick={() => openView(request)} className="text-gray-400 hover:text-blue-500 transition-colors" title="View Details">
@@ -286,7 +306,6 @@ const openView = (request) => setViewModal(request);
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
-            {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Request Details</h2>
@@ -297,10 +316,7 @@ const openView = (request) => setViewModal(request);
               </button>
             </div>
 
-            {/* Modal Body — scrollable */}
             <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
-
-              {/* Status + Type */}
               <div className="flex items-center gap-3 flex-wrap">
                 {getStatusBadge(viewModal.status)}
                 <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
@@ -308,7 +324,6 @@ const openView = (request) => setViewModal(request);
                 </span>
               </div>
 
-              {/* Detail Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <DetailRow label="Material Name" value={viewModal.name} />
                 <DetailRow label="Vendor" value={viewModal.vendor} />
@@ -333,7 +348,6 @@ const openView = (request) => setViewModal(request);
                 )}
               </div>
 
-              {/* Description */}
               {viewModal.description && (
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                   <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-1">Description / Reason</p>
@@ -341,7 +355,6 @@ const openView = (request) => setViewModal(request);
                 </div>
               )}
 
-              {/* Rejection Reason */}
               {viewModal.rejectionReason && (
                 <div className="bg-red-50 rounded-lg p-3 border border-red-100">
                   <p className="text-xs text-red-400 uppercase tracking-wide font-semibold mb-1">Rejection Reason</p>
@@ -349,7 +362,6 @@ const openView = (request) => setViewModal(request);
                 </div>
               )}
 
-              {/* Approval Notes */}
               {viewModal.approvalNotes && (
                 <div className="bg-green-50 rounded-lg p-3 border border-green-100">
                   <p className="text-xs text-green-500 uppercase tracking-wide font-semibold mb-1">Approval Notes</p>
@@ -357,14 +369,27 @@ const openView = (request) => setViewModal(request);
                 </div>
               )}
 
-              {/* ── Uploaded Files Section ── */}
+              {/* Admin Comment */}
+              {viewModal.adminComment && (
+                <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                  <p className="text-xs text-amber-600 uppercase tracking-wide font-semibold mb-1">
+                    💬 Admin Comment
+                  </p>
+                  <p className="text-sm text-amber-800">{viewModal.adminComment}</p>
+                  {viewModal.status === 'PENDING' && (
+                    <p className="text-xs text-amber-500 mt-2 italic">
+                      Please edit your request and re-upload the quotation if needed.
+                    </p>
+                  )}
+                </div>
+              )}
+
               {viewModal.files && viewModal.files.length > 0 && (
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold mb-3">
                     Uploaded Files ({viewModal.files.length})
                   </p>
 
-                  {/* Image previews */}
                   {viewModal.files.some(f => isImage(f.name || f.fileName)) && (
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {viewModal.files
@@ -376,23 +401,13 @@ const openView = (request) => setViewModal(request);
                               alt={file.name || file.fileName}
                               className="w-full h-full object-cover"
                             />
-                            {/* Hover overlay */}
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <a
-                                href={file.url || file.fileUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-500 transition-colors"
-                                title="View"
-                              >
+                              <a href={file.url || file.fileUrl} target="_blank" rel="noopener noreferrer"
+                                className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-500 transition-colors">
                                 <Eye className="w-3.5 h-3.5" />
                               </a>
-                              <a
-                                href={file.url || file.fileUrl}
-                                download={file.name || file.fileName}
-                                className="p-1.5 bg-white rounded-full text-gray-700 hover:text-yellow-500 transition-colors"
-                                title="Download"
-                              >
+                              <a href={file.url || file.fileUrl} download={file.name || file.fileName}
+                                className="p-1.5 bg-white rounded-full text-gray-700 hover:text-yellow-500 transition-colors">
                                 <Download className="w-3.5 h-3.5" />
                               </a>
                             </div>
@@ -401,7 +416,6 @@ const openView = (request) => setViewModal(request);
                     </div>
                   )}
 
-                  {/* Non-image files */}
                   {viewModal.files
                     .filter(f => !isImage(f.name || f.fileName))
                     .map((file, idx) => {
@@ -412,12 +426,8 @@ const openView = (request) => setViewModal(request);
                           ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
                           : `${(file.size / 1024).toFixed(1)} KB`
                         : null;
-
                       return (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-all group mb-2"
-                        >
+                        <div key={idx} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-yellow-300 hover:bg-yellow-50 transition-all group mb-2">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center shrink-0 group-hover:bg-yellow-100 transition-colors">
                               <FileIcon className="w-4 h-4 text-gray-500 group-hover:text-yellow-600" />
@@ -428,21 +438,12 @@ const openView = (request) => setViewModal(request);
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0 ml-2">
-                            <a
-                              href={file.url || file.fileUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="p-1.5 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
-                              title="View"
-                            >
+                            <a href={file.url || file.fileUrl} target="_blank" rel="noopener noreferrer"
+                              className="p-1.5 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors">
                               <Eye className="w-4 h-4" />
                             </a>
-                            <a
-                              href={file.url || file.fileUrl}
-                              download={fileName}
-                              className="p-1.5 rounded-md text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 transition-colors"
-                              title="Download"
-                            >
+                            <a href={file.url || file.fileUrl} download={fileName}
+                              className="p-1.5 rounded-md text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 transition-colors">
                               <Download className="w-4 h-4" />
                             </a>
                           </div>
@@ -452,7 +453,6 @@ const openView = (request) => setViewModal(request);
                 </div>
               )}
 
-              {/* No files fallback */}
               {(!viewModal.files || viewModal.files.length === 0) && (
                 <div className="border border-dashed border-gray-200 rounded-lg p-4 text-center">
                   <File className="w-6 h-6 text-gray-300 mx-auto mb-1" />
@@ -461,12 +461,8 @@ const openView = (request) => setViewModal(request);
               )}
             </div>
 
-            {/* Modal Footer */}
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end shrink-0">
-              <button
-                onClick={closeView}
-                className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors"
-              >
+              <button onClick={closeView} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition-colors">
                 Close
               </button>
             </div>
@@ -476,24 +472,36 @@ const openView = (request) => setViewModal(request);
 
       {/* ─────────────────────────────────────────
           EDIT MODAL
+          ✅ FIX: file upload is now INSIDE the
+          scrollable flex-1 body, not outside it
       ───────────────────────────────────────── */}
       {editModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          {/* ✅ The modal is a flex column: header (shrink-0) | body (flex-1 scroll) | footer (shrink-0) */}
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
-            {/* Modal Header */}
+            {/* Header — fixed, never scrolls */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Edit Request</h2>
                 <p className="text-xs text-gray-400 mt-0.5">{editModal.name}</p>
+                {/* Show admin comment banner inside header if present */}
+                {editModal.adminComment && (
+                  <div className="mt-2 flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
+                    <span className="text-amber-500 text-xs mt-0.5">💬</span>
+                    <p className="text-xs text-amber-700 leading-snug">{editModal.adminComment}</p>
+                  </div>
+                )}
               </div>
-              <button onClick={closeEdit} className="text-gray-400 hover:text-gray-700 transition-colors">
+              <button onClick={closeEdit} className="text-gray-400 hover:text-gray-700 transition-colors ml-3 shrink-0">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Body */}
+            {/* ✅ Body — scrollable, contains EVERYTHING including file upload */}
             <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+
+              {/* Form fields */}
               <div className="grid grid-cols-2 gap-4">
                 <InputField label="Material Name" name="name" value={editForm.name} onChange={handleEditChange} />
                 <InputField label="Vendor" name="vendor" value={editForm.vendor} onChange={handleEditChange} />
@@ -518,51 +526,56 @@ const openView = (request) => setViewModal(request);
                   className="border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 resize-none"
                 />
               </div>
-            </div>
-            {/* Revised Quotation Upload */}
-<div className="flex flex-col gap-1">
-  <label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-    Upload Revised Quotation
-  </label>
-  <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-pointer hover:border-yellow-400 hover:bg-yellow-50 transition-all">
-    <input
-      type="file"
-      multiple
-      accept=".pdf,.jpg,.jpeg,.png"
-      className="hidden"
-      onChange={(e) => setEditFiles(Array.from(e.target.files))}
-    />
-    <File className="w-6 h-6 text-gray-300 mb-1" />
-    <span className="text-xs text-gray-400">Click to upload PDF, JPG, PNG</span>
-    <span className="text-xs text-gray-300 mt-0.5">Max 10MB per file</span>
-  </label>
 
-  {editFiles.length > 0 && (
-    <div className="space-y-1 mt-1">
-      {editFiles.map((file, idx) => (
-        <div key={idx} className="flex items-center justify-between px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
-          <div className="flex items-center gap-2 min-w-0">
-            <FileText className="w-4 h-4 text-yellow-600 shrink-0" />
-            <span className="text-xs text-gray-700 truncate">{file.name}</span>
-            <span className="text-xs text-gray-400 shrink-0">
-              {file.size > 1024 * 1024
-                ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-                : `${(file.size / 1024).toFixed(1)} KB`}
-            </span>
-          </div>
-          <button
-            onClick={() => setEditFiles(prev => prev.filter((_, i) => i !== idx))}
-            className="text-gray-400 hover:text-red-500 transition-colors ml-2 shrink-0"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
+              {/* ✅ File upload — now INSIDE the scrollable body so it renders and works correctly */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+                  Upload Revised Quotation
+                </label>
 
-            {/* Modal Footer */}
+                {/* Drop zone */}
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-lg p-4 cursor-pointer hover:border-yellow-400 hover:bg-yellow-50 transition-all">
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <File className="w-6 h-6 text-gray-300 mb-1" />
+                  <span className="text-xs text-gray-400">Click to upload PDF, JPG, PNG</span>
+                  <span className="text-xs text-gray-300 mt-0.5">Max 10MB per file</span>
+                </label>
+
+                {/* Selected files list */}
+                {editFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {editFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-4 h-4 text-yellow-600 shrink-0" />
+                          <span className="text-xs text-gray-700 truncate">{file.name}</span>
+                          <span className="text-xs text-gray-400 shrink-0">
+                            {file.size > 1024 * 1024
+                              ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                              : `${(file.size / 1024).toFixed(1)} KB`}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setEditFiles(prev => prev.filter((_, i) => i !== idx))}
+                          className="text-gray-400 hover:text-red-500 transition-colors ml-2 shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </div>{/* end scrollable body */}
+
+            {/* Footer — fixed at bottom, never scrolls */}
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
               <button
                 onClick={closeEdit}
@@ -577,6 +590,7 @@ const openView = (request) => setViewModal(request);
                 Save Changes
               </button>
             </div>
+
           </div>
         </div>
       )}

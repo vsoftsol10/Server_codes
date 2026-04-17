@@ -49,6 +49,10 @@ const ProjectManagement = () => {
   });
 
   useEffect(() => {
+      document.title = "Vconstech - Admin";
+    }, []);
+
+  useEffect(() => {
     let mounted = true;
     const fetchData = async () => {
       if (mounted) await loadProjects();

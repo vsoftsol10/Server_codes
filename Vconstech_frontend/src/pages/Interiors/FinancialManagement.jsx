@@ -17,6 +17,7 @@ const FinancialManagement = () => {
 
   // Load projects from API
   useEffect(() => {
+    document.title = "Vconstech - Admin";
     loadProjects();
   }, []);
 

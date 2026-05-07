@@ -8,7 +8,7 @@ import SelectField from "../../components/SuperAdmin/Dashboard/Selectfield";
 import { validateCreateForm } from "../../components/SuperAdmin/Dashboard/Validation";
 import StatsCards from "../../components/SuperAdmin/Dashboard/StatsCards";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const INITIAL_FORM = {
   name: "", email: "", role: "", companyName: "", password: "",
@@ -17,11 +17,11 @@ const INITIAL_FORM = {
 
 const ROLES = [{ value: "Admin", label: "Admin" }];
 const PACKAGES = [
-  { value: "Basic",    label: "Basic " },
-  { value: "Premium",  label: "Premium " },
-  { value: "Advanced", label: "Advanced " },
+  { value: "Free",     label: "Free" },
+  { value: "Basic",    label: "Basic" },
+  { value: "Premium",  label: "Premium" },
+  { value: "Advanced", label: "Advanced" },
 ];
-
 // ─── Toast ────────────────────────────────────────────────────────────────────
 const Toast = ({ message, onClose }) => {
   useEffect(() => {

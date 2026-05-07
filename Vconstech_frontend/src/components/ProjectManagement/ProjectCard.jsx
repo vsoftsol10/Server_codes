@@ -189,7 +189,7 @@ const ProjectCard = ({ project, onView, onEdit, onDelete, getStatusColor, getSta
                 className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
               >
                 <FileDown className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Report</span>
+                <span className=" xs:inline">Report</span>
               </button>
             </div>
             <p className="text-xs sm:text-sm text-gray-600">{project.location} • {project.id}</p>

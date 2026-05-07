@@ -32,7 +32,7 @@ export const printBill = (bill) => {
   const documentTitle = billType === "quotation" ? "QUOTATION" : "TAX INVOICE";
   const companyLogo   = bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  let API_BASE_URL = "https://test.vconstech.in";
+  let API_BASE_URL = "http://localhost:5000";
   if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
     API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
   else if (typeof process !== "undefined" && process.env?.VITE_API_URL)
@@ -216,8 +216,7 @@ export const printBill = (bill) => {
 
       <div class="bottom-area">
         <div class="terms-note">
-          This is a computer-generated ${billType === "quotation" ? "quotation" : "invoice"} and does not require a physical signature.<br>
-          Generated on ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+          
         </div>
         <div class="signature-box">
           <div style="height:38px;"></div>
@@ -399,8 +398,8 @@ export const printBill = (bill) => {
     table.items-table tbody tr:nth-child(even) { background: #fafafa; }
     table.items-table tbody tr:nth-child(odd)  { background: #fff;    }
 
-    .summary-wrapper { display: flex; justify-content: flex-end; margin-bottom: 14px; }
-    table.summary-table { width: 55%; border-collapse: collapse; font-size: 12px; }
+ .summary-wrapper { display: flex; justify-content: center; margin-bottom: 14px; }
+table.summary-table { width: 100%; border-collapse: collapse; font-size: 12px; }
     table.summary-table td { padding: 6px 10px; border-bottom: 1px solid #eee; }
     table.summary-table tr:last-child td { border-bottom: none; }
     table.summary-table .s-label { font-weight: 500; color: #555; width: 65%; }

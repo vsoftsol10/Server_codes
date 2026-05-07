@@ -35,11 +35,11 @@ router.post('/create-user', async (req, res) => {
       });
     }
 
-    const validPackages = ['Basic', 'Premium', 'Advanced'];
+const validPackages = ['Free', 'Basic', 'Premium', 'Advanced'];
     if (!validPackages.includes(userPackage)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid package. Must be Basic, Premium, or Advanced'
+        error: 'Invalid package. Must be Free, Basic, Premium, or Advanced'
       });
     }
 

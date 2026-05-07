@@ -6,7 +6,7 @@ import EditUserModal from "../../components/SuperAdmin/Dashboard/Editusermodal";
 import DeleteUserModal from "../../components/SuperAdmin/Dashboard/Deleteusermodal";
 import { validateEditForm } from "../../components/SuperAdmin/Dashboard/Validation";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const PACKAGE_MIGRATION = {
   Classic: "Basic",

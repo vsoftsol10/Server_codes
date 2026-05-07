@@ -3,12 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/assets/vconstech-icon.png"/>
-     <link href="/src/style.css" rel="stylesheet">
+    <link href="/src/style.css" rel="stylesheet">
+    <!-- n8n Chat Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VConstech</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- n8n Chatbot -->
+   <script type="module">
+	import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+	createChat({
+		webhookUrl: 'https://borderen-precast.app.n8n.cloud/webhook/9a63626e-caf1-4790-9267-bbc0c5536ff5/chat'
+	});
+</script>
   </body>
 </html>

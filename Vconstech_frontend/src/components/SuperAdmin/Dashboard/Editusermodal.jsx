@@ -6,6 +6,7 @@ import {
 
 const ROLES = [{ value: "Admin", label: "Admin" }];
 const PACKAGES = [
+  { value: "Free",    label: "Free " },
   { value: "Basic",    label: "Basic " },
   { value: "Premium",  label: "Premium " },
   { value: "Advanced", label: "Advanced " },

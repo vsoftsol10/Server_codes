@@ -2,7 +2,7 @@ import React, { useState, useMemo } from "react";
 import { Edit, Trash2, Download, Loader2, Eye, X, User, Mail, Phone, Building2, MapPin, Package, Users, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { getToken } from '../../../utils/tabToken';
 
-const API_URL = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ROWS_PER_PAGE = 10;
 
@@ -13,6 +13,7 @@ const ViewUserModal = ({ user, onClose }) => {
   const getMemberCount = (user) => {
     if (user.package === "Basic") return "5";
     if (user.package === "Premium") return "10";
+    if (user.package === "Free")    return "2";
     return user.customMembers || "N/A";
   };
 
@@ -172,7 +173,7 @@ const ToggleButton = ({ user }) => {
 };
 
 // ─── Package Filter Dropdown ──────────────────────────────────────────────────
-const PACKAGE_OPTIONS = ["All", "Basic", "Premium", "Advanced"];
+const PACKAGE_OPTIONS = ["All", "Basic", "Premium", "Advanced","Free"];
 
 const PackageFilter = ({ value, onChange }) => {
   const [open, setOpen] = useState(false);
@@ -350,6 +351,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
   const [currentPage,   setCurrentPage]   = useState(1);
 
   const getMemberCount = (user) => {
+    if (user.package === "Free")    return "2";
     if (user.package === "Basic") return "5";
     if (user.package === "Premium")     return "10";
     return user.customMembers || "N/A";

@@ -33,6 +33,7 @@ const ProjectManagement = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [packageInfo, setPackageInfo] = useState(null);
 
   const [newProject, setNewProject] = useState({
     name: "",
@@ -48,6 +49,30 @@ const ProjectManagement = () => {
     description: "",
   });
 
+  const fetchPackageInfo = async () => {
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  if (user.package) {
+    const pkg = user.package.toLowerCase();
+    const limit = pkg === "free" ? 2 : pkg === "basic" ? 5 : pkg === "premium" ? 15 : pkg === "advanced" ? (user.customMembers || 999) : 1;
+    setPackageInfo({ package: user.package, limit });
+  } else {
+    try {
+      const token = getAuthToken();
+      const response = await fetch("/api/engineers/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.user) {
+          const pkg = data.user.package?.toLowerCase();
+          const limit = pkg === "free" ? 1 : pkg === "basic" ? 5 : pkg === "premium" ? 15 : pkg === "advanced" ? (data.user.customMembers || 999) : 1;
+          setPackageInfo({ package: data.user.package, limit });
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
+      }
+    } catch (err) { console.error("Error fetching package info:", err); }
+  }
+};
   useEffect(() => {
       document.title = "Vconstech - Admin";
     }, []);
@@ -55,7 +80,10 @@ const ProjectManagement = () => {
   useEffect(() => {
     let mounted = true;
     const fetchData = async () => {
-      if (mounted) await loadProjects();
+      if (mounted) {
+      await loadProjects();
+      await fetchPackageInfo(); // add this
+    }
     };
     fetchData();
     return () => { mounted = false; };
@@ -157,6 +185,16 @@ const ProjectManagement = () => {
     const matchesFilter = filterType === "all" || project.type === filterType;
     return matchesSearch && matchesTab && matchesFilter;
   });
+
+  const handleNewProjectClick = () => {
+  if (packageInfo && projects.length >= packageInfo.limit) {
+    alert(
+      `Cannot add more projects. Your ${packageInfo.package} package allows ${packageInfo.limit} projects. Please upgrade to add more.`
+    );
+    return;
+  }
+  setShowNewProjectModal(true);
+};
 
   const handleDownloadReport = async (project) => {
     try {
@@ -280,7 +318,7 @@ const ProjectManagement = () => {
               Reports
             </button>
             <button
-              onClick={() => setShowNewProjectModal(true)}
+              onClick={handleNewProjectClick}
               className="flex items-center gap-1 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-medium"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -294,11 +332,13 @@ const ProjectManagement = () => {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Project Management</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage and track all your projects</p>
+<p className="text-sm text-gray-600 mt-1">
+  {loading ? "Loading..." : `${projects.length} / ${packageInfo?.limit ?? "..."} Projects`}
+</p>
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setShowNewProjectModal(true)}
+                onClick={handleNewProjectClick}
                 className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm"
               >
                 <Plus className="w-4 h-4" />

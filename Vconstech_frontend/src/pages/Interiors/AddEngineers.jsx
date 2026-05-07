@@ -13,7 +13,7 @@ import { getToken } from '../../utils/tabToken';
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
   if (profileImage.startsWith("http")) return profileImage;
-  const backendUrl = import.meta.env.VITE_API_URL || "https://test.vconstech.in";
+  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   return `${backendUrl}${profileImage}`;
 };
 
@@ -127,7 +127,7 @@ const AddEngineers = () => {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user.package) {
       const pkg = user.package.toLowerCase();
-      let limit = pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (user.customMembers || 999) : 5;
+      let limit = pkg === "free" ? 2: pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (user.customMembers || 999) : 5;
       setPackageInfo({ package: user.package, limit });
     } else {
       try {
@@ -138,7 +138,7 @@ const AddEngineers = () => {
           const data = await response.json();
           if (data.success && data.user) {
             const pkg = data.user.package?.toLowerCase();
-            let limit = pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (data.user.customMembers || 999) : 5;
+            let limit = pkg === "free" ? 2: pkg === "basic" ? 5 : pkg === "premium" ? 10 : pkg === "advanced" ? (data.user.customMembers || 999) : 5;
             setPackageInfo({ package: data.user.package, limit });
             localStorage.setItem("user", JSON.stringify(data.user));
           }

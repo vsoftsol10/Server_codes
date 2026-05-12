@@ -159,7 +159,7 @@ const cleanUrl = typeof rawUrl === 'string'
   ? rawUrl.replace('/api/uploads', '/uploads') 
   : rawUrl;
 const fileUrl = typeof cleanUrl === 'string'
-  ? cleanUrl.replace('http://localhost:5000', '')
+  ? cleanUrl.replace('https://erp.vconstech.in', '')
   : cleanUrl;
                   return (
                     <div

@@ -231,7 +231,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         }, 0),
       };
 
-      const response = await fetch("http://localhost:5000/api/reports/usage-pdf", {
+      const response = await fetch("https://erp.vconstech.in/api/reports/usage-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),
@@ -269,7 +269,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     setLoading(true);
 
     // ✅ Always send formData — multer handles both file and non-file cases
-    await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
+    await fetch(`https://erp.vconstech.in/api/material-requests/${updatedRequest.id}`, {
       method: 'PUT',
       headers: { 
         Authorization: `Bearer ${getToken()}`,

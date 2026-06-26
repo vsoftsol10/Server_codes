@@ -276,7 +276,7 @@ export const getAllMaterials = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const baseUrl = process.env.BASE_URL || 'https://erp.vconstech.in';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 const formattedMaterials = materials.map(m => ({
   ...m,
   files: (m.files || []).map(fileUrl => {
@@ -354,7 +354,7 @@ export const getMaterialById = async (req, res) => {
       });
     }
 
-   const baseUrl = process.env.BASE_URL || 'https://erp.vconstech.in';
+   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 const formattedMaterial = {
   ...material,
   files: (material.files || []).map(fileUrl => {

@@ -15,7 +15,7 @@ const ViewModal = ({
   const hasFiles = files.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-100 rounded-sm shadow-2xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
@@ -159,7 +159,7 @@ const cleanUrl = typeof rawUrl === 'string'
   ? rawUrl.replace('/api/uploads', '/uploads') 
   : rawUrl;
 const fileUrl = typeof cleanUrl === 'string'
-  ? cleanUrl.replace('https://erp.vconstech.in', '')
+  ? cleanUrl.replace('http://localhost:5001', '')
   : cleanUrl;
                   return (
                     <div

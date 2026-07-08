@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { generateRequestId, generateMaterialId, createNotification } from '../utils/generateId.js';
-
-const prisma = new PrismaClient();
 
 export const getMyRequests = async (req, res) => {
   try {
@@ -43,7 +41,7 @@ export const getMyRequests = async (req, res) => {
       projectName: req.project?.name || null
     }));
 
-   const baseUrl = process.env.BASE_URL || 'https://erp.vconstech.in';
+   const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
 const formattedRequests = requestsWithProjectName.map(r => ({
   ...r,
   files: (r.files || []).map(fileUrl => {
@@ -89,7 +87,7 @@ export const updateMaterialRequest = async (req, res) => {
     }
 
     // Handle new uploaded files
-    const baseUrl = process.env.BASE_URL || 'https://erp.vconstech.in';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
     const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
     const existingFiles = existing.files || [];
 

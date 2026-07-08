@@ -96,7 +96,7 @@ const Billing = () => {
   // Fetch company data
   const fetchCompanyData = async () => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'https://erp.vconstech.in/api';
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
       const userId = localStorage.getItem('userId');
       const token = getToken();
 
@@ -154,14 +154,14 @@ useEffect(() => {
         <SidePannel />
       </aside>
 
-      <div className="pt-20 pl-0 md:pl-64 pb-20 md:pb-0">
-        <div className="p-4 sm:p-6 lg:p-8 min-w-0">
+      <div className="pt-20 pl-0 md:pl-64 md:pt-25 pb-20 md:pb-0">
+        <div className="px-4 sm:px-6 lg:px-8 pt-4 pb-8 min-w-0">
           <div className="w-full">
             {/* Header */}
             <div className="bg-white rounded-lg shadow-md p-6 mb-6 w-full">
               <div className="flex items-center gap-3 mb-2">
                 <FileText className="w-8 h-8 text-[#ffbe2a]" />
-                <h1 className="text-3xl font-bold text-gray-800">
+                <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900">
                   Billing Management
                 </h1>
               </div>

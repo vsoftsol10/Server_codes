@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
 
 // Get all engineers in the same company
 export const getEmployees = async (req, res) => {

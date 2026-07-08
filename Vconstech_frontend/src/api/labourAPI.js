@@ -13,6 +13,13 @@ const getAuthHeaders = () => {
   };
 };
 
+const getUploadHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Authorization': `Bearer ${token}`
+  };
+};
+
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -88,6 +95,24 @@ export const createLabourer = async (labourData) => {
     return await handleResponse(response);
   } catch (error) {
     console.error('Create labourer error:', error);
+    throw error;
+  }
+};
+
+export const uploadLabourList = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      headers: getUploadHeaders(),
+      body: formData
+    });
+
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Upload labour list error:', error);
     throw error;
   }
 };
@@ -247,6 +272,7 @@ const labourApi = {
   getAllLabourers,
   getLabourerById,
   createLabourer,
+  uploadLabourList,
   updateLabourer,
   deleteLabourer,
   addPayment,

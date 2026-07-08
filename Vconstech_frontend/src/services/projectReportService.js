@@ -1,6 +1,87 @@
 // src/services/projectReportService.js
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { getToken } from '../utils/tabToken';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
+const PDF_THEME = {
+  primary: '#FFBE2A',
+  text: '#1F2937',
+  muted: '#6B7280',
+  border: '#E5E7EB',
+  surface: '#F9FAFB',
+  rowAlt: '#FFFDF7',
+  white: '#FFFFFF',
+  planning: '#F59E0B',
+  inProgress: '#3B82F6',
+  onHold: '#EF4444',
+  completed: '#10B981',
+};
+
+const formatReportCurrency = (amount) => (
+  new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0
+  }).format(amount || 0)
+);
+
+const hexToRgb = (hex) => {
+  const normalized = hex.replace('#', '');
+  return [
+    parseInt(normalized.slice(0, 2), 16),
+    parseInt(normalized.slice(2, 4), 16),
+    parseInt(normalized.slice(4, 6), 16),
+  ];
+};
+
+const getProjectStatusTone = (status) => {
+  const normalized = (status || '').toLowerCase().trim();
+
+  if (normalized === 'planning') {
+    return { fill: '#FEF3C7', text: '#92400E', accent: PDF_THEME.planning };
+  }
+
+  if (normalized === 'in progress' || normalized === 'ongoing') {
+    return { fill: '#DBEAFE', text: '#1D4ED8', accent: PDF_THEME.inProgress };
+  }
+
+  if (normalized === 'on hold' || normalized === 'hold') {
+    return { fill: '#FEE2E2', text: '#B91C1C', accent: PDF_THEME.onHold };
+  }
+
+  if (normalized === 'completed') {
+    return { fill: '#D1FAE5', text: '#065F46', accent: PDF_THEME.completed };
+  }
+
+  return { fill: '#E5E7EB', text: '#374151', accent: '#9CA3AF' };
+};
+
+const drawPdfCard = (doc, x, y, width, height, fillColor, borderColor = PDF_THEME.border) => {
+  doc.setFillColor(...hexToRgb(fillColor));
+  doc.setDrawColor(...hexToRgb(borderColor));
+  doc.roundedRect(x, y, width, height, 4, 4, 'FD');
+};
+
+const addProjectReportFooter = (doc, generatedAtText) => {
+  const pageCount = doc.getNumberOfPages();
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    doc.setPage(pageNumber);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+    doc.line(14, pageHeight - 16, pageWidth - 14, pageHeight - 16);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+    doc.text('Generated automatically by Vconstech ERP', 14, pageHeight - 10);
+    doc.text(generatedAtText, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text(`Page ${pageNumber} of ${pageCount}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+  }
+};
 
 /**
  * Project Report Service
@@ -665,370 +746,264 @@ const projectReportService = {
   },
 
   /**
-   * Generate consolidated report for all projects
+   * Generate consolidated PDF report for all projects and download it.
    * @param {Array} projects - Array of project data
-   * @returns {Promise<string>} HTML report
+   * @returns {Promise<boolean>} Success status
    */
-  /**
- * Generate consolidated report for all projects and download it
- * @param {Array} projects - Array of project data
- * @returns {Promise<boolean>} Success status
- */
-downloadAllProjectsReport: async (projects) => {
-  try {
-    const token = getToken();
-    
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
+  downloadAllProjectsReport: async (projects) => {
+    try {
+      const token = getToken();
 
-    if (!Array.isArray(projects) || projects.length === 0) {
-      throw new Error('No projects available to generate report');
-    }
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
 
-    console.log('📊 Generating consolidated report for', projects.length, 'projects');
+      if (!Array.isArray(projects) || projects.length === 0) {
+        throw new Error('No projects available to generate report');
+      }
 
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0
-      }).format(amount || 0);
-    };
+      console.log('Generating consolidated PDF report for', projects.length, 'projects');
 
-    // Calculate totals across all projects
-    const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
-    const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
-    const totalRemaining = totalBudget - totalSpent;
+      const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
+      const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
+      const totalRemaining = totalBudget - totalSpent;
+      const statusCounts = {
+        planning: projects.filter((p) => p.status === 'Planning').length,
+        inProgress: projects.filter((p) => p.status === 'In Progress').length,
+        onHold: projects.filter((p) => ['On Hold', 'Hold'].includes((p.status || '').trim())).length,
+        completed: projects.filter((p) => p.status === 'Completed').length,
+      };
 
-    // Count projects by status
-    const statusCounts = {
-      planning: projects.filter(p => p.status === 'Planning').length,
-      inProgress: projects.filter(p => p.status === 'In Progress').length,
-      completed: projects.filter(p => p.status === 'Completed').length
-    };
+      const generatedAt = new Date();
+      const generatedAtText = generatedAt.toLocaleString('en-IN', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      });
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const marginX = 14;
+      let cursorY = 14;
 
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Projects Report</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      padding: 40px;
-      background: #f5f5f5;
-      color: #1f2937;
-    }
-    .container { 
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 40px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    .header { 
-      border-bottom: 3px solid #2563eb;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
-    }
-    .header h1 { 
-      color: #1f2937;
-      font-size: 32px;
-      margin-bottom: 10px;
-    }
-    .header-meta {
-      color: #6b7280;
-      font-size: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .summary-card {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #bae6fd;
-    }
-    .summary-label {
-      color: #6b7280;
-      font-size: 12px;
-      text-transform: uppercase;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .summary-value {
-      color: #1e40af;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .status-overview {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: #f9fafb;
-      border-radius: 8px;
-    }
-    .status-item {
-      text-align: center;
-      padding: 15px;
-      background: white;
-      border-radius: 6px;
-      border: 1px solid #e5e7eb;
-    }
-    .status-count {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-    .status-label {
-      font-size: 12px;
-      color: #6b7280;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    table { 
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td { 
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 14px;
-    }
-    th { 
-      background: #ffbe2a;
-      color: #1f2937;
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-      position: sticky;
-      top: 0;
-    }
-    tbody tr:hover { 
-      background: #f9fafb; 
-    }
-    .status-badge { 
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .status-planning {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    .status-progress {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-    .status-completed {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .progress-bar { 
-      width: 100px;
-      height: 20px;
-      background: #e5e7eb;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .progress-fill { 
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #2563eb);
-      color: white;
-      font-size: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-    }
-    .amount-positive {
-      color: #059669;
-      font-weight: 600;
-    }
-    .amount-negative {
-      color: #dc2626;
-      font-weight: 600;
-    }
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1f2937;
-      margin: 30px 0 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .footer { 
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
-      text-align: center;
-      color: #6b7280;
-      font-size: 12px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .container { box-shadow: none; }
-      th { position: relative; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>All Projects Report</h1>
-      <div class="header-meta">
-        <span>Total Projects: <strong>${projects.length}</strong></span>
-        <span>Generated: ${new Date().toLocaleString('en-IN', { 
-          dateStyle: 'medium', 
-          timeStyle: 'short' 
-        })}</span>
-      </div>
-    </div>
+      drawPdfCard(doc, marginX, cursorY, pageWidth - (marginX * 2), 24, PDF_THEME.white);
+      doc.setFillColor(...hexToRgb(PDF_THEME.primary));
+      doc.roundedRect(marginX, cursorY, 4, 24, 2, 2, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(...hexToRgb(PDF_THEME.text));
+      doc.text('Project Management Report', marginX + 10, cursorY + 9);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+      doc.text('Vconstech ERP / Project Management', marginX + 10, cursorY + 15);
+      doc.text(`Generated Date & Time: ${generatedAtText}`, pageWidth - marginX, cursorY + 15, { align: 'right' });
+      cursorY += 32;
 
-    <h2 class="section-title">Financial Overview</h2>
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-label">Total Budget</div>
-        <div class="summary-value">${formatCurrency(totalBudget)}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Total Spent</div>
-        <div class="summary-value">${formatCurrency(totalSpent)}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Total Remaining</div>
-        <div class="summary-value" style="color: ${totalRemaining < 0 ? '#dc2626' : '#059669'}">${formatCurrency(totalRemaining)}</div>
-      </div>
-    </div>
+      const cardGap = 6;
+      const cardWidth = (pageWidth - (marginX * 2) - (cardGap * 3)) / 4;
+      const summaryCards = [
+        { label: 'Total Projects', value: String(projects.length), fill: '#FFF8E1', text: PDF_THEME.text },
+        { label: 'Total Budget', value: formatReportCurrency(totalBudget), fill: '#FFF7D6', text: PDF_THEME.text },
+        { label: 'Total Spent', value: formatReportCurrency(totalSpent), fill: PDF_THEME.surface, text: PDF_THEME.text },
+        {
+          label: 'Remaining Budget',
+          value: formatReportCurrency(totalRemaining),
+          fill: totalRemaining < 0 ? '#FEE2E2' : '#ECFDF5',
+          text: totalRemaining < 0 ? '#B91C1C' : '#047857',
+        },
+      ];
 
-    <h2 class="section-title">Project Status Overview</h2>
-    <div class="status-overview">
-      <div class="status-item">
-        <div class="status-count" style="color: #d97706;">${statusCounts.planning}</div>
-        <div class="status-label">Planning</div>
-      </div>
-      <div class="status-item">
-        <div class="status-count" style="color: #2563eb;">${statusCounts.inProgress}</div>
-        <div class="status-label">In Progress</div>
-      </div>
-      <div class="status-item">
-        <div class="status-count" style="color: #059669;">${statusCounts.completed}</div>
-        <div class="status-label">Completed</div>
-      </div>
-    </div>
+      summaryCards.forEach((card, index) => {
+        const cardX = marginX + index * (cardWidth + cardGap);
+        drawPdfCard(doc, cardX, cursorY, cardWidth, 24, card.fill);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+        doc.text(card.label.toUpperCase(), cardX + 4, cursorY + 7);
+        doc.setFontSize(14);
+        doc.setTextColor(...hexToRgb(card.text));
+        doc.text(card.value, cardX + 4, cursorY + 17);
+      });
+      cursorY += 32;
 
-    <h2 class="section-title">Project Details</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Project ID</th>
-          <th>Project Name</th>
-          <th>Client</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Progress</th>
-          <th>Budget</th>
-          <th>Spent</th>
-          <th>Remaining</th>
-          <th>Site Engineer</th>
-          <th>Location</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${projects.map(project => {
-          const budget = parseFloat(project.budget) || 0;
-          const spent = parseFloat(project.spent) || 0;
-          const remaining = budget - spent;
-          const progress = project.progress || 0;
-          
-          let statusClass = 'status-badge';
-          if (project.status === 'Planning') statusClass += ' status-planning';
-          else if (project.status === 'In Progress') statusClass += ' status-progress';
-          else if (project.status === 'Completed') statusClass += ' status-completed';
-          
-          return `
-          <tr>
-            <td><strong>${project.id || 'N/A'}</strong></td>
-            <td><strong>${project.name || 'Unnamed Project'}</strong></td>
-            <td>${project.clientName || project.client || 'N/A'}</td>
-            <td>${project.type || project.projectType || 'N/A'}</td>
-            <td><span class="${statusClass}">${project.status || 'N/A'}</span></td>
-            <td>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress}%">${progress}%</div>
-              </div>
-            </td>
-            <td>${formatCurrency(budget)}</td>
-            <td>${formatCurrency(spent)}</td>
-            <td class="${remaining < 0 ? 'amount-negative' : 'amount-positive'}">${formatCurrency(remaining)}</td>
-            <td>${project.assignedEngineer?.name || project.assignedEngineerName || project.engineerName || project.engineer?.name || 'Not Assigned'}</td>
-            <td>${project.location || 'N/A'}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...hexToRgb(PDF_THEME.text));
+      doc.text('Project Status Overview', marginX, cursorY);
+      cursorY += 5;
 
-    <div class="footer">
-      <p>This consolidated report was automatically generated on ${new Date().toLocaleString('en-IN', { 
-        dateStyle: 'full', 
-        timeStyle: 'short' 
-      })}</p>
-      <p style="margin-top: 8px;">Project Management System</p>
-    </div>
-  </div>
-</body>
-</html>`;
+      const statusCards = [
+        { label: 'Planning', count: statusCounts.planning, fill: '#FFFBEB', accent: PDF_THEME.planning },
+        { label: 'In Progress', count: statusCounts.inProgress, fill: '#EFF6FF', accent: PDF_THEME.inProgress },
+        { label: 'On Hold', count: statusCounts.onHold, fill: '#FEF2F2', accent: PDF_THEME.onHold },
+        { label: 'Completed', count: statusCounts.completed, fill: '#ECFDF5', accent: PDF_THEME.completed },
+      ];
 
-    // ✅ Download the generated HTML
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const date = new Date().toISOString().split('T')[0];
-    a.download = `All_Projects_Report_${date}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      statusCards.forEach((card, index) => {
+        const cardX = marginX + index * (cardWidth + cardGap);
+        drawPdfCard(doc, cardX, cursorY, cardWidth, 20, card.fill);
+        doc.setFillColor(...hexToRgb(card.accent));
+        doc.circle(cardX + 6, cursorY + 6, 1.6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(...hexToRgb(PDF_THEME.text));
+        doc.text(card.label, cardX + 10, cursorY + 7);
+        doc.setFontSize(16);
+        doc.text(String(card.count), cardX + 4, cursorY + 16);
+      });
+      cursorY += 28;
 
-    console.log('✅ All projects report downloaded successfully');
-    return true;
-  } catch (error) {
-    console.error('❌ Error generating all projects report:', error);
-    throw error;
-  }
-},
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...hexToRgb(PDF_THEME.text));
+      doc.text('Project Details Table', marginX, cursorY);
+      cursorY += 4;
 
-  downloadReport: (html, projectName) => {
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+      const tableRows = projects.map((project) => {
+        const budget = parseFloat(project.budget) || 0;
+        const spent = parseFloat(project.spent) || 0;
+        const remaining = budget - spent;
+        const progress = project.progress || 0;
+
+        return [
+          project.id || 'N/A',
+          project.name || 'Unnamed Project',
+          project.clientName || project.client || 'N/A',
+          project.type || project.projectType || 'N/A',
+          project.status || 'N/A',
+          `${progress}%`,
+          formatReportCurrency(budget),
+          formatReportCurrency(spent),
+          formatReportCurrency(remaining),
+          project.assignedEngineer?.name || project.assignedEngineerName || project.engineerName || project.engineer?.name || 'Not Assigned',
+          project.location || 'N/A',
+        ];
+      });
+
+      autoTable(doc, {
+        startY: cursorY,
+        margin: { left: marginX, right: marginX, bottom: 22 },
+        head: [[
+          'Project ID',
+          'Project Name',
+          'Client',
+          'Type',
+          'Status',
+          'Progress',
+          'Budget',
+          'Spent',
+          'Remaining',
+          'Site Engineer',
+          'Location',
+        ]],
+        body: tableRows,
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 8,
+          textColor: hexToRgb(PDF_THEME.text),
+          lineColor: hexToRgb(PDF_THEME.border),
+          lineWidth: 0.2,
+          cellPadding: 2.8,
+          valign: 'middle',
+        },
+        headStyles: {
+          fillColor: hexToRgb(PDF_THEME.primary),
+          textColor: hexToRgb(PDF_THEME.text),
+          fontStyle: 'bold',
+          halign: 'left',
+        },
+        alternateRowStyles: {
+          fillColor: hexToRgb(PDF_THEME.rowAlt),
+        },
+        bodyStyles: {
+          fillColor: hexToRgb(PDF_THEME.white),
+        },
+        columnStyles: {
+          0: { cellWidth: 18 },
+          1: { cellWidth: 28 },
+          2: { cellWidth: 24 },
+          3: { cellWidth: 18 },
+          4: { cellWidth: 20, halign: 'center' },
+          5: { cellWidth: 16, halign: 'center' },
+          6: { cellWidth: 22, halign: 'right' },
+          7: { cellWidth: 22, halign: 'right' },
+          8: { cellWidth: 24, halign: 'right' },
+          9: { cellWidth: 28 },
+          10: { cellWidth: 24 },
+        },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 8) {
+            const rawValue = String(data.cell.raw || '');
+            data.cell.styles.textColor = rawValue.includes('-') ? hexToRgb('#B91C1C') : hexToRgb('#047857');
+            data.cell.styles.fontStyle = 'bold';
+          }
+
+          if (data.section === 'body' && data.column.index === 4) {
+            data.cell.text = [''];
+          }
+        },
+        didDrawCell: (data) => {
+          if (data.section === 'body' && data.column.index === 4) {
+            const status = projects[data.row.index]?.status || 'N/A';
+            const tone = getProjectStatusTone(status);
+            const badgeWidth = Math.min(data.cell.width - 4, Math.max(12, doc.getTextWidth(status) + 8));
+            const badgeHeight = 6;
+            const badgeX = data.cell.x + (data.cell.width - badgeWidth) / 2;
+            const badgeY = data.cell.y + (data.cell.height - badgeHeight) / 2;
+
+            doc.setFillColor(...hexToRgb(tone.fill));
+            doc.roundedRect(badgeX, badgeY, badgeWidth, badgeHeight, 3, 3, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(...hexToRgb(tone.text));
+            doc.text(status, badgeX + badgeWidth / 2, badgeY + 4, { align: 'center' });
+          }
+        },
+      });
+
+      addProjectReportFooter(doc, generatedAtText);
+
+      const date = generatedAt.toISOString().split('T')[0];
+      doc.save(`Project_Management_Report_${date}.pdf`);
+
+      console.log('All projects PDF report downloaded successfully');
+      return true;
+    } catch (error) {
+      console.error('Error generating all projects PDF report:', error);
+      throw error;
+    }
+  },
+
+  downloadReport: async (html, projectName) => {
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-10000px';
+    container.style.top = '0';
+    container.style.width = '900px';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+
     const sanitizedName = projectName.replace(/[^a-z0-9]/gi, '_');
     const date = new Date().toISOString().split('T')[0];
-    a.download = `${sanitizedName}_Report_${date}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+
+    try {
+      await doc.html(container, {
+        x: 18,
+        y: 18,
+        width: 559,
+        windowWidth: 900,
+        html2canvas: {
+          scale: 0.7,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+        },
+        autoPaging: 'text',
+      });
+      doc.save(`${sanitizedName}_Report_${date}.pdf`);
+    } finally {
+      document.body.removeChild(container);
+    }
   }
 };
 

@@ -1,9 +1,11 @@
 // src/routes/labourRoutes.js
 import express from 'express';
+import multer from 'multer';
 import { 
   getAllLabourers,
   getLabourerById,
   createLabourer,
+  uploadLabourList,
   updateLabourer,
   deleteLabourer,
   addPayment,
@@ -15,6 +17,15 @@ import {
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const extension = file.originalname.slice(file.originalname.lastIndexOf('.')).toLowerCase();
+    if (['.csv', '.xlsx'].includes(extension)) return cb(null, true);
+    return cb(new Error('Only CSV and Excel files are allowed'));
+  }
+});
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -26,6 +37,7 @@ router.get('/:id', getLabourerById);
 
 // Create labourer (no immediate spending impact)
 router.post('/', createLabourer);
+router.post('/upload', upload.single('file'), uploadLabourList);
 
 // Update labourer details (no immediate spending impact)
 router.put('/:id', updateLabourer);

@@ -1,5 +1,80 @@
   // src/controllers/labourController.js
   import * as labourService from '../services/labourService.js';
+  import ExcelJS from 'exceljs';
+
+  const getCellText = (value) => {
+    if (value == null) return '';
+    if (typeof value === 'object') {
+      if (value.text) return String(value.text).trim();
+      if (value.result != null) return String(value.result).trim();
+      if (Array.isArray(value.richText)) return value.richText.map((part) => part.text).join('').trim();
+    }
+    return String(value).trim();
+  };
+
+  const normalizeHeader = (value) => getCellText(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const parseCsvRows = (text) => {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      const nextChar = text[index + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        row.push(cell.trim());
+        cell = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') index += 1;
+        row.push(cell.trim());
+        if (row.some(Boolean)) rows.push(row);
+        row = [];
+        cell = '';
+      } else {
+        cell += char;
+      }
+    }
+
+    row.push(cell.trim());
+    if (row.some(Boolean)) rows.push(row);
+    return rows;
+  };
+
+  const parseLabourFile = async (file) => {
+    const extension = file.originalname.split('.').pop()?.toLowerCase();
+
+    if (extension === 'csv') {
+      return parseCsvRows(file.buffer.toString('utf8'));
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer);
+    const worksheet = workbook.worksheets[0];
+    const rows = [];
+
+    worksheet.eachRow((worksheetRow) => {
+      const values = [];
+      worksheetRow.eachCell({ includeEmpty: true }, (cell) => {
+        values.push(getCellText(cell.value));
+      });
+      if (values.some(Boolean)) rows.push(values);
+    });
+
+    return rows;
+  };
+
+  const pickValue = (row, headerMap, keys) => {
+    const index = keys.map((key) => headerMap[key]).find((value) => value !== undefined);
+    return index === undefined ? '' : getCellText(row[index]);
+  };
 
   // Get all labourers for a company
   export const getAllLabourers = async (req, res) => {
@@ -352,6 +427,66 @@
       res.status(500).json({
         success: false,
         error: 'Failed to fetch labour statistics',
+        details: error.message
+      });
+    }
+  };
+
+  export const uploadLabourList = async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+      }
+
+      const companyId = req.user.companyId;
+      const rows = await parseLabourFile(req.file);
+
+      if (rows.length < 2) {
+        return res.status(400).json({ success: false, error: 'Upload file must include a header row and at least one labour row' });
+      }
+
+      const headerMap = rows[0].map(normalizeHeader).reduce((map, header, index) => ({ ...map, [header]: index }), {});
+      const created = [];
+      const skipped = [];
+
+      for (const row of rows.slice(1)) {
+        const name = pickValue(row, headerMap, ['name', 'labourname', 'labourername', 'workername']);
+        const phone = pickValue(row, headerMap, ['phone', 'phonenumber', 'mobile', 'mobilenumber', 'contact', 'contactnumber']);
+
+        if (!name || !phone) {
+          skipped.push({ row: created.length + skipped.length + 2, reason: 'Missing name or phone' });
+          continue;
+        }
+
+        const projectId = pickValue(row, headerMap, ['projectid']);
+        const labourer = await labourService.createLabourer({
+          name,
+          phone,
+          address: pickValue(row, headerMap, ['address']),
+          designation: pickValue(row, headerMap, ['designation', 'role', 'trade']),
+          project: pickValue(row, headerMap, ['project', 'projectname', 'assignedproject']),
+          projectId: projectId ? parseInt(projectId, 10) : null,
+          companyId
+        });
+        created.push(labourer);
+      }
+
+      if (created.length === 0) {
+        return res.status(400).json({ success: false, error: 'No valid labour rows found', skipped });
+      }
+
+      res.status(201).json({
+        success: true,
+        data: created,
+        skipped,
+        count: created.length,
+        message: `Uploaded ${created.length} labour${created.length === 1 ? '' : 'ers'} successfully${skipped.length ? `, skipped ${skipped.length}` : ''}.`
+      });
+    } catch (error) {
+      console.error('Upload labour list error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to upload labour list',
         details: error.message
       });
     }

@@ -23,11 +23,28 @@ model User {
   customMembers      Int?
   gstNumber          String              @default("")
   isActive           Boolean             @default(false)
+  clientId           Int?
+  crmLeadId          String?
+  crmCustomerId      String?
+  erpCustomerId      String?
+  accountStatus      String              @default("ACTIVE")
+  subscriptionStatus String?
+  trialStartDate     DateTime?
+  trialEndDate       DateTime?
+  subscriptionStartedAt DateTime?
+  subscriptionPlan   String?
   Bill               Bill[]
+  client             Client?             @relation(fields: [clientId], references: [id])
+  crmInvitations     CrmInvitation[]
+  customerSubscriptions CustomerSubscription[]
   uploadedFiles      File[]
   projectAssignments ProjectAssignment[]
   company            Company?            @relation(fields: [companyId], references: [id])
 
+  @@index([clientId])
+  @@index([crmLeadId])
+  @@index([crmCustomerId])
+  @@index([subscriptionStatus])
   @@index([phoneNumber])
 }
 
@@ -272,6 +289,7 @@ model Company {
   logo      String?
   Bill      Bill[]
   clients   Client[]
+  crmInvitations CrmInvitation[]
   labours   Labour[]
   materials Material[]
   projects  Project[]
@@ -459,20 +477,74 @@ model BillItem {
 }
 
 model Client {
-  id            Int      @id @default(autoincrement())
-  companyId     String   @db.VarChar(255)
-  clientName    String   @db.VarChar(255)
-  clientAddress String?
-  clientGST     String?  @db.VarChar(50)
-  clientPhone   String?  @db.VarChar(20)
-  clientEmail   String?  @db.VarChar(255)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
-  companyName   String?  @db.VarChar(255)
-  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id             Int             @id @default(autoincrement())
+  companyId      String          @db.VarChar(255)
+  clientName     String          @db.VarChar(255)
+  clientAddress  String?
+  clientGST      String?         @db.VarChar(50)
+  clientPhone    String?         @db.VarChar(20)
+  clientEmail    String?         @db.VarChar(255)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  companyName    String?         @db.VarChar(255)
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  crmInvitations CrmInvitation[]
+  users          User[]
 
   @@index([companyId])
   @@index([clientName])
+}
+
+model CrmInvitation {
+  id               Int       @id @default(autoincrement())
+  idempotencyKey   String    @unique
+  crmLeadId        String    @unique
+  crmCustomerId    String    @unique
+  invitationId     String?   @unique
+  erpCustomerId    String
+  status           String    @default("INVITED")
+  companyId        String
+  clientId         Int
+  registeredUserId String?
+  requestPayload   Json      @default("{}")
+  registeredAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  client           Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  company          Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  registeredUser   User?     @relation(fields: [registeredUserId], references: [id])
+
+  @@index([companyId])
+  @@index([clientId])
+  @@index([registeredUserId])
+  @@index([status])
+  @@map("crm_invitations")
+}
+
+model CustomerSubscription {
+  id             Int      @id @default(autoincrement())
+  userId         String
+  crmCustomerId  String
+  erpCustomerId  String
+  eventId        String   @unique
+  action         String
+  status         String
+  plan           String?
+  trialStartDate DateTime?
+  trialEndDate   DateTime?
+  purchaseDate   DateTime?
+  crmSyncedAt    DateTime?
+  crmSyncStatus  String?
+  crmSyncPayload Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([crmCustomerId])
+  @@index([erpCustomerId])
+  @@index([status])
+  @@map("customer_subscriptions")
 }
 
 enum ProjectMaterialStatus {

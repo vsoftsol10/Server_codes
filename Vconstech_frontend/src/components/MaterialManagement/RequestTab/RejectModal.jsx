@@ -10,7 +10,7 @@ const RejectModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6">
         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">
           Reject Material Request

@@ -1,10 +1,9 @@
 // src/routes/financialRoutes.js
 import express from 'express';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ============ GET ALL PROJECTS WITH FINANCIAL DATA ============
 router.get('/projects', authenticateToken, async (req, res) => {

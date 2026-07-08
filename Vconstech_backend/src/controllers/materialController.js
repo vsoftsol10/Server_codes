@@ -1,8 +1,6 @@
 // src/controllers/materialController.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { generateMaterialId } from '../utils/generateId.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Get dashboard data (metrics + recent usage logs)
@@ -276,7 +274,7 @@ export const getAllMaterials = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
 const formattedMaterials = materials.map(m => ({
   ...m,
   files: (m.files || []).map(fileUrl => {
@@ -354,7 +352,7 @@ export const getMaterialById = async (req, res) => {
       });
     }
 
-   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+   const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
 const formattedMaterial = {
   ...material,
   files: (material.files || []).map(fileUrl => {

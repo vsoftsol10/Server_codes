@@ -2,11 +2,10 @@
 // FIXED VERSION - Uses correct model accessor
 
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * @route   POST /api/daily-progress

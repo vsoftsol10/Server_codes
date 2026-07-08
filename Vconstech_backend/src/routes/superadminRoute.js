@@ -1,11 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { downloadUserData } from '../controllers/Userexportcontroller.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Create User Route
 router.post('/create-user', async (req, res) => {

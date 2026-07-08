@@ -13,11 +13,11 @@ import {
 } from '../controllers/projectController.js';
 import { authenticateToken, authorizeRole } from '../middlewares/authMiddlewares.js';
 import { upload } from '../config/multerConfig.js';
-import { PrismaClient } from '@prisma/client';import { validateProjectCreate, validateProjectUpdate } from '../middlewares/projectMiddleware.js';
+import { prisma } from '../config/database.js';
+import { validateProjectCreate, validateProjectUpdate } from '../middlewares/projectMiddleware.js';
 
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ============================================
 // CUSTOM MIDDLEWARE FOR PROJECT ACCESS

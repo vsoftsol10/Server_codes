@@ -1,9 +1,449 @@
+// import React, { useState, useEffect } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import {
+//   LayoutGrid, Package, DollarSign, FileText, TrendingUp,
+//   Calendar, Users, ArrowRight, ChevronLeft, ChevronRight,
+//   IndianRupee, AlertCircle, Loader, MapPin
+// } from 'lucide-react';
+// import Navbar from '../../components/common/Navbar';
+// import SidePannel from '../../components/common/SidePannel';
+// import LoadingScreen from '../../components/common/Loadingscreen';
+// import { getToken } from '../../utils/tabToken';
+
+// const API_BASE_URL = '/api';
+
+// const Dashboard = () => {
+//   const navigate = useNavigate();
+//   const [currentSlide, setCurrentSlide] = useState(0);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+//   const [dashboardData, setDashboardData] = useState({
+//     projects: [],
+//     materials: { metrics: {}, usageLogs: [] },
+//     financial: { projects: [], count: 0 },
+//     engineers: [],
+//     contracts: []
+//   });
+
+//   useEffect(() => {
+//       document.title = "Vconstech - Admin";
+//     }, []);
+
+//   const getAuthToken = () => getToken();
+
+//   const fetchData = async (endpoint) => {
+//     const token = getAuthToken();
+//     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+//       headers: {
+//         'Authorization': `Bearer ${token}`,
+//         'Content-Type': 'application/json'
+//       }
+//     });
+//     const contentType = response.headers.get('content-type');
+//     if (!contentType || !contentType.includes('application/json')) {
+//       throw new Error(`Expected JSON but got ${contentType || 'unknown'} from ${endpoint}`);
+//     }
+//     const data = await response.json();
+//     if (!response.ok) throw new Error(data.error || 'An error occurred');
+//     return data;
+//   };
+
+//   useEffect(() => {
+//     const fetchAllData = async () => {
+//       setLoading(true);
+//       setError(null);
+//       try {
+//         const token = getAuthToken();
+//         if (!token) throw new Error('No authentication token found. Please login.');
+//         const results = await Promise.allSettled([
+//           fetchData('/projects'),
+//           fetchData('/materials/dashboard'),
+//           fetchData('/financial/projects'),
+//           fetchData('/employees'),
+//           fetchData('/contracts')
+//         ]);
+//         setDashboardData({
+//           projects: results[0].status === 'fulfilled' ? results[0].value.projects || [] : [],
+//           materials: results[1].status === 'fulfilled' ? results[1].value.data || { metrics: {}, usageLogs: [] } : { metrics: {}, usageLogs: [] },
+//           financial: results[2].status === 'fulfilled' ? { projects: results[2].value.projects || [], count: results[2].value.count || 0 } : { projects: [], count: 0 },
+//           engineers: results[3].status === 'fulfilled' ? results[3].value.employees || [] : [],
+//           contracts: results[4].status === 'fulfilled' ? results[4].value.contracts || [] : []
+//         });
+//         results.forEach((res, idx) => {
+//           if (res.status === 'rejected') console.warn(`Failed to fetch data [${idx}]:`, res.reason);
+//         });
+//       } catch (err) {
+//         console.error('Dashboard data fetch error:', err);
+//         setError(err.message || 'Failed to load dashboard data');
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+//     fetchAllData();
+//   }, []);
+
+//   const isActiveStatus = (status) => {
+//     const s = (status || '').toLowerCase().trim();
+//     return ['in progress', 'inprogress', 'active', 'ongoing'].includes(s);
+//   };
+
+//   const calculateSummaryCards = () => {
+//     const ongoingProjects = dashboardData.projects.filter(p => ['ONGOING', 'In Progress'].includes(p.status));
+//     const totalRevenue = dashboardData.financial.projects.reduce((sum, p) => sum + (parseFloat(p.quotationAmount) || 0), 0);
+//     const totalContractValue = dashboardData.contracts.reduce((sum, c) => sum + (parseFloat(c.contractValue || c.contractAmount || 0)), 0);
+//     const activeContracts = dashboardData.contracts.filter(c => isActiveStatus(c.status || c.workStatus)).length;
+//     return [
+//       {
+//         icon: LayoutGrid,
+//         title: 'Projects',
+//         value: dashboardData.projects.length,
+//         subtitle: `${ongoingProjects.length} Ongoing`,
+//         gradient: 'from-red-400 to-red-600',
+//         lightBg: 'bg-red-50',
+//         textColor: 'text-red-600'
+//       },
+//       {
+//         icon: Package,
+//         title: 'Materials',
+//         value: dashboardData.materials.metrics?.totalMaterials || 0,
+//         subtitle: `${dashboardData.materials.usageLogs?.length || 0} Recent`,
+//         gradient: 'from-orange-400 to-orange-600',
+//         lightBg: 'bg-orange-50',
+//         textColor: 'text-orange-600'
+//       },
+//       {
+//         icon: IndianRupee,
+//         title: 'Finance',
+//         value: `₹${((totalRevenue + totalContractValue) / 100000).toFixed(1)}L`,
+//         subtitle: `${dashboardData.financial.count || 0} Projects`,
+//         gradient: 'from-green-400 to-green-600',
+//         lightBg: 'bg-green-50',
+//         textColor: 'text-green-600'
+//       },
+//       {
+//         icon: FileText,
+//         title: 'Contracts',
+//         value: dashboardData.contracts.length,
+//         subtitle: `${activeContracts} Active`,
+//         gradient: 'from-blue-400 to-blue-600',
+//         lightBg: 'bg-blue-50',
+//         textColor: 'text-blue-600'
+//       }
+//     ];
+//   };
+
+//   const getOngoingProjects = () => {
+//     return dashboardData.projects
+//       .filter(p => ['ONGOING', 'In Progress'].includes(p.status))
+//       .slice(0, 4)
+//       .map(project => {
+//         const actualProgress = project.actualProgress || 0;
+//         const start = new Date(project.startDate);
+//         const end = new Date(project.endDate);
+//         const totalDays = (end - start) / (1000 * 60 * 60 * 24);
+//         const elapsed = (new Date() - start) / (1000 * 60 * 60 * 24);
+//         const timeProgress = Math.min(Math.max(Math.round((elapsed / totalDays) * 100), 0), 100);
+//         const progressStatus = actualProgress > timeProgress + 10 ? 'ahead' : actualProgress < timeProgress - 10 ? 'behind' : 'ontrack';
+//         return {
+//           ...project,
+//           progress: actualProgress,
+//           timeProgress,
+//           progressStatus,
+//           client: project.clientName || 'N/A',
+//           location: project.location || 'Not specified',
+//           projectType: project.projectType || 'General'
+//         };
+//       });
+//   };
+
+//   const getContractStats = () => {
+//     const active = dashboardData.contracts.filter(c => isActiveStatus(c.status || c.workStatus)).length;
+//     const completed = dashboardData.contracts.filter(c => {
+//       const s = (c.status || c.workStatus || '').toLowerCase().trim();
+//       return ['completed', 'finished', 'closed', 'done'].includes(s);
+//     }).length;
+//     const pending = dashboardData.contracts.filter(c => {
+//       const s = (c.status || c.workStatus || '').toLowerCase().trim();
+//       return ['pending', 'draft', 'awaiting', 'not started'].includes(s);
+//     }).length;
+//     const totalValue = dashboardData.contracts.reduce((sum, c) => sum + (parseFloat(c.contractValue || c.contractAmount || 0)), 0);
+//     return { active, completed, pending, totalValue, total: dashboardData.contracts.length };
+//   };
+
+//   useEffect(() => {
+//     const projects = getOngoingProjects();
+//     if (projects.length === 0) return;
+//     const timer = setInterval(() => {
+//       setCurrentSlide(prev => (prev + 1) % projects.length);
+//     }, 5000);
+//     return () => clearInterval(timer);
+//   }, [dashboardData.projects]);
+
+//   if (loading) {
+//   return <LoadingScreen message="Loading dashboard..." />;
+// }
+
+//   if (error) {
+//     return (
+//       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+//         <div className="bg-white rounded-2xl shadow p-8 max-w-sm w-full text-center">
+//           <AlertCircle className="text-red-400 mx-auto mb-3" size={40} />
+//           <h2 className="text-lg font-semibold text-gray-800 mb-2">Failed to load</h2>
+//           <p className="text-gray-500 text-sm mb-5">{error}</p>
+//           <button
+//             onClick={() => window.location.reload()}
+//             className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors"
+//           >
+//             Retry
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   const summaryCards = calculateSummaryCards();
+//   const ongoingProjects = getOngoingProjects();
+//   const contractStats = getContractStats();
+//   const navSlide = (dir) => setCurrentSlide(prev => (prev + dir + ongoingProjects.length) % ongoingProjects.length);
+
+//   return (
+//     <div className="min-h-screen bg-gray-50">
+//       {/* Navbar */}
+//       <nav className="fixed top-0 left-0 right-0 z-50 h-16">
+//         <Navbar />
+//       </nav>
+
+//       {/* SidePannel renders both desktop sidebar AND mobile bottom nav internally */}
+//       <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+//         <SidePannel />
+//       </aside>
+
+//       {/* Main content */}
+//       <div className="pt-22 md:pl-64 md:pt-25 ">
+//         <div className="px-3 sm:px-6 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto space-y-5">
+
+//           {/* Page heading */}
+//           <div className="pt-1">
+//             <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+//             <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your projects.</p>
+//           </div>
+
+//           {/* Summary Cards — 2 cols on mobile, 4 on desktop */}
+//           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+//             {summaryCards.map((card, index) => {
+//               const Icon = card.icon;
+//               return (
+//                 <div
+//                   key={index}
+//                   className={`bg-gradient-to-br ${card.gradient} rounded-2xl p-4 shadow-sm relative overflow-hidden cursor-pointer active:scale-95 transition-transform`}
+//                 >
+//                   {/* Decorative circles */}
+//                   <div className="absolute -top-4 -right-4 w-16 h-16 bg-white opacity-10 rounded-full" />
+//                   <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-white opacity-10 rounded-full" />
+
+//                   <div className="relative">
+//                     <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-sm">
+//                       <Icon size={24} className="text-gray-700" strokeWidth={2} />
+//                     </div>
+//                      <p className="text-white text-l font-semibold mt-1 opacity-90">{card.title}</p>
+//                     <p className="text-white text-2xl font-bold leading-none">{card.value}</p>
+//                     <p className="text-white text-xs opacity-70 mt-0.5">{card.subtitle}</p>
+//                   </div>
+//                 </div>
+//               );
+//             })}
+//           </div>
+
+//           {/* Ongoing Projects Carousel */}
+//           {ongoingProjects.length > 0 && (
+//             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+//               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+//                 <h2 className="text-xl font-bold text-gray-800">Ongoing Projects</h2>
+//                 <div className="flex gap-1.5">
+//                   <button
+//                     onClick={() => navSlide(-1)}
+//                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors"
+//                   >
+//                     <ChevronLeft size={16} />
+//                   </button>
+//                   <button
+//                     onClick={() => navSlide(1)}
+//                     className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors"
+//                   >
+//                     <ChevronRight size={16} />
+//                   </button>
+//                 </div>
+//               </div>
+
+//               <div className="relative overflow-hidden">
+//                 <div
+//                   className="flex transition-transform duration-500 ease-in-out"
+//                   style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+//                 >
+//                   {ongoingProjects.map((project) => (
+//                     <div key={project.id} className="min-w-full p-4">
+//                       {/* Project card */}
+//                       <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-4">
+//                         {/* Badges + name */}
+//                         <div>
+//                           <div className="flex flex-wrap gap-1.5 mb-2">
+//                             <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
+//                               {project.projectId}
+//                             </span>
+//                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
+//                               {project.projectType}
+//                             </span>
+//                           </div>
+//                           <h3 className="text-xl font-bold text-gray-900">{project.name}</h3>
+//                           {project.description && (
+//                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{project.description}</p>
+//                           )}
+//                         </div>
+
+//                         {/* Info grid — 2 cols on mobile */}
+//                         <div className="grid grid-cols-2 gap-2">
+//                           {[
+//                             { icon: Users, label: 'Client', value: project.client, color: 'text-blue-500' },
+//                             { icon: MapPin, label: 'Location', value: project.location, color: 'text-red-500' },
+//                             ...(project.budget ? [{ icon: IndianRupee, label: 'Budget', value: `₹${(project.budget / 100000).toFixed(2)}L`, color: 'text-green-500' }] : []),
+//                             { icon: Calendar, label: 'End Date', value: new Date(project.endDate).toLocaleDateString(), color: 'text-purple-500' }
+//                           ].map((item, i) => (
+//                             <div key={i} className="flex items-start gap-2 bg-white rounded-lg p-2.5 border border-gray-100">
+//                               <item.icon size={14} className={`${item.color} mt-0.5 flex-shrink-0`} />
+//                               <div className="min-w-0">
+//                                 <p className="text-sm text-gray-400">{item.label}</p>
+//                                 <p className="text-xs font-semibold text-gray-800 truncate">{item.value}</p>
+//                               </div>
+//                             </div>
+//                           ))}
+//                         </div>
+
+//                         {/* Progress bar */}
+//                         <div className="bg-white rounded-lg border border-gray-100 p-3">
+//                           <div className="flex justify-between items-center mb-2">
+//                             <span className="text-sm font-semibold text-gray-700">Progress</span>
+//                             <span className="text-sm font-bold text-yellow-600">{project.progress}%</span>
+//                           </div>
+//                           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+//                             <div
+//                               className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-full rounded-full transition-all duration-500"
+//                               style={{ width: `${project.progress}%` }}
+//                             />
+//                           </div>
+//                           <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
+//                             <span>Time: {project.timeProgress}%</span>
+//                             {project.progressStatus === 'ahead' && (
+//                               <span className="text-green-600 font-medium">↑ Ahead</span>
+//                             )}
+//                             {project.progressStatus === 'behind' && (
+//                               <span className="text-red-500 font-medium">↓ Behind</span>
+//                             )}
+//                             {project.progressStatus === 'ontrack' && (
+//                               <span className="text-blue-500 font-medium">→ On track</span>
+//                             )}
+//                           </div>
+//                         </div>
+
+//                         {/* CTA */}
+//                         <button
+//                           onClick={() => navigate('/project')}
+//                           className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-sm font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
+//                         >
+//                           View Project Details
+//                           <ArrowRight size={15} />
+//                         </button>
+//                       </div>
+//                     </div>
+//                   ))}
+//                 </div>
+//               </div>
+
+//               {/* Dot indicators */}
+//               <div className="flex justify-center gap-1.5 pb-3">
+//                 {ongoingProjects.map((_, index) => (
+//                   <button
+//                     key={index}
+//                     onClick={() => setCurrentSlide(index)}
+//                     className={`h-2 rounded-full transition-all duration-300 ${
+//                       index === currentSlide ? 'bg-yellow-500 w-6' : 'bg-gray-300 w-2'
+//                     }`}
+//                   />
+//                 ))}
+//               </div>
+//             </div>
+//           )}
+
+//           {/* Bottom insights — stacked on mobile, side by side on desktop */}
+//           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+//             {/* Contract Statistics */}
+//             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+//               <div className="flex items-center justify-between mb-4">
+//                 <h2 className="text-xl font-bold text-gray-800">Contract Statistics</h2>
+//                 <div className="bg-blue-50 p-1.5 rounded-lg">
+//                   <FileText size={16} className="text-blue-500" />
+//                 </div>
+//               </div>
+//               <div className="space-y-2.5">
+//                 {[
+//                   { label: 'Total Contracts', value: contractStats.total, bg: 'bg-blue-50', dot: 'bg-blue-500', text: 'text-blue-700' },
+//                   { label: 'Active Contracts', value: contractStats.active, bg: 'bg-green-50', dot: 'bg-green-500', text: 'text-green-700' },
+//                   { label: 'Pending Contracts', value: contractStats.pending, bg: 'bg-yellow-50', dot: 'bg-yellow-400', text: 'text-yellow-700' },
+//                   { label: 'Total Value', value: `₹${(contractStats.totalValue / 100000).toFixed(1)}L`, bg: 'bg-gray-50', dot: 'bg-purple-400', text: 'text-purple-700' },
+//                 ].map((stat, i) => (
+//                   <div key={i} className={`flex items-center justify-between px-3 py-2.5 ${stat.bg} rounded-xl`}>
+//                     <div className="flex items-center gap-2.5">
+//                       <div className={`w-2.5 h-2.5 rounded-full ${stat.dot}`} />
+//                       <span className="text-sm text-gray-700">{stat.label}</span>
+//                     </div>
+//                     <span className={`text-base font-bold ${stat.text}`}>{stat.value}</span>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+
+//             {/* Quick Stats */}
+//             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+//               <div className="flex items-center justify-between mb-4">
+//                 <h2 className="text-xl font-bold text-gray-800">Quick Stats</h2>
+//                 <div className="bg-yellow-50 p-1.5 rounded-lg">
+//                   <Calendar size={16} className="text-yellow-500" />
+//                 </div>
+//               </div>
+//               <div className="space-y-2.5">
+//                 {[
+//                   { icon: Users, label: 'Active Engineers', value: dashboardData.engineers.length, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', valColor: 'text-blue-700' },
+//                   { icon: Package, label: 'Total Materials', value: dashboardData.materials.metrics?.totalMaterials || 0, iconBg: 'bg-green-50', iconColor: 'text-green-500', valColor: 'text-green-700' },
+//                   { icon: IndianRupee, label: 'Total Projects', value: dashboardData.financial.count || 0, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', valColor: 'text-purple-700' },
+//                 ].map((stat, i) => (
+//                   <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
+//                     <div className="flex items-center gap-2.5">
+//                       <div className={`${stat.iconBg} p-1.5 rounded-lg`}>
+//                         <stat.icon size={15} className={stat.iconColor} />
+//                       </div>
+//                       <span className="text-sm text-gray-700">{stat.label}</span>
+//                     </div>
+//                     <span className={`text-base font-bold ${stat.valColor}`}>{stat.value}</span>
+//                   </div>
+//                 ))}
+//               </div>
+//             </div>
+//           </div>
+
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Dashboard;
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, Package, DollarSign, FileText, TrendingUp,
   Calendar, Users, ArrowRight, ChevronLeft, ChevronRight,
-  IndianRupee, AlertCircle, Loader, MapPin
+  IndianRupee, AlertCircle, Loader, MapPin, Database
 } from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
@@ -11,6 +451,48 @@ import LoadingScreen from '../../components/common/Loadingscreen';
 import { getToken } from '../../utils/tabToken';
 
 const API_BASE_URL = '/api';
+
+/* ── tiny helpers ── */
+const Sparkline = ({ color = '#f59e0b', points = '0,20 10,14 20,18 30,10 40,15 50,8 60,12' }) => (
+  <svg width="64" height="28" viewBox="0 0 64 28" fill="none">
+    <polyline points={points} stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" fill="none" />
+  </svg>
+);
+
+const DonutChart = ({ total, active, pending, completed }) => {
+  const cx = 90, cy = 90, r = 68, stroke = 14;
+  const circ = 2 * Math.PI * r;
+  const sum = total || 1;
+  const segments = [
+    { value: active,    color: '#22c55e' },
+    { value: pending,   color: '#f97316' },
+    { value: completed, color: '#9ca3af' },
+    { value: Math.max(0, total - active - pending - completed), color: '#facc15' },
+  ];
+  let offset = 0;
+  const arcs = segments.map((seg, i) => {
+    const dash = (seg.value / sum) * circ;
+    const arc = (
+      <circle key={i} cx={cx} cy={cy} r={r}
+        fill="none" stroke={seg.color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ - dash}`}
+        strokeDashoffset={-offset}
+        style={{ transform: 'rotate(-90deg)', transformOrigin: `${cx}px ${cy}px` }}
+      />
+    );
+    offset += dash;
+    return arc;
+  });
+
+  return (
+    <svg width="180" height="180" viewBox="0 0 180 180">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={stroke} />
+      {total > 0 ? arcs : null}
+      <text x={cx} y={cy - 8} textAnchor="middle" fontSize="26" fontWeight="700" fill="#111827">{total}</text>
+      <text x={cx} y={cy + 14} textAnchor="middle" fontSize="11" fill="#6b7280">Total Contracts</text>
+    </svg>
+  );
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -25,19 +507,14 @@ const Dashboard = () => {
     contracts: []
   });
 
-  useEffect(() => {
-      document.title = "Vconstech - Admin";
-    }, []);
+  useEffect(() => { document.title = "Vconstech - Admin"; }, []);
 
   const getAuthToken = () => getToken();
 
   const fetchData = async (endpoint) => {
     const token = getAuthToken();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     });
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
@@ -94,41 +571,49 @@ const Dashboard = () => {
     const activeContracts = dashboardData.contracts.filter(c => isActiveStatus(c.status || c.workStatus)).length;
     return [
       {
-        icon: LayoutGrid,
         title: 'Projects',
         value: dashboardData.projects.length,
         subtitle: `${ongoingProjects.length} Ongoing`,
-        gradient: 'from-red-400 to-red-600',
-        lightBg: 'bg-red-50',
-        textColor: 'text-red-600'
+        iconBg: 'bg-orange-100',
+        iconColor: 'text-orange-500',
+        borderColor: 'border-b-orange-400',
+        sparkColor: '#f59e0b',
+        sparkPoints: '0,20 10,14 20,18 30,10 40,15 50,8 60,12',
+        Icon: LayoutGrid,
       },
       {
-        icon: Package,
         title: 'Materials',
         value: dashboardData.materials.metrics?.totalMaterials || 0,
         subtitle: `${dashboardData.materials.usageLogs?.length || 0} Recent`,
-        gradient: 'from-orange-400 to-orange-600',
-        lightBg: 'bg-orange-50',
-        textColor: 'text-orange-600'
+        iconBg: 'bg-green-100',
+        iconColor: 'text-green-500',
+        borderColor: 'border-b-green-500',
+        sparkColor: '#22c55e',
+        sparkPoints: '0,18 10,22 20,12 30,16 40,8 50,14 60,10',
+        Icon: Package,
       },
       {
-        icon: IndianRupee,
         title: 'Finance',
         value: `₹${((totalRevenue + totalContractValue) / 100000).toFixed(1)}L`,
         subtitle: `${dashboardData.financial.count || 0} Projects`,
-        gradient: 'from-green-400 to-green-600',
-        lightBg: 'bg-green-50',
-        textColor: 'text-green-600'
+        iconBg: 'bg-purple-100',
+        iconColor: 'text-purple-500',
+        borderColor: 'border-b-purple-500',
+        sparkColor: '#a855f7',
+        sparkPoints: '0,16 10,20 20,10 30,18 40,12 50,20 60,8',
+        Icon: IndianRupee,
       },
       {
-        icon: FileText,
         title: 'Contracts',
         value: dashboardData.contracts.length,
         subtitle: `${activeContracts} Active`,
-        gradient: 'from-blue-400 to-blue-600',
-        lightBg: 'bg-blue-50',
-        textColor: 'text-blue-600'
-      }
+        iconBg: 'bg-red-100',
+        iconColor: 'text-red-500',
+        borderColor: 'border-b-red-400',
+        sparkColor: '#f97316',
+        sparkPoints: '0,12 10,18 20,14 30,20 40,10 50,16 60,12',
+        Icon: FileText,
+      },
     ];
   };
 
@@ -145,10 +630,7 @@ const Dashboard = () => {
         const timeProgress = Math.min(Math.max(Math.round((elapsed / totalDays) * 100), 0), 100);
         const progressStatus = actualProgress > timeProgress + 10 ? 'ahead' : actualProgress < timeProgress - 10 ? 'behind' : 'ontrack';
         return {
-          ...project,
-          progress: actualProgress,
-          timeProgress,
-          progressStatus,
+          ...project, progress: actualProgress, timeProgress, progressStatus,
           client: project.clientName || 'N/A',
           location: project.location || 'Not specified',
           projectType: project.projectType || 'General'
@@ -179,9 +661,7 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, [dashboardData.projects]);
 
-  if (loading) {
-  return <LoadingScreen message="Loading dashboard..." />;
-}
+  if (loading) return <LoadingScreen message="Loading dashboard..." />;
 
   if (error) {
     return (
@@ -190,10 +670,8 @@ const Dashboard = () => {
           <AlertCircle className="text-red-400 mx-auto mb-3" size={40} />
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Failed to load</h2>
           <p className="text-gray-500 text-sm mb-5">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors"
-          >
+          <button onClick={() => window.location.reload()}
+            className="bg-yellow-500 text-black px-6 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors">
             Retry
           </button>
         </div>
@@ -213,94 +691,78 @@ const Dashboard = () => {
         <Navbar />
       </nav>
 
-      {/* SidePannel renders both desktop sidebar AND mobile bottom nav internally */}
-      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
+      {/* Sidebar */}
+      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40">
         <SidePannel />
       </aside>
 
       {/* Main content */}
-      <div className="pt-22 md:pl-64 md:pt-25 ">
-        <div className="px-3 sm:px-6 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto space-y-5">
+      <div className="pt-20 md:pl-64 md:pt-25">
+        <div className="px-4 sm:px-6 pt-4 pb-24 md:pb-10 max-w-6xl mx-auto space-y-6">
 
           {/* Page heading */}
-          <div className="pt-1">
-            <h1 className="text-xl sm:text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Here's what's happening with your projects.</p>
+          <div>
+            <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900">Dashboard Overview</h1>
+            <p className="text-sm text-gray-500 mt-1">Here's what's happening with your projects.</p>
           </div>
 
-          {/* Summary Cards — 2 cols on mobile, 4 on desktop */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {summaryCards.map((card, index) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={index}
-                  className={`bg-gradient-to-br ${card.gradient} rounded-2xl p-4 shadow-sm relative overflow-hidden cursor-pointer active:scale-95 transition-transform`}
-                >
-                  {/* Decorative circles */}
-                  <div className="absolute -top-4 -right-4 w-16 h-16 bg-white opacity-10 rounded-full" />
-                  <div className="absolute -bottom-3 -right-2 w-10 h-10 bg-white opacity-10 rounded-full" />
-
-                  <div className="relative">
-                    <div className="bg-white w-10 h-10 rounded-xl flex items-center justify-center mb-3 shadow-sm">
-                      <Icon size={24} className="text-gray-700" strokeWidth={2} />
-                    </div>
-                     <p className="text-white text-l font-semibold mt-1 opacity-90">{card.title}</p>
-                    <p className="text-white text-2xl font-bold leading-none">{card.value}</p>
-                    <p className="text-white text-xs opacity-70 mt-0.5">{card.subtitle}</p>
+          {/* ── Summary Cards ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {summaryCards.map((card, i) => (
+              <div key={i}
+                className="bg-white rounded-2xl px-4 pt-4 pb-3 shadow-sm border border-gray-100 border-b-4 flex flex-col gap-2 cursor-pointer hover:shadow-md transition-shadow"
+                style={{ borderBottomColor: card.sparkColor }}
+              >
+                {/* Icon + sparkline row */}
+                <div className="flex items-center justify-between">
+                  <div className={`w-10 h-10 rounded-full ${card.iconBg} flex items-center justify-center flex-shrink-0`}>
+                    <card.Icon size={18} className={card.iconColor} strokeWidth={1.8} />
                   </div>
+                  <Sparkline color={card.sparkColor} points={card.sparkPoints} />
                 </div>
-              );
-            })}
+                {/* Value + label */}
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">{card.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 leading-tight mt-0.5">{card.value}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{card.subtitle}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Ongoing Projects Carousel */}
+          {/* ── Ongoing Projects Carousel (shown only when there are ongoing projects) ── */}
           {ongoingProjects.length > 0 && (
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                <h2 className="text-xl font-bold text-gray-800">Ongoing Projects</h2>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                <h2 className="text-lg font-bold text-gray-800">Ongoing Projects</h2>
                 <div className="flex gap-1.5">
-                  <button
-                    onClick={() => navSlide(-1)}
-                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors"
-                  >
+                  <button onClick={() => navSlide(-1)}
+                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors">
                     <ChevronLeft size={16} />
                   </button>
-                  <button
-                    onClick={() => navSlide(1)}
-                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors"
-                  >
+                  <button onClick={() => navSlide(1)}
+                    className="p-1.5 rounded-lg bg-gray-100 hover:bg-yellow-400 transition-colors">
                     <ChevronRight size={16} />
                   </button>
                 </div>
               </div>
 
               <div className="relative overflow-hidden">
-                <div
-                  className="flex transition-transform duration-500 ease-in-out"
-                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-                >
+                <div className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentSlide * 100}%)` }}>
                   {ongoingProjects.map((project) => (
-                    <div key={project.id} className="min-w-full p-4">
-                      {/* Project card */}
+                    <div key={project.id} className="min-w-full p-5">
                       <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 space-y-4">
-                        {/* Badges + name */}
                         <div>
                           <div className="flex flex-wrap gap-1.5 mb-2">
-                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">
-                              {project.projectId}
-                            </span>
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
-                              {project.projectType}
-                            </span>
+                            <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">{project.projectId}</span>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">{project.projectType}</span>
                           </div>
                           <h3 className="text-xl font-bold text-gray-900">{project.name}</h3>
                           {project.description && (
                             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{project.description}</p>
                           )}
                         </div>
-
-                        {/* Info grid — 2 cols on mobile */}
                         <div className="grid grid-cols-2 gap-2">
                           {[
                             { icon: Users, label: 'Client', value: project.client, color: 'text-blue-500' },
@@ -311,46 +773,31 @@ const Dashboard = () => {
                             <div key={i} className="flex items-start gap-2 bg-white rounded-lg p-2.5 border border-gray-100">
                               <item.icon size={14} className={`${item.color} mt-0.5 flex-shrink-0`} />
                               <div className="min-w-0">
-                                <p className="text-sm text-gray-400">{item.label}</p>
+                                <p className="text-xs text-gray-400">{item.label}</p>
                                 <p className="text-xs font-semibold text-gray-800 truncate">{item.value}</p>
                               </div>
                             </div>
                           ))}
                         </div>
-
-                        {/* Progress bar */}
                         <div className="bg-white rounded-lg border border-gray-100 p-3">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-semibold text-gray-700">Progress</span>
                             <span className="text-sm font-bold text-yellow-600">{project.progress}%</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${project.progress}%` }}
-                            />
+                            <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-full rounded-full transition-all duration-500"
+                              style={{ width: `${project.progress}%` }} />
                           </div>
                           <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
                             <span>Time: {project.timeProgress}%</span>
-                            {project.progressStatus === 'ahead' && (
-                              <span className="text-green-600 font-medium">↑ Ahead</span>
-                            )}
-                            {project.progressStatus === 'behind' && (
-                              <span className="text-red-500 font-medium">↓ Behind</span>
-                            )}
-                            {project.progressStatus === 'ontrack' && (
-                              <span className="text-blue-500 font-medium">→ On track</span>
-                            )}
+                            {project.progressStatus === 'ahead' && <span className="text-green-600 font-medium">↑ Ahead</span>}
+                            {project.progressStatus === 'behind' && <span className="text-red-500 font-medium">↓ Behind</span>}
+                            {project.progressStatus === 'ontrack' && <span className="text-blue-500 font-medium">→ On track</span>}
                           </div>
                         </div>
-
-                        {/* CTA */}
-                        <button
-                          onClick={() => navigate('/project')}
-                          className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-sm font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform"
-                        >
-                          View Project Details
-                          <ArrowRight size={15} />
+                        <button onClick={() => navigate('/project')}
+                          className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black text-sm font-semibold py-2.5 rounded-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                          View Project Details <ArrowRight size={15} />
                         </button>
                       </div>
                     </div>
@@ -358,77 +805,149 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Dot indicators */}
               <div className="flex justify-center gap-1.5 pb-3">
                 {ongoingProjects.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentSlide(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentSlide ? 'bg-yellow-500 w-6' : 'bg-gray-300 w-2'
-                    }`}
-                  />
+                  <button key={index} onClick={() => setCurrentSlide(index)}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide ? 'bg-yellow-500 w-6' : 'bg-gray-300 w-2'}`} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Bottom insights — stacked on mobile, side by side on desktop */}
+          {/* ── Bottom row: Contract Statistics + Quick Stats ── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
             {/* Contract Statistics */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Contract Statistics</h2>
-                <div className="bg-blue-50 p-1.5 rounded-lg">
-                  <FileText size={16} className="text-blue-500" />
-                </div>
-              </div>
-              <div className="space-y-2.5">
-                {[
-                  { label: 'Total Contracts', value: contractStats.total, bg: 'bg-blue-50', dot: 'bg-blue-500', text: 'text-blue-700' },
-                  { label: 'Active Contracts', value: contractStats.active, bg: 'bg-green-50', dot: 'bg-green-500', text: 'text-green-700' },
-                  { label: 'Pending Contracts', value: contractStats.pending, bg: 'bg-yellow-50', dot: 'bg-yellow-400', text: 'text-yellow-700' },
-                  { label: 'Total Value', value: `₹${(contractStats.totalValue / 100000).toFixed(1)}L`, bg: 'bg-gray-50', dot: 'bg-purple-400', text: 'text-purple-700' },
-                ].map((stat, i) => (
-                  <div key={i} className={`flex items-center justify-between px-3 py-2.5 ${stat.bg} rounded-xl`}>
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-2.5 h-2.5 rounded-full ${stat.dot}`} />
-                      <span className="text-sm text-gray-700">{stat.label}</span>
-                    </div>
-                    <span className={`text-base font-bold ${stat.text}`}>{stat.value}</span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                    {/* bar chart icon */}
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="8" width="3" height="7" rx="1" fill="#f97316"/>
+                      <rect x="6" y="4" width="3" height="11" rx="1" fill="#f97316"/>
+                      <rect x="11" y="1" width="3" height="14" rx="1" fill="#f97316"/>
+                    </svg>
                   </div>
-                ))}
+                  <h2 className="text-base font-bold text-gray-800">Contract Statistics</h2>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-6">
+                {/* Donut chart */}
+                <div className="flex-shrink-0">
+                  <DonutChart
+                    total={contractStats.total}
+                    active={contractStats.active}
+                    pending={contractStats.pending}
+                    completed={contractStats.completed}
+                  />
+                </div>
+                {/* Legend */}
+                <div className="flex-1 space-y-3">
+                  {[
+                    { label: 'Total Contracts',     value: contractStats.total,     dot: 'bg-yellow-400' },
+                    { label: 'Active Contracts',    value: contractStats.active,    dot: 'bg-green-500' },
+                    { label: 'Pending Contracts',   value: contractStats.pending,   dot: 'bg-orange-500' },
+                    { label: 'Completed Contracts', value: contractStats.completed, dot: 'bg-gray-400' },
+                  ].map((stat, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className={`w-2.5 h-2.5 rounded-full ${stat.dot} flex-shrink-0`} />
+                        <span className="text-sm text-gray-600">{stat.label}</span>
+                      </div>
+                      <span className="text-sm font-bold text-gray-800">{stat.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Quick Stats</h2>
-                <div className="bg-yellow-50 p-1.5 rounded-lg">
-                  <Calendar size={16} className="text-yellow-500" />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <circle cx="8" cy="8" r="6" stroke="#f59e0b" strokeWidth="1.5"/>
+                      <path d="M8 5v3l2 2" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-base font-bold text-gray-800">Quick Stats</h2>
                 </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                  </svg>
+                </button>
               </div>
-              <div className="space-y-2.5">
+
+              <div className="grid grid-cols-2 gap-3">
                 {[
-                  { icon: Users, label: 'Active Engineers', value: dashboardData.engineers.length, iconBg: 'bg-blue-50', iconColor: 'text-blue-500', valColor: 'text-blue-700' },
-                  { icon: Package, label: 'Total Materials', value: dashboardData.materials.metrics?.totalMaterials || 0, iconBg: 'bg-green-50', iconColor: 'text-green-500', valColor: 'text-green-700' },
-                  { icon: IndianRupee, label: 'Total Projects', value: dashboardData.financial.count || 0, iconBg: 'bg-purple-50', iconColor: 'text-purple-500', valColor: 'text-purple-700' },
+                  {
+                    label: 'Active Engineers',
+                    value: dashboardData.engineers.length,
+                    iconBg: 'bg-green-100',
+                    Icon: Users,
+                    iconColor: 'text-green-500',
+                    sparkColor: '#22c55e',
+                    sparkPoints: '0,18 10,14 20,20 30,10 40,16 50,8 60,14',
+                  },
+                  {
+                    label: 'Total Materials',
+                    value: dashboardData.materials.metrics?.totalMaterials || 0,
+                    iconBg: 'bg-blue-100',
+                    Icon: Package,
+                    iconColor: 'text-blue-500',
+                    sparkColor: '#3b82f6',
+                    sparkPoints: '0,20 10,16 20,18 30,12 40,18 50,10 60,16',
+                  },
+                  {
+                    label: 'Total Projects',
+                    value: dashboardData.financial.count || 0,
+                    iconBg: 'bg-purple-100',
+                    Icon: IndianRupee,
+                    iconColor: 'text-purple-500',
+                    sparkColor: '#a855f7',
+                    sparkPoints: '0,16 10,20 20,12 30,18 40,10 50,20 60,8',
+                  },
+                  {
+                    label: 'Total Value',
+                    value: `₹${(dashboardData.contracts.reduce((s, c) => s + (parseFloat(c.contractValue || c.contractAmount || 0)), 0) / 100000).toFixed(1)}L`,
+                    iconBg: 'bg-orange-100',
+                    Icon: Database,
+                    iconColor: 'text-orange-500',
+                    sparkColor: '#f97316',
+                    sparkPoints: '0,12 10,18 20,14 30,20 40,10 50,16 60,12',
+                  },
                 ].map((stat, i) => (
-                  <div key={i} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`${stat.iconBg} p-1.5 rounded-lg`}>
-                        <stat.icon size={15} className={stat.iconColor} />
+                  <div key={i} className="bg-gray-50 rounded-xl p-3 flex flex-col gap-2">
+                    <div className="flex items-start justify-between">
+                      <div className={`w-10 h-10 rounded-full ${stat.iconBg} flex items-center justify-center flex-shrink-0`}>
+                        <stat.Icon size={18} className={stat.iconColor} strokeWidth={1.8} />
                       </div>
-                      <span className="text-sm text-gray-700">{stat.label}</span>
+                      <Sparkline color={stat.sparkColor} points={stat.sparkPoints} />
                     </div>
-                    <span className={`text-base font-bold ${stat.valColor}`}>{stat.value}</span>
+                    <div>
+                      <p className="text-xs text-gray-500">{stat.label}</p>
+                      <p className="text-xl font-bold text-gray-900 mt-0.5">{stat.value}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
+
           </div>
+
+          {/* Footer */}
+          <p className="text-center text-xs text-gray-400 pb-4">
+            © 2025 vSoft Technologies. All rights reserved.
+          </p>
 
         </div>
       </div>
@@ -437,3 +956,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

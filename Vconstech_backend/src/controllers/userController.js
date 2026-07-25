@@ -1,7 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 
-const prisma = new PrismaClient();
+const normalizeEngineerStatus = (status) => {
+  const value = typeof status === 'string' ? status.trim().toLowerCase() : '';
+  return value === 'inactive' ? 'Inactive' : 'Active';
+};
 
 // Get all engineers in the same company
 export const getEmployees = async (req, res) => {
@@ -23,6 +26,7 @@ export const getEmployees = async (req, res) => {
         empId: true,
         phone: true,
         alternatePhone: true,
+        status: true,
         companyId: true
       },
       orderBy: {
@@ -35,7 +39,10 @@ export const getEmployees = async (req, res) => {
 
     res.json({
       count: employees.length,
-      employees
+      employees: employees.map((employee) => ({
+        ...employee,
+        status: normalizeEngineerStatus(employee.status)
+      }))
     });
 
   } catch (error) {
@@ -109,6 +116,11 @@ export const getUserProfile = async (req, res) => {
         role: true,
         package: true,
         customMembers: true,
+        subscriptionStatus: true,
+        subscriptionPlan: true,
+        accountStatus: true,
+        trialEndDate: true,
+        subscriptionStartedAt: true,
         companyId: true,
         createdAt: true,
         company: {
@@ -134,15 +146,18 @@ export const getUserProfile = async (req, res) => {
       const company = await prisma.company.findUnique({
         where: { id: user.companyId }
       });
-      
+
       console.log('✅ Company found:', company);
-      
-      // Merge company data
-      user.company = {
-        id: company.id,
-        name: company.name,
-        logo: company.logo
-      };
+
+      // Merge company data when available, but do not fail the profile load
+      // if the company row has not been created yet or was removed.
+      if (company) {
+        user.company = {
+          id: company.id,
+          name: company.name,
+          logo: company.logo
+        };
+      }
     }
 
     res.json({

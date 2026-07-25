@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Lock, Mail, Home, AlertCircle, CheckCircle } from "lucide-react";
+import { Lock, Mail, Home, AlertCircle, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { handleLoginSuccess } from "../utils/auth";
 import adminLogin from "../assets/admin login.png";
 import adminTab from "../assets/AdminTab.png";
 import logo from "../assets/constech-logo.png";
+import { focusFirstInvalidField, validateFields } from "../utils/formValidation";
 
 const Login = () => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [isFocused, setIsFocused] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const API_URL = `${import.meta.env.VITE_API_URL}/auth`;
 
@@ -22,14 +25,13 @@ const Login = () => {
     setError("");
     setSuccess("");
 
-    if (!loginData.email || !loginData.password) {
-      setError("All fields are required");
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(loginData.email)) {
-      setError("Please enter a valid email address");
+    const errors = validateFields([
+      { name: "email", value: loginData.email, label: "Email", rules: ["email"] },
+      { name: "password", value: loginData.password, label: "Password", rules: ["required"] },
+    ]);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
       return;
     }
 
@@ -147,10 +149,11 @@ const Login = () => {
                         }`}
                       />
                       <input
+                        name="email"
                         type="email"
                         value={loginData.email}
                         onChange={(e) =>
-                          setLoginData({ ...loginData, email: e.target.value })
+                          { setLoginData({ ...loginData, email: e.target.value }); setFieldErrors((prev) => ({ ...prev, email: "" })); }
                         }
                         onFocus={() => handleFocus("loginEmail", true)}
                         onBlur={() => handleFocus("loginEmail", false)}
@@ -161,6 +164,7 @@ const Login = () => {
                       />
                     </div>
                   </div>
+                  {fieldErrors.email && <p className="text-red-500 text-sm mt-1">{fieldErrors.email}</p>}
                 </div>
 
                 <div className="mb-6">
@@ -183,23 +187,33 @@ const Login = () => {
                         }`}
                       />
                       <input
-                        type="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
                         value={loginData.password}
                         onChange={(e) =>
-                          setLoginData({
+                          { setLoginData({
                             ...loginData,
                             password: e.target.value,
-                          })
+                          }); setFieldErrors((prev) => ({ ...prev, password: "" })); }
                         }
                         onFocus={() => handleFocus("loginPassword", true)}
                         onBlur={() => handleFocus("loginPassword", false)}
                         onKeyPress={handleKeyPress}
-                        className="flex-1 ml-3 bg-transparent text-black placeholder-gray-400 outline-none"
+                        className="flex-1 ml-3 bg-transparent text-black placeholder-gray-400 outline-none pr-10"
                         placeholder="Enter your password"
                         disabled={loading}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
                     </div>
                   </div>
+                  {fieldErrors.password && <p className="text-red-500 text-sm mt-1">{fieldErrors.password}</p>}
                 </div>
 
                 <button

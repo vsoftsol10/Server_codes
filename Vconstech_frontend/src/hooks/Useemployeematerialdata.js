@@ -37,7 +37,7 @@ const useEmployeeMaterialData = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await projectAPI.getAll();
+      const response = await projectAPI.getAssignedToMe();
       setProjects(response.projects || []);
       if (response.projects?.length > 0) {
         setSelectedProject((prev) => prev ?? response.projects[0].id);

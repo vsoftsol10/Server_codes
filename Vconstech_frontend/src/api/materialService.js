@@ -81,13 +81,19 @@ export const materialAPI = {
 
   // Create material (Admin only)
   create: async (data) => {
-    const response = await api.post('/materials', data);
+    const isFormData = data instanceof FormData;
+    const response = await api.post('/materials', data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    });
     return response.data;
   },
 
   // Update material (Admin only)
   update: async (id, data) => {
-    const response = await api.put(`/materials/${id}`, data);
+    const isFormData = data instanceof FormData;
+    const response = await api.put(`/materials/${id}`, data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    });
     return response.data;
   },
 
@@ -260,6 +266,11 @@ export const projectAPI = {
   // Get all projects
   getAll: async () => {
     const response = await api.get('/projects');
+    return response.data;
+  },
+
+  getAssignedToMe: async () => {
+    const response = await api.get('/engineers/my-projects');
     return response.data;
   },
 

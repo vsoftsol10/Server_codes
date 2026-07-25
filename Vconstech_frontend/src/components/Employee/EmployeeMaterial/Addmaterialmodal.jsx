@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import EmployeeModalMaterial from "../../Employee/EmployeeMaterial/EmployeeModalMaterial";
 import EmployeeMaterialForm from "../../Employee/EmployeeMaterial/EmployeeMaterialForm";
 
@@ -33,7 +33,8 @@ const AddMaterialModal = ({ isOpen, onClose, onSubmit, categories, projects, loa
   const isSubmitDisabled =
     !newMaterial.name ||
     !newMaterial.defaultRate ||
-    (requestType === "PROJECT" && (!newMaterial.projectId || !newMaterial.quantity)) ||
+    !newMaterial.quantity ||
+    (requestType === "PROJECT" && !newMaterial.projectId) ||
     loading;
 
   return (

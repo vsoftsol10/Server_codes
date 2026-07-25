@@ -1,7 +1,5 @@
 // src/controllers/contractController.js
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/database.js';
 
 // GET all contracts for the company
 export const getAllContracts = async (req, res) => {

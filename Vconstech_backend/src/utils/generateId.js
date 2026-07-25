@@ -1,7 +1,5 @@
 // src/utils/generateId.js
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/database.js';
 
 /**
  * Generate Material ID (MAT001, MAT002, etc.)

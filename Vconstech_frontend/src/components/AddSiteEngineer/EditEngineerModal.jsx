@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { X, UserCircle, Lock } from 'lucide-react';
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation';
 
 const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }) => {
   const [formData, setFormData] = useState({
@@ -7,6 +8,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
     phone: '',
     alternatePhone: '',
     designation: '',
+    status: 'Active',
     empId: '',
     address: '',
     username: '',
@@ -19,7 +21,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
 
   useEffect(() => {
     if (engineer) {
-      // ✅ EXTENSIVE DEBUGGING
+      //  EXTENSIVE DEBUGGING
       console.log('=== EDIT ENGINEER MODAL DEBUG ===');
       console.log('Full engineer object:', engineer);
       console.log('plainPassword field:', engineer.plainPassword);
@@ -38,10 +40,11 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
         phone: engineer.phone || '',
         alternatePhone: engineer.alternatePhone || '',
         designation: engineer.designation || '',
+        status: engineer.status || 'Active',
         empId: engineer.empId || '',
         address: engineer.address || '',
         username: engineer.username || '',
-        password: passwordValue, // ✅ Use the password we found
+        password: passwordValue, //  Use the password we found
         profileImage: null
       });
       setImagePreview(engineer.profileImage || null);
@@ -66,47 +69,19 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
   
 
   const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
-      newErrors.phone = 'Phone number must be 10 digits';
-    }
-
-    if (formData.alternatePhone && !/^\d{10}$/.test(formData.alternatePhone.trim())) {
-      newErrors.alternatePhone = 'Alternate phone must be 10 digits';
-    }
-
-    if (!formData.empId.trim()) {
-      newErrors.empId = 'Employee ID is required';
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-
-    // Username validation
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 4) {
-      newErrors.username = 'Username must be at least 4 characters';
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Username can only contain letters, numbers, and underscores';
-    }
-
-    // Password validation
-    if (!formData.password || !formData.password.trim()) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
+    const newErrors = validateFields([
+      { name: 'name', value: formData.name, label: 'Full name', rules: ['name'] },
+      { name: 'phone', value: formData.phone, label: 'Phone number', rules: ['mobile'] },
+      { name: 'alternatePhone', value: formData.alternatePhone, label: 'Alternate phone', rules: formData.alternatePhone ? ['optionalMobile'] : [] },
+      { name: 'status', value: formData.status, label: 'Status', rules: ['dropdown'] },
+      { name: 'empId', value: formData.empId, label: 'Employee ID', rules: ['required'] },
+      { name: 'address', value: formData.address, label: 'Address', rules: ['textarea'] },
+      { name: 'username', value: formData.username, label: 'Username', rules: ['required'] },
+      { name: 'password', value: formData.password, label: 'Password', rules: ['password'] },
+    ]);
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length) focusFirstInvalidField(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -135,6 +110,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
       phone: '',
       alternatePhone: '',
       designation: '',
+      status: 'Active',
       empId: '',
       address: '',
       username: '',
@@ -149,8 +125,8 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">Edit Engineer</h2>
           <button
@@ -224,6 +200,27 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
     disabled={isSubmitting}
   />
 </div>
+
+              {/* Status */}
+              <div className="mb-4">
+                <label htmlFor="status" className="block text-sm font-extrabold text-gray-700 mb-1">
+                  Status *
+                </label>
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border text-gray-600 font-medium ${
+                    errors.status ? 'border-red-500' : 'border-gray-300'
+                  } rounded-lg focus:border-transparent`}
+                  disabled={isSubmitting}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+                {errors.status && <p className="text-red-500 text-sm mt-1">{errors.status}</p>}
+              </div>
 
               {/* Phone Numbers */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

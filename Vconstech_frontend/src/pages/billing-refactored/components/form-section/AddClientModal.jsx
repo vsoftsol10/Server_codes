@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X } from 'lucide-react';
 
 const AddClientModal = ({
@@ -6,13 +6,14 @@ const AddClientModal = ({
   setShowClientModal,
   newClient,
   setNewClient,
-  handleAddClient
+  handleAddClient,
+  clientErrors = {}
 }) => {
   if (!showClientModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
           <h2 className="text-2xl font-bold text-gray-800">Add New Client</h2>
           <button
@@ -30,12 +31,14 @@ const AddClientModal = ({
                 Client Name <span className="text-red-500">*</span>
               </label>
               <input
+                name="clientName"
                 type="text"
                 value={newClient.clientName || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientName: e.target.value }))}
                 placeholder="Client/Company Name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none ${clientErrors.clientName ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {clientErrors.clientName && <p className="text-red-500 text-xs mt-1">{clientErrors.clientName}</p>}
             </div>
 
             <div>
@@ -56,12 +59,14 @@ const AddClientModal = ({
                 Client Address
               </label>
               <textarea
+                name="clientAddress"
                 value={newClient.clientAddress || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientAddress: e.target.value }))}
                 rows="3"
                 placeholder="Full Address"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none resize-none"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none resize-none ${clientErrors.clientAddress ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {clientErrors.clientAddress && <p className="text-red-500 text-xs mt-1">{clientErrors.clientAddress}</p>}
             </div>
 
             <div>
@@ -82,12 +87,14 @@ const AddClientModal = ({
                 Phone Number
               </label>
               <input
+                name="clientPhone"
                 type="tel"
                 value={newClient.clientPhone || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientPhone: e.target.value }))}
                 placeholder="+91 XXXXX XXXXX"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none ${clientErrors.clientPhone ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {clientErrors.clientPhone && <p className="text-red-500 text-xs mt-1">{clientErrors.clientPhone}</p>}
             </div>
 
             <div>
@@ -95,12 +102,14 @@ const AddClientModal = ({
                 Email Address
               </label>
               <input
+                name="clientEmail"
                 type="email"
                 value={newClient.clientEmail || ''}
                 onChange={(e) => setNewClient(prev => ({ ...prev, clientEmail: e.target.value }))}
                 placeholder="client@example.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#ffbe2a] focus:border-transparent outline-none ${clientErrors.clientEmail ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {clientErrors.clientEmail && <p className="text-red-500 text-xs mt-1">{clientErrors.clientEmail}</p>}
             </div>
           </div>
 

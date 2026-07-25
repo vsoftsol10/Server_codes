@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/database.js';
 
 // ✅ Helper: normalize role checks (handles 'Admin', 'ADMIN', 'Site_Engineer', 'SITE_ENGINEER', 'ENGINEER')
 // Engineer JWT payload: { id: engineer.id (Int), role: 'Site_Engineer', type: 'engineer', companyId }

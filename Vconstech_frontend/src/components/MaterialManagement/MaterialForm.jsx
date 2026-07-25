@@ -1,30 +1,34 @@
 import React from 'react';
 
-const MaterialForm = ({ material, onChange, categories }) => (
+const MaterialForm = ({ material, onChange, categories, errors = {} }) => (
   <div className="space-y-4">
     <div>
       <label className="block text-sm font-bold text-black mb-2">Material Name</label>
       <input
+        name="materialName"
         type="text"
         value={material.name}
         onChange={(e) => onChange({ ...material, name: e.target.value })}
-        className="w-full px-4 py-2 border border-gray-900 rounded-lg"
+        className={`w-full px-4 py-2 border rounded-lg ${errors.materialName ? 'border-red-500' : 'border-gray-900'}`}
         placeholder="e.g., Asian Paints Premium"
       />
+      {errors.materialName && <p className="text-red-500 text-sm mt-1">{errors.materialName}</p>}
     </div>
 
     <div className="grid grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
         <select
+          name="materialCategory"
           value={material.category}
           onChange={(e) => onChange({ ...material, category: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.materialCategory ? 'border-red-500' : 'border-gray-300'}`}
         >
           {categories.filter(c => c !== 'All').map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}
         </select>
+        {errors.materialCategory && <p className="text-red-500 text-sm mt-1">{errors.materialCategory}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Unit</label>
@@ -47,37 +51,59 @@ const MaterialForm = ({ material, onChange, categories }) => (
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Default Rate (₹)</label>
         <input
+          name="materialDefaultRate"
           type="number"
           value={material.defaultRate}
           onChange={(e) => onChange({ ...material, defaultRate: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.materialDefaultRate ? 'border-red-500' : 'border-gray-300'}`}
           placeholder="450"
         />
+        {errors.materialDefaultRate && <p className="text-red-500 text-sm mt-1">{errors.materialDefaultRate}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Vendor/Supplier</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Quantity <span className="text-red-500">*</span>
+        </label>
         <input
-          type="text"
-          value={material.vendor}
-          onChange={(e) => onChange({ ...material, vendor: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500"
-          placeholder="e.g., Asian Paints"
+          name="materialQuantity"
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={material.quantity}
+          onChange={(e) => onChange({ ...material, quantity: e.target.value })}
+          className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${errors.materialQuantity ? 'border-red-500' : 'border-gray-300'}`}
+          placeholder="100"
         />
+        {errors.materialQuantity && <p className="text-red-500 text-sm mt-1">{errors.materialQuantity}</p>}
       </div>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">Vendor/Supplier</label>
+      <input
+        name="materialVendor"
+        type="text"
+        value={material.vendor}
+        onChange={(e) => onChange({ ...material, vendor: e.target.value })}
+        className="w-full px-4 py-2 border border-gray-900 rounded-lg focus:ring-2 focus:ring-blue-500"
+        placeholder="e.g., Asian Paints"
+      />
+      {errors.materialVendor && <p className="text-red-500 text-sm mt-1">{errors.materialVendor}</p>}
     </div>
 
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">Description/Remarks</label>
       <textarea
+        name="materialDescription"
         value={material.description}
         onChange={(e) => onChange({ ...material, description: e.target.value })}
         rows="3"
         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         placeholder="Additional details about the material..."
       />
+      {errors.materialDescription && <p className="text-red-500 text-sm mt-1">{errors.materialDescription}</p>}
     </div>
 
-    {/* ── File Upload Section ── */}
     <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-2">
         <div>

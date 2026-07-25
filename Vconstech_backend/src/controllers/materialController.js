@@ -1,8 +1,6 @@
 // src/controllers/materialController.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { generateMaterialId } from '../utils/generateId.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Get dashboard data (metrics + recent usage logs)
@@ -17,20 +15,22 @@ export const getDashboard = async (req, res) => {
       where: { companyId }
     });
 
-    // Get active materials in projects (materials assigned to ongoing/pending projects)
-    const activeMaterialsData = await prisma.projectMaterial.groupBy({
-      by: ['materialId'],
+    // Get active project material allocations for this company.
+    const activeMaterials = await prisma.projectMaterial.count({
       where: {
         status: 'ACTIVE',
         project: {
-          companyId,
-          status: {
-            in: ['PENDING', 'ONGOING']
-          }
+          companyId
         }
       }
     });
-    const activeMaterials = activeMaterialsData.length;
+
+    const pendingRequests = await prisma.materialRequest.count({
+      where: {
+        status: 'PENDING',
+        employee: { companyId: String(companyId) }
+      }
+    });
 
     // Calculate total cost of used materials
     const materialUsages = await prisma.materialUsage.findMany({
@@ -62,7 +62,8 @@ export const getDashboard = async (req, res) => {
           select: {
             id: true,
             name: true,
-            unit: true
+            unit: true,
+            defaultRate: true
           }
         },
         project: {
@@ -95,6 +96,8 @@ export const getDashboard = async (req, res) => {
       materialName: log.material.name,
       quantity: log.quantity,
       unit: log.material.unit,
+      defaultRate: log.material.defaultRate || 0,
+      totalCost: Math.round((log.quantity * (log.material.defaultRate || 0)) * 100) / 100,
       remarks: log.remarks,
       engineerId: log.engineerId,  // ✅ Changed from 'userId'
       userName: log.engineer.name   // ✅ Changed from 'log.user.name'
@@ -106,7 +109,8 @@ export const getDashboard = async (req, res) => {
         metrics: {
           totalMaterials,
           activeMaterials,
-          totalCost: Math.round(totalCost * 100) / 100
+          totalCost: Math.round(totalCost * 100) / 100,
+          pendingRequests
         },
         usageLogs: formattedUsageLogs
       }
@@ -273,23 +277,51 @@ export const getAllMaterials = async (req, res) => {
 
     const materials = await prisma.material.findMany({
       where,
+      include: {
+        projectMaterials: {
+          include: {
+            project: {
+              select: {
+                id: true,
+                name: true,
+                projectId: true,
+              },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' }
     });
 
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-const formattedMaterials = materials.map(m => ({
-  ...m,
-  files: (m.files || []).map(fileUrl => {
-    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
-    return {
-      url: fullUrl,
-      fileUrl: fullUrl,
-      name: fileUrl.split('/').pop(),
-      fileName: fileUrl.split('/').pop(),
-    };
-  })
-}));
-res.json({ success: true, count: formattedMaterials.length, materials: formattedMaterials });
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
+    const formattedMaterials = materials.map((m) => {
+      const allocatedQuantity = (m.projectMaterials || []).reduce(
+        (sum, pm) => sum + (Number(pm.assigned) || 0),
+        0
+      );
+      const projectNames = [...new Set(
+        (m.projectMaterials || [])
+          .map((pm) => pm.project?.name)
+          .filter(Boolean)
+      )];
+
+      return {
+        ...m,
+        availableQuantity: Number(m.quantity || 0) - allocatedQuantity,
+        projectName: projectNames.length === 0 ? null : projectNames.join(', '),
+        files: (m.files || []).map((fileUrl) => {
+          const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+          return {
+            url: fullUrl,
+            fileUrl: fullUrl,
+            name: fileUrl.split('/').pop(),
+            fileName: fileUrl.split('/').pop(),
+          };
+        }),
+      };
+    });
+
+    res.json({ success: true, count: formattedMaterials.length, materials: formattedMaterials });
   } catch (error) {
     console.error('Get materials error:', error);
     res.status(500).json({ 
@@ -354,20 +386,33 @@ export const getMaterialById = async (req, res) => {
       });
     }
 
-   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-const formattedMaterial = {
-  ...material,
-  files: (material.files || []).map(fileUrl => {
-    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
-    return {
-      url: fullUrl,
-      fileUrl: fullUrl,
-      name: fileUrl.split('/').pop(),
-      fileName: fileUrl.split('/').pop(),
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
+    const allocatedQuantity = (material.projectMaterials || []).reduce(
+      (sum, pm) => sum + (Number(pm.assigned) || 0),
+      0
+    );
+    const projectNames = [...new Set(
+      (material.projectMaterials || [])
+        .map((pm) => pm.project?.name)
+        .filter(Boolean)
+    )];
+
+    const formattedMaterial = {
+      ...material,
+      availableQuantity: Number(material.quantity || 0) - allocatedQuantity,
+      projectName: projectNames.length === 0 ? null : projectNames.join(', '),
+      files: (material.files || []).map((fileUrl) => {
+        const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
+        return {
+          url: fullUrl,
+          fileUrl: fullUrl,
+          name: fileUrl.split('/').pop(),
+          fileName: fileUrl.split('/').pop(),
+        };
+      }),
     };
-  })
-};
-res.json({ success: true, material: formattedMaterial });
+
+    res.json({ success: true, material: formattedMaterial });
   } catch (error) {
     console.error('Get material error:', error);
     res.status(500).json({ 
@@ -391,6 +436,17 @@ export const createMaterial = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Name, category, and unit are required' });
     }
 
+    const parsedQuantity = quantity !== undefined && quantity !== null && quantity !== ''
+      ? parseFloat(quantity)
+      : NaN;
+
+    if (Number.isNaN(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity is required and must be greater than zero'
+      });
+    }
+
     const materialId = await generateMaterialId();
 
     // ← Build file URL array from uploaded files
@@ -406,7 +462,7 @@ export const createMaterial = async (req, res) => {
         vendor: vendor || null,
         description: description || null,
         dueDate: dueDate ? new Date(dueDate) : null,
-        quantity: quantity ? parseFloat(quantity) : null, // ← new
+        quantity: parsedQuantity,
         files: fileUrls,                                   // ← new
         companyId
       }
@@ -450,6 +506,18 @@ export const updateMaterial = async (req, res) => {
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     });
 
+    const parsedQuantity =
+      quantity !== undefined && quantity !== null && quantity !== ''
+        ? parseFloat(quantity)
+        : existingMaterial.quantity;
+
+    if (quantity !== undefined && quantity !== null && quantity !== '' && (Number.isNaN(parsedQuantity) || parsedQuantity <= 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity must be greater than zero'
+      });
+    }
+
     const material = await prisma.material.update({
       where: { id: parseInt(id) },
       data: {
@@ -460,7 +528,7 @@ export const updateMaterial = async (req, res) => {
         vendor: vendor !== undefined ? vendor : existingMaterial.vendor,
         description: description !== undefined ? description : existingMaterial.description,
         dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : existingMaterial.dueDate,
-        quantity: quantity !== undefined ? parseFloat(quantity) : existingMaterial.quantity, // ← new
+        quantity: parsedQuantity, // ← new
         files: [...existingFiles, ...newFileUrls],  // ← merge existing + new
       }
     });

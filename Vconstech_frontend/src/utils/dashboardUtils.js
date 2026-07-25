@@ -1,3 +1,4 @@
+import { showToast } from '../components/common/Toast';
 // File utility functions
 export const getFileIcon = (fileName) => {
   if (!fileName) return '📎';
@@ -22,37 +23,46 @@ export const formatFileSize = (bytes) => {
 };
 
 // Status utility functions
+export const normalizeProjectStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (['pending', 'planning'].includes(normalized)) return 'PLANNING';
+  if (['ongoing', 'in progress', 'in_progress', 'active'].includes(normalized)) return 'IN_PROGRESS';
+  if (['completed', 'complete'].includes(normalized)) return 'COMPLETED';
+  return normalized.toUpperCase();
+};
+
+export const isProjectPlanningStatus = (status) => normalizeProjectStatus(status) === 'PLANNING';
+
+export const isProjectExecutionEnabled = (status) => normalizeProjectStatus(status) === 'IN_PROGRESS';
+
 export const getStatusColor = (status) => {
-  const statusLower = status?.toLowerCase();
+  const normalizedStatus = normalizeProjectStatus(status);
   const colorMap = {
-    'active': 'bg-green-100 text-green-800',
-    'ongoing': 'bg-green-100 text-green-800',
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'on hold': 'bg-yellow-100 text-yellow-800',
-    'completed': 'bg-blue-100 text-blue-800',
-    'approved': 'bg-green-100 text-green-800',
-    'rejected': 'bg-red-100 text-red-800'
+    IN_PROGRESS: 'bg-green-100 text-green-800',
+    PLANNING: 'bg-yellow-100 text-yellow-800',
+    'ON HOLD': 'bg-yellow-100 text-yellow-800',
+    COMPLETED: 'bg-blue-100 text-blue-800',
+    APPROVED: 'bg-green-100 text-green-800',
+    REJECTED: 'bg-red-100 text-red-800'
   };
-  return colorMap[statusLower] || 'bg-gray-100 text-gray-800';
+  return colorMap[normalizedStatus] || 'bg-gray-100 text-gray-800';
 };
 
 export const getStatusDisplay = (status) => {
   const statusMap = {
-    
-    // 'PENDING': 'Planning',
-    'ONGOING': 'In Progress',
-    'COMPLETED': 'Completed',
-    'pending': 'Pending',
-    'approved': 'Approved',
-    'rejected': 'Rejected',
+    PLANNING: 'Planning',
+    IN_PROGRESS: 'In Progress',
+    COMPLETED: 'Completed',
+    APPROVED: 'Approved',
+    REJECTED: 'Rejected',
   };
-  return statusMap[status] || status;
+  return statusMap[normalizeProjectStatus(status)] || status;
 };
 
 // File viewing handler
 export const handleViewFile = (file, API_BASE_URL) => {
   const fileUrl = file.fileUrl || file.url || file.filePath;
-  if (!fileUrl) return alert('File URL not found');
+  if (!fileUrl) { showToast('File URL not found', 'warning'); return; }
 
   const base = API_BASE_URL.replace('/api', '');
   const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${base}${fileUrl}`;

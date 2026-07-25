@@ -1,4 +1,326 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import PDFDocument from 'pdfkit';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PDF_THEME = {
+  primary: '#FFBE2A',
+  ink: '#111827',
+  text: '#1F2937',
+  muted: '#6B7280',
+  border: '#E5E7EB',
+  surface: '#F9FAFB',
+  rowAlt: '#FFFDF7',
+  white: '#FFFFFF',
+  green: '#10B981',
+};
+
+const PAGE = {
+  margin: 36,
+  footerHeight: 52,
+};
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const quantityFormatter = new Intl.NumberFormat('en-IN', {
+  maximumFractionDigits: 2,
+});
+
+const money = (amount) => currencyFormatter.format(Number(amount || 0));
+
+const formatQuantity = (amount) => quantityFormatter.format(Number(amount || 0));
+
+const textValue = (value, fallback = 'N/A') => {
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
+};
+
+const getGeneratedAtText = (generatedDate, generatedTime) => {
+  if (generatedDate && generatedTime) return `${generatedDate} at ${generatedTime}`;
+  if (generatedDate) return generatedDate;
+  return new Date().toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  });
+};
+
+const getFontPath = (fileNames) => {
+  const candidates = [
+    ...fileNames.map((fileName) => path.resolve('C:/Windows/Fonts', fileName)),
+    ...fileNames.map((fileName) => path.resolve('/usr/share/fonts/truetype/dejavu', fileName)),
+    ...fileNames.map((fileName) => path.resolve('/usr/share/fonts/truetype/liberation2', fileName)),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+};
+
+const registerReportFonts = (doc) => {
+  const regularFont = getFontPath(['arial.ttf', 'DejaVuSans.ttf', 'LiberationSans-Regular.ttf']);
+  const boldFont = getFontPath(['arialbd.ttf', 'DejaVuSans-Bold.ttf', 'LiberationSans-Bold.ttf']);
+
+  if (regularFont) doc.registerFont('ERP-Regular', regularFont);
+  if (boldFont) doc.registerFont('ERP-Bold', boldFont);
+
+  return {
+    regular: regularFont ? 'ERP-Regular' : 'Helvetica',
+    bold: boldFont ? 'ERP-Bold' : 'Helvetica-Bold',
+  };
+};
+
+const drawHeader = (doc, ctx, title, projectName, generatedAtText, fonts) => {
+  const headerHeight = 86;
+
+  doc
+    .roundedRect(ctx.margin, ctx.y, ctx.contentWidth, headerHeight, 6)
+    .fillAndStroke(PDF_THEME.white, PDF_THEME.border);
+
+  doc
+    .rect(ctx.margin, ctx.y, ctx.contentWidth, 8)
+    .fill(PDF_THEME.ink);
+
+  doc
+    .font(fonts.bold)
+    .fontSize(20)
+    .fillColor(PDF_THEME.ink)
+    .text(title, ctx.margin + 16, ctx.y + 30, {
+      width: ctx.contentWidth - 230,
+      lineBreak: false,
+    });
+
+  doc
+    .font(fonts.regular)
+    .fontSize(10)
+    .fillColor(PDF_THEME.muted)
+    .text(projectName, ctx.margin + 16, ctx.y + 56, {
+      width: ctx.contentWidth - 230,
+      lineBreak: false,
+    });
+
+  doc
+    .font(fonts.regular)
+    .fontSize(9)
+    .fillColor(PDF_THEME.muted)
+    .text('Generated Date & Time', ctx.pageWidth - ctx.margin - 160, ctx.y + 28, {
+      width: 152,
+      align: 'right',
+    });
+
+  doc
+    .font(fonts.bold)
+    .fontSize(10)
+    .fillColor(PDF_THEME.ink)
+    .text(generatedAtText, ctx.pageWidth - ctx.margin - 190, ctx.y + 46, {
+      width: 182,
+      align: 'right',
+    });
+
+  doc
+    .rect(ctx.margin, ctx.y + headerHeight - 4, ctx.contentWidth, 4)
+    .fill(PDF_THEME.primary);
+
+  ctx.y += headerHeight + 18;
+};
+
+const ensureSpace = (doc, ctx, height) => {
+  if (ctx.y + height > ctx.pageHeight - PAGE.footerHeight) {
+    doc.addPage();
+    ctx.y = ctx.margin;
+  }
+};
+
+const drawMetricCards = (doc, ctx, cards, fonts) => {
+  const gap = 10;
+  const cardHeight = 56;
+  const cardWidth = (ctx.contentWidth - (gap * (cards.length - 1))) / cards.length;
+
+  ensureSpace(doc, ctx, cardHeight + 14);
+
+  cards.forEach((card, index) => {
+    const x = ctx.margin + index * (cardWidth + gap);
+
+    doc
+      .roundedRect(x, ctx.y, cardWidth, cardHeight, 6)
+      .fillAndStroke(card.fill || '#FFF7D6', '#F2CF68');
+
+    doc
+      .font(fonts.bold)
+      .fontSize(7.5)
+      .fillColor(PDF_THEME.muted)
+      .text(String(card.label).toUpperCase(), x + 8, ctx.y + 12, {
+        width: cardWidth - 16,
+        lineBreak: false,
+      });
+
+    doc
+      .font(fonts.bold)
+      .fontSize(12)
+      .fillColor(card.text || PDF_THEME.text)
+      .text(String(card.value), x + 8, ctx.y + 30, {
+        width: cardWidth - 16,
+        height: 18,
+        ellipsis: true,
+      });
+  });
+
+  ctx.y += 70;
+};
+
+const drawSectionTitle = (doc, ctx, title, fonts) => {
+  ensureSpace(doc, ctx, 38);
+
+  doc
+    .roundedRect(ctx.margin, ctx.y, ctx.contentWidth, 24, 5)
+    .fillAndStroke(PDF_THEME.surface, PDF_THEME.border);
+
+  doc
+    .rect(ctx.margin, ctx.y, 5, 24)
+    .fill(PDF_THEME.primary);
+
+  doc
+    .font(fonts.bold)
+    .fontSize(11)
+    .fillColor(PDF_THEME.ink)
+    .text(title, ctx.margin + 14, ctx.y + 7, {
+      width: ctx.contentWidth - 28,
+      lineBreak: false,
+    });
+
+  ctx.y += 34;
+};
+
+const drawTableHeader = (doc, ctx, columns, rowHeight, fonts) => {
+  doc
+    .rect(ctx.margin, ctx.y, ctx.contentWidth, rowHeight)
+    .fill(PDF_THEME.ink);
+
+  columns.forEach((column) => {
+    doc
+      .font(fonts.bold)
+      .fontSize(8)
+      .fillColor(PDF_THEME.white)
+      .text(column.label, column.x + 5, ctx.y + 9, {
+        width: column.width - 10,
+        align: column.align || 'left',
+        lineBreak: false,
+      });
+  });
+
+  ctx.y += rowHeight;
+};
+
+const drawMaterialTable = (doc, ctx, usageLogs, fonts) => {
+  drawSectionTitle(doc, ctx, 'Material Usage Details', fonts);
+
+  const headerHeight = 30;
+  const rowHeight = 25;
+  const columns = [
+    { key: 'date', label: 'Date', width: 64, align: 'center' },
+    { key: 'materialName', label: 'Material', width: 112, align: 'left' },
+    { key: 'category', label: 'Category', width: 76, align: 'left' },
+    { key: 'quantity', label: 'Qty', width: 48, align: 'center' },
+    { key: 'unit', label: 'Unit', width: 48, align: 'center' },
+    { key: 'rate', label: 'Rate (\u20B9)', width: 80, align: 'right' },
+    { key: 'cost', label: 'Cost (\u20B9)', width: 95, align: 'right' },
+  ];
+
+  columns.reduce((x, column) => {
+    column.x = x;
+    return x + column.width;
+  }, ctx.margin);
+
+  ensureSpace(doc, ctx, headerHeight + rowHeight);
+  drawTableHeader(doc, ctx, columns, headerHeight, fonts);
+
+  usageLogs.forEach((log, index) => {
+    if (ctx.y + rowHeight > ctx.pageHeight - PAGE.footerHeight) {
+      doc.addPage();
+      ctx.y = ctx.margin;
+      drawTableHeader(doc, ctx, columns, headerHeight, fonts);
+    }
+
+    const fill = index % 2 === 0 ? PDF_THEME.white : PDF_THEME.rowAlt;
+    doc
+      .rect(ctx.margin, ctx.y, ctx.contentWidth, rowHeight)
+      .fillAndStroke(fill, PDF_THEME.border);
+
+    const row = {
+      date: textValue(log.date),
+      materialName: textValue(log.materialName),
+      category: textValue(log.category),
+      quantity: formatQuantity(log.quantity),
+      unit: textValue(log.unit, 'unit'),
+      rate: money(log.rate),
+      cost: money(log.cost),
+    };
+
+    columns.forEach((column) => {
+      doc
+        .font(fonts.regular)
+        .fontSize(8)
+        .fillColor(PDF_THEME.text)
+        .text(row[column.key], column.x + 5, ctx.y + 8, {
+          width: column.width - 10,
+          height: 10,
+          align: column.align || 'left',
+          ellipsis: true,
+          lineBreak: false,
+        });
+    });
+
+    ctx.y += rowHeight;
+  });
+
+  ctx.y += 16;
+};
+
+const addFooter = (doc, generatedAtText, fonts) => {
+  const range = doc.bufferedPageRange();
+
+  for (let index = range.start; index < range.start + range.count; index += 1) {
+    doc.switchToPage(index);
+
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const pageNumber = index + 1;
+
+    doc
+      .moveTo(PAGE.margin, pageHeight - 32)
+      .lineTo(pageWidth - PAGE.margin, pageHeight - 32)
+      .stroke(PDF_THEME.border);
+
+    doc
+      .font(fonts.regular)
+      .fontSize(8)
+      .fillColor(PDF_THEME.muted)
+      .text('Generated by ERP', PAGE.margin, pageHeight - 22, {
+        width: 150,
+        lineBreak: false,
+      });
+
+    doc
+      .text(generatedAtText, pageWidth / 2 - 120, pageHeight - 22, {
+        width: 240,
+        align: 'center',
+        lineBreak: false,
+      });
+
+    doc
+      .text(`Page ${pageNumber} of ${range.count}`, pageWidth - PAGE.margin - 120, pageHeight - 22, {
+        width: 120,
+        align: 'right',
+        lineBreak: false,
+      });
+  }
+};
 
 /**
  * Generate Material Usage Report PDF
@@ -12,324 +334,58 @@ export const generateUsageReportPDF = async (req, res) => {
       generatedTime,
       usageLogs,
       totalEntries,
-      grandTotal
+      grandTotal,
     } = req.body;
 
-    // Validation
-    console.log('Received request body:', req.body);
-    console.log('Usage logs count:', usageLogs?.length);
-    
     if (!usageLogs || usageLogs.length === 0) {
-      console.error('No usage logs provided');
       return res.status(400).json({ error: 'No usage logs provided' });
     }
 
-    // Create a document
+    const safeProjectName = textValue(projectName, 'Material_Usage_Report').replace(/\s+/g, '_');
+    const generatedAtText = getGeneratedAtText(generatedDate, generatedTime);
+    const totalQuantity = usageLogs.reduce((sum, log) => sum + (Number(log.quantity) || 0), 0);
+    const totalCost = Number(grandTotal ?? usageLogs.reduce((sum, log) => sum + (Number(log.cost) || 0), 0)) || 0;
+    const entryCount = Number(totalEntries ?? usageLogs.length) || usageLogs.length;
+
     const doc = new PDFDocument({
       size: 'A4',
+      bufferPages: true,
       margins: {
-        top: 50,
-        bottom: 50,
-        left: 50,
-        right: 50
-      }
+        top: PAGE.margin,
+        bottom: PAGE.footerHeight,
+        left: PAGE.margin,
+        right: PAGE.margin,
+      },
     });
+    const fonts = registerReportFonts(doc);
 
-    // Set response headers
+    const ctx = {
+      margin: PAGE.margin,
+      pageWidth: doc.page.width,
+      pageHeight: doc.page.height,
+      contentWidth: doc.page.width - (PAGE.margin * 2),
+      y: PAGE.margin,
+    };
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=${projectName.replace(/\s+/g, '_')}_Usage_Report_${new Date().toISOString().split('T')[0]}.pdf`
+      `attachment; filename=${safeProjectName}_Usage_Report_${new Date().toISOString().split('T')[0]}.pdf`
     );
 
-    // Pipe the PDF to the response
     doc.pipe(res);
 
-    // Colors
-    const primaryColor = '#1e40af';
-    const secondaryColor = '#3b82f6';
-    const textColor = '#374151';
-    const lightGray = '#f3f4f6';
-    const borderColor = '#d1d5db';
+    drawHeader(doc, ctx, 'Material Usage Report', textValue(projectName), generatedAtText, fonts);
+    drawMetricCards(doc, ctx, [
+      { label: 'Project Name', value: textValue(projectName) },
+      { label: 'Total Entries', value: entryCount },
+      { label: 'Total Quantity', value: formatQuantity(totalQuantity) },
+      { label: 'Grand Total Cost', value: money(totalCost), text: PDF_THEME.green },
+    ], fonts);
+    drawMaterialTable(doc, ctx, usageLogs, fonts);
+    addFooter(doc, generatedAtText, fonts);
 
-    // ==================== HEADER ====================
-    
-    // Title
-    doc
-      .fontSize(24)
-      .fillColor(primaryColor)
-      .font('Helvetica-Bold')
-      .text('MATERIAL USAGE REPORT', 50, 50, {
-        align: 'center',
-        width: 495
-      });
-
-    // Project Name
-    doc
-      .fontSize(16)
-      .fillColor(secondaryColor)
-      .text(projectName, {
-        align: 'center'
-      });
-
-    doc.moveDown(0.5);
-
-    // ==================== INFO BOX ====================
-    
-    const infoBoxY = doc.y + 10;
-    const infoBoxHeight = 80;
-
-    // Draw info box background
-    doc
-      .rect(50, infoBoxY, 495, infoBoxHeight)
-      .fill(lightGray);
-    
-    doc
-      .rect(50, infoBoxY, 495, infoBoxHeight)
-      .stroke(borderColor);
-
-    // Info content
-    doc
-      .fontSize(10)
-      .fillColor(textColor)
-      .font('Helvetica-Bold')
-      .text('Report Generated:', 70, infoBoxY + 15, { continued: true })
-      .font('Helvetica')
-      .text(` ${generatedDate} at ${generatedTime}`, { continued: false });
-
-    doc
-      .font('Helvetica-Bold')
-      .text('Total Entries:', 70, infoBoxY + 35, { continued: true })
-      .font('Helvetica')
-      .text(` ${totalEntries}`, { continued: false });
-
-    doc
-      .font('Helvetica-Bold')
-      .text('Grand Total Cost:', 70, infoBoxY + 55, { continued: true })
-      .font('Helvetica')
-      .text(` ₹${grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`, { continued: false });
-
-    // ==================== TABLE SECTION ====================
-    
-    // Section Header
-    const tableStartY = infoBoxY + infoBoxHeight + 30;
-    
-    doc
-      .fontSize(14)
-      .fillColor(primaryColor)
-      .font('Helvetica-Bold')
-      .text('USAGE DETAILS', 50, tableStartY);
-
-    // Table configuration
-    const tableTop = tableStartY + 30;
-    const tableLeft = 50;
-    const tableWidth = 495;
-    
-    // Column widths (adjusted for better fit)
-    const columns = [
-      { key: 'date', label: 'Date', width: 60, x: 50 },
-      { key: 'material', label: 'Material', width: 100, x: 110 },
-      { key: 'category', label: 'Category', width: 70, x: 210 },
-      { key: 'quantity', label: 'Qty', width: 40, x: 280 },
-      { key: 'unit', label: 'Unit', width: 45, x: 320 },
-      { key: 'rate', label: 'Rate (₹)', width: 60, x: 365 },
-      { key: 'cost', label: 'Cost (₹)', width: 80, x: 425 }
-    ];
-
-    const rowHeight = 25;
-    let currentY = tableTop;
-
-    // Draw table header
-    doc
-      .rect(tableLeft, currentY, tableWidth, 30)
-      .fill(primaryColor);
-
-    doc
-      .fontSize(9)
-      .fillColor('#ffffff')
-      .font('Helvetica-Bold');
-
-    columns.forEach(col => {
-      doc.text(
-        col.label,
-        col.x + 5,
-        currentY + 10,
-        {
-          width: col.width - 10,
-          align: 'center'
-        }
-      );
-    });
-
-    currentY += 30;
-
-    // Draw data rows
-    console.log('Processing usage logs for PDF...');
-    
-    usageLogs.forEach((log, index) => {
-      console.log(`Processing log ${index + 1}:`, log);
-      
-      // Check if we need a new page
-      if (currentY > 700) {
-        doc.addPage();
-        currentY = 50;
-        
-        // Redraw header on new page
-        doc
-          .rect(tableLeft, currentY, tableWidth, 30)
-          .fill(primaryColor);
-
-        doc
-          .fontSize(9)
-          .fillColor('#ffffff')
-          .font('Helvetica-Bold');
-
-        columns.forEach(col => {
-          doc.text(col.label, col.x + 5, currentY + 10, {
-            width: col.width - 10,
-            align: 'center'
-          });
-        });
-        
-        currentY += 30;
-      }
-
-      // Alternating row background
-      const bgColor = (index % 2 === 0) ? '#ffffff' : lightGray;
-      doc
-        .rect(tableLeft, currentY, tableWidth, rowHeight)
-        .fill(bgColor);
-      
-      doc
-        .rect(tableLeft, currentY, tableWidth, rowHeight)
-        .stroke(borderColor);
-
-      // Set text style for data
-      doc
-        .fontSize(8)
-        .fillColor(textColor)
-        .font('Helvetica');
-
-      // Date
-      doc.text(
-        log.date || 'N/A',
-        columns[0].x + 5,
-        currentY + 8,
-        { width: columns[0].width - 10, align: 'center', lineBreak: false }
-      );
-
-      // Material Name
-      const materialName = log.materialName || 'N/A';
-      doc.text(
-        materialName.length > 18 ? materialName.substring(0, 15) + '...' : materialName,
-        columns[1].x + 5,
-        currentY + 8,
-        { width: columns[1].width - 10, align: 'left', lineBreak: false }
-      );
-
-      // Category
-      doc.text(
-        log.category || 'N/A',
-        columns[2].x + 5,
-        currentY + 8,
-        { width: columns[2].width - 10, align: 'center', lineBreak: false }
-      );
-
-      // Quantity
-      doc.text(
-        log.quantity ? log.quantity.toFixed(2) : '0.00',
-        columns[3].x + 5,
-        currentY + 8,
-        { width: columns[3].width - 10, align: 'right', lineBreak: false }
-      );
-
-      // Unit
-      doc.text(
-        log.unit || 'unit',
-        columns[4].x + 5,
-        currentY + 8,
-        { width: columns[4].width - 10, align: 'center', lineBreak: false }
-      );
-
-      // Rate
-      doc.text(
-        log.rate ? log.rate.toFixed(2) : '0.00',
-        columns[5].x + 5,
-        currentY + 8,
-        { width: columns[5].width - 10, align: 'right', lineBreak: false }
-      );
-
-      // Cost
-      doc.text(
-        log.cost ? log.cost.toFixed(2) : '0.00',
-        columns[6].x + 5,
-        currentY + 8,
-        { width: columns[6].width - 10, align: 'right', lineBreak: false }
-      );
-
-      currentY += rowHeight;
-    });
-
-    // ==================== SUMMARY SECTION ====================
-
-currentY += 15;
-
-// Summary box background
-doc
-  .rect(tableLeft, currentY, tableWidth, 60)
-  .fill(primaryColor);
-
-// Now draw the text ON TOP of the background
-doc
-  .fontSize(12)
-  .fillColor('#ffffff')
-  .font('Helvetica-Bold')
-  .text('SUMMARY', tableLeft + 20, currentY + 15, { lineBreak: false });
-
-doc
-  .fontSize(10)
-  .font('Helvetica')
-  .text(
-    `Total Entries: ${totalEntries}`,
-    tableLeft + 20,
-    currentY + 35,
-    { lineBreak: false }
-  );
-
-// Grand Total - positioned on the right side
-doc
-  .fontSize(14)
-  .font('Helvetica-Bold')
-  .text(
-    `GRAND TOTAL: ₹${grandTotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`,
-    tableLeft + 200,
-    currentY + 32,
-    { 
-      width: 275,
-      align: 'right',
-      lineBreak: false 
-    }
-  );
-
-    // ==================== FOOTER ====================
-    
-    const pageHeight = doc.page.height;
-    doc
-      .fontSize(8)
-      .fillColor('#6b7280')
-      .font('Helvetica')
-      .text(
-        `Generated on ${generatedDate} at ${generatedTime} | Material Management System`,
-        50,
-        pageHeight - 30,
-        { align: 'center', width: 495 }
-      );
-
-    // Finalize the PDF
     doc.end();
-    
-    console.log('PDF generation completed successfully');
-
   } catch (error) {
     console.error('Error generating PDF:', error);
     if (!res.headersSent) {

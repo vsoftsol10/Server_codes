@@ -8,7 +8,7 @@ import SelectField from "../../components/SuperAdmin/Dashboard/Selectfield";
 import { validateCreateForm } from "../../components/SuperAdmin/Dashboard/Validation";
 import StatsCards from "../../components/SuperAdmin/Dashboard/StatsCards";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const INITIAL_FORM = {
   name: "", email: "", role: "", companyName: "", password: "",
@@ -150,14 +150,14 @@ const CreateUserModal = ({ isOpen, onClose, onUserCreated }) => {
       `}</style>
 
       <div
-        className="modal-backdrop fixed inset-0 z-[1000] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+        className="modal-backdrop fixed inset-0 z-[1000] bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center p-4"
         onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
       >
         {/* Bottom-sheet on mobile, centered modal on sm+ */}
-        <div className="modal-panel relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-4xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="modal-panel relative bg-white rounded-2xl shadow-2xl w-full sm:max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
 
           {/* Modal Header */}
-          <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#ffbe2a] rounded-t-3xl shrink-0">
+          <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-6 border-b border-gray-100 bg-[#ffbe2a] rounded-t-2xl shrink-0">
             <div className="flex items-center gap-3 sm:gap-4">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white/30 backdrop-blur-sm flex items-center justify-center shadow-inner">
                 <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900" />

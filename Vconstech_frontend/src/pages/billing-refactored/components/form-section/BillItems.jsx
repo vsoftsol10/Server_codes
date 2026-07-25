@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react';
+import { showToast } from '../../../../components/common/Toast';
 import {UNIT_OPTIONS} from "../../constants/billingConstants"
 
 const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem }) => {
@@ -40,7 +41,7 @@ const BillItems = ({ formData, activeTab, handleItemChange, addItem, removeItem 
   const handleAddItem = () => {
     // Validate all existing items before adding new one
     if (!validateItems()) {
-      alert("Please fill all required fields (Description, Quantity, Rate) in existing items before adding a new one.");
+      showToast("Please fill all required fields (Description, Quantity, Rate) in existing items before adding a new one.", "warning");
       return;
     }
 

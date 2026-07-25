@@ -1,9 +1,12 @@
 // src/routes/labourRoutes.js
 import express from 'express';
+import multer from 'multer';
 import { 
   getAllLabourers,
   getLabourerById,
   createLabourer,
+  downloadLabourTemplate,
+  uploadLabourList,
   updateLabourer,
   deleteLabourer,
   addPayment,
@@ -15,6 +18,15 @@ import {
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const extension = file.originalname.slice(file.originalname.lastIndexOf('.')).toLowerCase();
+    if (extension === '.xlsx') return cb(null, true);
+    return cb(new Error('Only Excel (.xlsx) files are allowed. Please use the official template.'));
+  }
+});
 
 // Apply authentication to all routes
 router.use(authenticateToken);
@@ -22,10 +34,12 @@ router.use(authenticateToken);
 // ========== LABOUR CRUD OPERATIONS (No WebSocket) ==========
 router.get('/', getAllLabourers);
 router.get('/statistics', getLabourStatistics);
+router.get('/template', downloadLabourTemplate);
 router.get('/:id', getLabourerById);
 
 // Create labourer (no immediate spending impact)
 router.post('/', createLabourer);
+router.post('/upload', upload.single('file'), uploadLabourList);
 
 // Update labourer details (no immediate spending impact)
 router.put('/:id', updateLabourer);

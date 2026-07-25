@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRequestTabData } from "./RequestTab/useRequestTabData";
 import RequestTabHeader from "./RequestTab/RequestTabHeader";
 import RequestTable from "./RequestTab/RequestTable";
@@ -6,6 +6,9 @@ import RequestCardView from "./RequestTab/RequestCardView";
 import ViewModal from "./RequestTab/ViewModal";
 import RejectModal from "./RequestTab/RejectModal";
 import CommandModal from "./RequestTab/CommandModal";
+import Pagination from "../../components/common/Pagination";
+
+const ROWS_PER_PAGE = 8;
 
 const RequestTab = () => {
   // Modal states
@@ -16,6 +19,9 @@ const RequestTab = () => {
   const [showCommandModal, setShowCommandModal] = useState(false);
   const [commandNote, setCommandNote] = useState("");
   const [selectedProjectFilter, setSelectedProjectFilter] = useState("All");
+
+  // UI-only: pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Data and handlers from custom hook
   const {
@@ -32,28 +38,6 @@ const RequestTab = () => {
     handleCommandConfirm: hookHandleCommandConfirm,
   } = useRequestTabData();
 
-  // Helper functions
-  const getRequestReason = (request) => {
-    if (request.status === "APPROVED") {
-      return (
-        request.approvalReason ||
-        request.notes ||
-        request.message ||
-        request.adminNote ||
-        request.reason ||
-        "Approved"
-      );
-    }
-    return (
-      request.rejectionReason ||
-      request.notes ||
-      request.message ||
-      request.adminNote ||
-      request.reason ||
-      "—"
-    );
-  };
-
   const getRequestDescription = (request) =>
     request.description ||
     request.engineerNote ||
@@ -62,7 +46,7 @@ const RequestTab = () => {
     request.comment ||
     "No description provided.";
 
-  // Filtering logic
+  // Filtering logic (unchanged)
   const filteredMaterialRequests = materialRequests
     .filter(
       (req) =>
@@ -82,6 +66,17 @@ const RequestTab = () => {
       return true;
     });
 
+  // UI-only: reset to page 1 whenever the filtered set changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [requestStatusFilter, materialTypeFilter, selectedProjectFilter, materialRequests.length]);
+
+  // UI-only: paginated slice passed down to table/card view
+  const paginatedRequests = filteredMaterialRequests.slice(
+    (currentPage - 1) * ROWS_PER_PAGE,
+    currentPage * ROWS_PER_PAGE
+  );
+
   // Unique project names for filter dropdown
   const projectNames = [
     ...new Set(
@@ -93,8 +88,8 @@ const RequestTab = () => {
   ];
 
   // Table headers
-  const globalHeaders = ["Vendor", "Name", "Date", "Material", "QTY", "Reason", ""];
-  const projectHeaders = ["Vendor", "Name", "Project", "Date", "Material", "Qty", "Reason", ""];
+  const globalHeaders = ["Vendor", "Name", "Date", "Material", "Quantity", "Unit", ""];
+  const projectHeaders = ["Vendor", "Name", "Project", "Date", "Material", "Quantity", "Unit", ""];
   const headers = materialTypeFilter === "global" ? globalHeaders : projectHeaders;
 
   // Event handlers
@@ -134,12 +129,12 @@ const RequestTab = () => {
   return (
     <div className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-white rounded-lg md:rounded-xl shadow overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <RequestTabHeader
           materialTypeFilter={materialTypeFilter}
           onTabSwitch={handleTabSwitch}
@@ -152,23 +147,26 @@ const RequestTab = () => {
 
         <RequestTable
           headers={headers}
-          filteredRequests={filteredMaterialRequests}
+          filteredRequests={paginatedRequests}
           loading={loading}
           materialTypeFilter={materialTypeFilter}
-          getRequestReason={getRequestReason}
+          onViewRequest={handleViewRequest}
+        />
+
+        <RequestCardView
+          filteredRequests={paginatedRequests}
+          loading={loading}
+          materialTypeFilter={materialTypeFilter}
           onViewRequest={handleViewRequest}
           onAccept={handleAcceptConfirm}
           onReject={handleRejectClick}
         />
 
-        <RequestCardView
-          filteredRequests={filteredMaterialRequests}
-          loading={loading}
-          materialTypeFilter={materialTypeFilter}
-          getRequestReason={getRequestReason}
-          onViewRequest={handleViewRequest}
-          onAccept={handleAcceptConfirm}
-          onReject={handleRejectClick}
+        <Pagination
+          currentPage={currentPage}
+          totalItems={filteredMaterialRequests.length}
+          pageSize={ROWS_PER_PAGE}
+          onPageChange={setCurrentPage}
         />
       </div>
 

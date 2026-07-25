@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { projectAPI } from '../api/projectAPI';
 import { materialRequestAPI } from '../api/materialService';
 import { getToken, setToken } from '../utils/tabToken';
+import { isProjectExecutionEnabled } from '../utils/dashboardUtils';
+import { showToast } from '../components/common/Toast';
 
 const useEmployeeDashboard = () => {
   const [employeeName, setEmployeeName] = useState('Loading...');
@@ -104,7 +106,14 @@ const token = getToken();
 
   const handleProgressUpdate = async (projectId) => {
     const newProgress = tempProgress[projectId];
-    const currentProgress = assignedProjects.find(p => p.id === projectId)?.progress || 0;
+    const project = assignedProjects.find(p => p.id === projectId);
+    const currentProgress = project?.progress || 0;
+
+    if (!isProjectExecutionEnabled(project?.status)) {
+      showToast('Progress updates are available only when the project is In Progress.', 'warning');
+      setShowProgressSlider({ ...showProgressSlider, [projectId]: false });
+      return;
+    }
     
     if (newProgress === currentProgress) {
       setShowProgressSlider({ ...showProgressSlider, [projectId]: false });
@@ -124,7 +133,7 @@ const token = getToken();
       
     } catch (error) {
       console.error('Error updating progress:', error);
-      alert(error.error || 'Failed to update progress. Please try again.');
+      showToast(error.error || 'Failed to update progress. Please try again.', 'error');
     } finally {
       setIsUpdatingProgress({ ...isUpdatingProgress, [projectId]: false });
     }
@@ -132,9 +141,16 @@ const token = getToken();
 
   const handleSubmitProgressMessage = async (projectId) => {
     const message = progressMessage[projectId]?.trim();
+    const project = assignedProjects.find(p => p.id === projectId);
+
+    if (!isProjectExecutionEnabled(project?.status)) {
+      showToast('Daily updates are available only when the project is In Progress.', 'warning');
+      setShowProgressMessage({ ...showProgressMessage, [projectId]: false });
+      return;
+    }
     
     if (!message) {
-      alert('Please enter a progress message');
+      showToast('Please enter a progress message', 'warning');
       return;
     }
 
@@ -162,7 +178,7 @@ const token = getToken();
       setProgressMessage({ ...progressMessage, [projectId]: '' });
       setShowProgressMessage({ ...showProgressMessage, [projectId]: false });
       
-      alert('✅ Daily progress update submitted successfully!');
+      showToast('Daily progress update submitted successfully!', 'success');
       
       const profileData = JSON.parse(localStorage.getItem('profileData'));
       if (profileData?.user?.id) {
@@ -171,7 +187,7 @@ const token = getToken();
       
     } catch (error) {
       console.error('Error submitting progress message:', error);
-      alert('Failed to submit progress message: ' + error.message);
+      showToast('Failed to submit progress message: ' + error.message, 'error');
     } finally {
       setIsSubmittingMessage({ ...isSubmittingMessage, [projectId]: false });
     }
@@ -204,10 +220,21 @@ const token = getToken();
 
         let myProjects = [];
         try {
-          const projectsData = await projectAPI.getProjects();
+          const projectsResponse = await fetch(`${API_BASE_URL}/engineers/my-projects`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (!projectsResponse.ok) {
+            const errorData = await projectsResponse.json();
+            throw new Error(errorData.error || 'Failed to fetch assigned projects');
+          }
+
+          const projectsData = await projectsResponse.json();
           
-          myProjects = projectsData.projects
-            .filter(project => project.assignedEngineer?.id === engineerId)
+          myProjects = (projectsData.projects || [])
             .map(project => ({
               ...project,
               progress: project.actualProgress ?? project.progress ?? 0,

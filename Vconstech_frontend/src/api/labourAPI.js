@@ -13,6 +13,20 @@ const getAuthHeaders = () => {
   };
 };
 
+const getUploadHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Authorization': `Bearer ${token}`
+  };
+};
+
+const getBinaryHeaders = () => {
+  const token = getAuthToken();
+  return {
+    'Authorization': `Bearer ${token}`
+  };
+};
+
 // Helper function to handle API responses
 const handleResponse = async (response) => {
   const data = await response.json();
@@ -22,6 +36,24 @@ const handleResponse = async (response) => {
   }
   
   return data;
+};
+
+const handleBinaryResponse = async (response) => {
+  if (!response.ok) {
+    const errorText = await response.text();
+    let message = errorText || 'An error occurred';
+
+    try {
+      const data = JSON.parse(errorText);
+      message = data.error || message;
+    } catch (parseError) {
+      // Fall back to the raw response text when the server does not return JSON.
+    }
+
+    throw new Error(message);
+  }
+
+  return response.blob();
 };
 
 // ==================== LABOUR CRUD OPERATIONS ====================
@@ -88,6 +120,38 @@ export const createLabourer = async (labourData) => {
     return await handleResponse(response);
   } catch (error) {
     console.error('Create labourer error:', error);
+    throw error;
+  }
+};
+
+export const uploadLabourList = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch(`${API_URL}/upload`, {
+      method: 'POST',
+      headers: getUploadHeaders(),
+      body: formData
+    });
+
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Upload labour list error:', error);
+    throw error;
+  }
+};
+
+export const downloadLabourTemplate = async () => {
+  try {
+    const response = await fetch(`${API_URL}/template`, {
+      method: 'GET',
+      headers: getBinaryHeaders()
+    });
+
+    return await handleBinaryResponse(response);
+  } catch (error) {
+    console.error('Download labour template error:', error);
     throw error;
   }
 };
@@ -247,6 +311,8 @@ const labourApi = {
   getAllLabourers,
   getLabourerById,
   createLabourer,
+  uploadLabourList,
+  downloadLabourTemplate,
   updateLabourer,
   deleteLabourer,
   addPayment,

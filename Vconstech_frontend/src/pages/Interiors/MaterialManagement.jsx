@@ -7,14 +7,15 @@ import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import RequestTab from '../../components/MaterialManagement/RequestTab';
 import { materialAPI } from '../../api/materialService';
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation';
 
 const MaterialManagement = () => {
   
   const [materials, setMaterials] = useState([
-    { id: 'MAT001', name: 'Asian Paints Premium', category: 'Paint', unit: 'liter', defaultRate: 450, vendor: 'Asian Paints', description: 'Premium interior paint' },
-    { id: 'MAT002', name: 'Teak Wood Plywood', category: 'Wood', unit: 'sheet', defaultRate: 2800, vendor: 'Century Ply', description: '8mm marine plywood' },
-    { id: 'MAT003', name: 'Ceramic Tiles', category: 'Flooring', unit: 'sq.ft', defaultRate: 65, vendor: 'Kajaria', description: 'Vitrified tiles 2x2' },
-    { id: 'MAT004', name: 'LED Lights', category: 'Electrical', unit: 'piece', defaultRate: 350, vendor: 'Philips', description: '12W panel lights' },
+    { id: 'MAT001', name: 'Asian Paints Premium', category: 'Paint', unit: 'liter', defaultRate: 450, quantity: 200, vendor: 'Asian Paints', description: 'Premium interior paint' },
+    { id: 'MAT002', name: 'Teak Wood Plywood', category: 'Wood', unit: 'sheet', defaultRate: 2800, quantity: 75, vendor: 'Century Ply', description: '8mm marine plywood' },
+    { id: 'MAT003', name: 'Ceramic Tiles', category: 'Flooring', unit: 'sq.ft', defaultRate: 65, quantity: 1500, vendor: 'Kajaria', description: 'Vitrified tiles 2x2' },
+    { id: 'MAT004', name: 'LED Lights', category: 'Electrical', unit: 'piece', defaultRate: 350, quantity: 120, vendor: 'Philips', description: '12W panel lights' },
   ]);
   
 
@@ -46,12 +47,15 @@ const MaterialManagement = () => {
   const [showAddProjectMaterial, setShowAddProjectMaterial] = useState(false);
   const [showUsageLog, setShowUsageLog] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [materialErrors, setMaterialErrors] = useState({});
+  const [projectMaterialErrors, setProjectMaterialErrors] = useState({});
+  const [usageErrors, setUsageErrors] = useState({});
 
   const categories = ['All', 'Paint', 'Wood', 'Flooring', 'Electrical', 'Fabric', 'Hardware', 'Plumbing'];
 
 
   const [newMaterial, setNewMaterial] = useState({
-    name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: ''
+    name: '', category: '', unit: 'piece', defaultRate: '', quantity: '', vendor: '', description: ''
   });
 
   const [newProjectMaterial, setNewProjectMaterial] = useState({
@@ -101,11 +105,25 @@ const MaterialManagement = () => {
   };
 
 const handleAddMaterial = async () => {
+  const errors = validateFields([
+    { name: 'materialName', value: newMaterial.name, label: 'Material name', rules: ['name'] },
+    { name: 'materialCategory', value: newMaterial.category, label: 'Category', rules: ['dropdown'] },
+    { name: 'materialDefaultRate', value: newMaterial.defaultRate, label: 'Default rate', rules: ['amount'] },
+    { name: 'materialQuantity', value: newMaterial.quantity, label: 'Quantity', rules: ['quantity'] },
+    { name: 'materialVendor', value: newMaterial.vendor, label: 'Vendor', rules: newMaterial.vendor ? ['name'] : [] },
+    { name: 'materialDescription', value: newMaterial.description, label: 'Description', rules: newMaterial.description ? ['textarea'] : [] },
+  ]);
+  setMaterialErrors(errors);
+  if (Object.keys(errors).length) {
+    focusFirstInvalidField(errors);
+    return;
+  }
   const formData = new FormData();
   formData.append('name', newMaterial.name);
   formData.append('category', newMaterial.category);
   formData.append('unit', newMaterial.unit);
   formData.append('defaultRate', newMaterial.defaultRate);
+  formData.append('quantity', newMaterial.quantity);
   formData.append('vendor', newMaterial.vendor || '');
   formData.append('description', newMaterial.description || '');
   if (newMaterial.quotationFile) {
@@ -113,11 +131,24 @@ const handleAddMaterial = async () => {
   }
   // call your API with formData instead of plain object
   await materialAPI.create(formData);
-  setNewMaterial({ name: '', category: '', unit: 'piece', defaultRate: '', vendor: '', description: '', quotationFile: null });
+  setNewMaterial({ name: '', category: '', unit: 'piece', defaultRate: '', quantity: '', vendor: '', description: '', quotationFile: null });
   setShowAddMaterial(false);
 };
 
   const handleUpdateMaterial = () => {
+    const errors = validateFields([
+      { name: 'materialName', value: editingMaterial.name, label: 'Material name', rules: ['name'] },
+      { name: 'materialCategory', value: editingMaterial.category, label: 'Category', rules: ['dropdown'] },
+      { name: 'materialDefaultRate', value: editingMaterial.defaultRate, label: 'Default rate', rules: ['amount'] },
+      { name: 'materialQuantity', value: editingMaterial.quantity, label: 'Quantity', rules: ['quantity'] },
+      { name: 'materialVendor', value: editingMaterial.vendor, label: 'Vendor', rules: editingMaterial.vendor ? ['name'] : [] },
+      { name: 'materialDescription', value: editingMaterial.description, label: 'Description', rules: editingMaterial.description ? ['textarea'] : [] },
+    ]);
+    setMaterialErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
+      return;
+    }
     setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
     setEditingMaterial(null);
   };
@@ -130,6 +161,16 @@ const handleAddMaterial = async () => {
   };
 
   const handleAddProjectMaterial = () => {
+    const errors = validateFields([
+      { name: 'projectMaterialId', value: newProjectMaterial.materialId, label: 'Material', rules: ['dropdown'] },
+      { name: 'projectAssigned', value: newProjectMaterial.assigned, label: 'Assigned quantity', rules: ['quantity'] },
+      { name: 'projectUsed', value: newProjectMaterial.used, label: 'Used quantity', rules: newProjectMaterial.used ? ['optionalQuantity'] : [] },
+    ]);
+    setProjectMaterialErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
+      return;
+    }
     setProjectMaterials([...projectMaterials, {
       projectId: selectedProject,
       ...newProjectMaterial,
@@ -148,6 +189,17 @@ const handleAddMaterial = async () => {
   };
 
   const handleAddUsageLog = () => {
+    const errors = validateFields([
+      { name: 'usageDate', value: newUsageLog.date, label: 'Date', rules: ['date'] },
+      { name: 'usageMaterialId', value: newUsageLog.materialId, label: 'Material', rules: ['dropdown'] },
+      { name: 'usageQuantity', value: newUsageLog.quantity, label: 'Quantity used', rules: ['quantity'] },
+      { name: 'usageRemarks', value: newUsageLog.remarks, label: 'Remarks', rules: newUsageLog.remarks ? ['textarea'] : [] },
+    ]);
+    setUsageErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
+      return;
+    }
     setUsageLogs([...usageLogs, {
       ...newUsageLog,
       projectId: selectedProject,
@@ -186,22 +238,22 @@ const handleAddMaterial = async () => {
       <div className="pt-20 md:pl-64 md:pt-25">
 
         {/* Page header */}
-        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3 sm:py-4">
-          <h1 className="text-base sm:text-xl font-bold text-gray-900">Material Management</h1>
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-4">
+          <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900">Material Management</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Track and manage materials across all projects</p>
         </div>
 
-        {/* Tab bar */}
-        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 overflow-x-auto">
-          <div className="flex gap-1">
+        {/* Tab bar — segmented control style, matching the Cards/Table toggle elsewhere */}
+        <div className="bg-white border-b border-gray-200 px-3 sm:px-6 py-3">
+          <div className="inline-flex items-center bg-gray-50 border border-gray-200 rounded-xl p-1">
             {tabs.map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`py-3 px-3 sm:px-5 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
+                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-lg font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                   activeTab === tab
-                    ? 'border-yellow-500 text-yellow-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-yellow-400 text-black shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
@@ -251,16 +303,16 @@ const handleAddMaterial = async () => {
           title="Add New Material"
           footer={
             <>
-              <button onClick={() => setShowAddMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
+              <button onClick={() => setShowAddMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAddMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-yellow-500 text-black rounded-lg text-sm font-medium hover:bg-yellow-600">
+              <button onClick={handleAddMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-yellow-400 text-black rounded-xl text-sm font-semibold hover:bg-yellow-500 transition-colors shadow-sm">
                 Add Material
               </button>
             </>
           }
         >
-          <MaterialForm material={newMaterial} onChange={setNewMaterial} categories={categories} />
+          <MaterialForm material={newMaterial} onChange={setNewMaterial} categories={categories} errors={materialErrors} />
         </ModalMaterial>
 
         {/* ── Edit Material Modal ── */}
@@ -270,17 +322,17 @@ const handleAddMaterial = async () => {
           title="Edit Material"
           footer={
             <>
-              <button onClick={() => setEditingMaterial(null)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
+              <button onClick={() => setEditingMaterial(null)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleUpdateMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              <button onClick={handleUpdateMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                 Update Material
               </button>
             </>
           }
         >
           {editingMaterial && (
-            <MaterialForm material={editingMaterial} onChange={setEditingMaterial} categories={categories} />
+            <MaterialForm material={editingMaterial} onChange={setEditingMaterial} categories={categories} errors={materialErrors} />
           )}
         </ModalMaterial>
 
@@ -291,10 +343,10 @@ const handleAddMaterial = async () => {
           title="Add Material to Project"
           footer={
             <>
-              <button onClick={() => setShowAddProjectMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
+              <button onClick={() => setShowAddProjectMaterial(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAddProjectMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+              <button onClick={handleAddProjectMaterial} className="flex-1 sm:flex-none px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                 Add to Project
               </button>
             </>
@@ -304,30 +356,35 @@ const handleAddMaterial = async () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Select Material</label>
               <select
+                name="projectMaterialId"
                 value={newProjectMaterial.materialId}
                 onChange={(e) => setNewProjectMaterial({...newProjectMaterial, materialId: e.target.value})}
-                className={inputClass}
+                className={`${inputClass} ${projectMaterialErrors.projectMaterialId ? 'border-red-500' : ''}`}
               >
                 <option value="">Choose a material...</option>
                 {materials.map(m => (
                   <option key={m.id} value={m.id}>{m.name} ({m.category} - {m.unit})</option>
                 ))}
               </select>
+              {projectMaterialErrors.projectMaterialId && <p className="text-red-500 text-sm mt-1">{projectMaterialErrors.projectMaterialId}</p>}
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned Qty</label>
                 <input
+                  name="projectAssigned"
                   type="number"
                   value={newProjectMaterial.assigned}
                   onChange={(e) => setNewProjectMaterial({...newProjectMaterial, assigned: e.target.value})}
-                  className={inputClass}
+                  className={`${inputClass} ${projectMaterialErrors.projectAssigned ? 'border-red-500' : ''}`}
                   placeholder="100"
                 />
+                {projectMaterialErrors.projectAssigned && <p className="text-red-500 text-sm mt-1">{projectMaterialErrors.projectAssigned}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Used Qty</label>
                 <input
+                  name="projectUsed"
                   type="number"
                   value={newProjectMaterial.used}
                   onChange={(e) => setNewProjectMaterial({...newProjectMaterial, used: e.target.value})}
@@ -358,10 +415,10 @@ const handleAddMaterial = async () => {
           title="Log Material Usage"
           footer={
             <>
-              <button onClick={() => setShowUsageLog(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50">
+              <button onClick={() => setShowUsageLog(false)} className="flex-1 sm:flex-none px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 text-sm hover:bg-gray-50 transition-colors">
                 Cancel
               </button>
-              <button onClick={handleAddUsageLog} className="flex-1 sm:flex-none px-5 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
+              <button onClick={handleAddUsageLog} className="flex-1 sm:flex-none px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
                 Log Usage
               </button>
             </>
@@ -371,6 +428,7 @@ const handleAddMaterial = async () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
               <input
+                name="usageDate"
                 type="date"
                 value={newUsageLog.date}
                 onChange={(e) => setNewUsageLog({...newUsageLog, date: e.target.value})}
@@ -380,9 +438,10 @@ const handleAddMaterial = async () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Select Material</label>
               <select
+                name="usageMaterialId"
                 value={newUsageLog.materialId}
                 onChange={(e) => setNewUsageLog({...newUsageLog, materialId: e.target.value})}
-                className={inputClass}
+                className={`${inputClass} ${usageErrors.usageMaterialId ? 'border-red-500' : ''}`}
               >
                 <option value="">Choose a material...</option>
                 {getProjectMaterialsWithDetails(selectedProject).map(pm => (
@@ -391,20 +450,24 @@ const handleAddMaterial = async () => {
                   </option>
                 ))}
               </select>
+              {usageErrors.usageMaterialId && <p className="text-red-500 text-sm mt-1">{usageErrors.usageMaterialId}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Quantity Used</label>
               <input
+                name="usageQuantity"
                 type="number"
                 value={newUsageLog.quantity}
                 onChange={(e) => setNewUsageLog({...newUsageLog, quantity: e.target.value})}
-                className={inputClass}
+                className={`${inputClass} ${usageErrors.usageQuantity ? 'border-red-500' : ''}`}
                 placeholder="20"
               />
+              {usageErrors.usageQuantity && <p className="text-red-500 text-sm mt-1">{usageErrors.usageQuantity}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Remarks</label>
               <textarea
+                name="usageRemarks"
                 value={newUsageLog.remarks}
                 onChange={(e) => setNewUsageLog({...newUsageLog, remarks: e.target.value})}
                 rows="3"

@@ -1,4 +1,5 @@
 import { Bell } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 const NotificationsDropdown = ({
   notifications,
@@ -6,8 +7,24 @@ const NotificationsDropdown = ({
   show,
   onToggle,
   onMarkAsRead,
-}) => (
-  <div className="relative">
+}) => {
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!show) return undefined;
+
+    const handleOutsideClick = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        onToggle();
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [show, onToggle]);
+
+  return (
+  <div className="relative" ref={dropdownRef}>
     <button
       onClick={onToggle}
       className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
@@ -63,6 +80,7 @@ const NotificationsDropdown = ({
       </div>
     )}
   </div>
-);
+  );
+};
 
 export default NotificationsDropdown;

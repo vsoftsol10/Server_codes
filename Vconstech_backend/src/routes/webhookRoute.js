@@ -1,11 +1,11 @@
 import express from 'express';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { sendEmail } from '../utils/mailer.js';
 import { generatePassword } from '../utils/generatePassword.js';
+import { processPricingPurchaseSuccess } from '../services/subscriptionSyncService.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // ⚠️ IMPORTANT: uses express.raw() — must be registered BEFORE express.json() in server.js
 router.post(
@@ -56,7 +56,14 @@ router.post(
     const address       = notes.address     || 'Unknown';
     const userPackage   = notes.package     || 'Basic';
     const customMembers = notes.customMembers || null;
+    const userId        = notes.userId || null;
+    const customerId    = notes.customerId || null;
+    const crmCustomerId = notes.crmCustomerId || null;
+    const erpCustomerId = notes.erpCustomerId || null;
+    const purchaseFlow  = notes.purchaseFlow || null;
+    const hasExistingErpReference = Boolean(userId || customerId || crmCustomerId || erpCustomerId);
     const paymentId     = payment.id;
+    const orderId       = payment.order_id || null;
     const amount        = payment.amount / 100; // paise → rupees
 
     console.log(`[Webhook] ✅ Payment captured: ${paymentId} | ${email} | ₹${amount}`);
@@ -69,6 +76,56 @@ router.post(
     if (alreadyProcessed) {
       console.log(`[Webhook] ⚠️ Already processed: ${paymentId}`);
       return res.status(200).json({ status: 'already processed' });
+    }
+
+    if (hasExistingErpReference) {
+      let activationResult;
+      try {
+        activationResult = await processPricingPurchaseSuccess({
+          purchaseFlow,
+          userId,
+          customerId,
+          crmCustomerId,
+          erpCustomerId,
+          email,
+          plan: userPackage,
+          name,
+          companyName,
+          phone: phoneNumber,
+          paymentId,
+          orderId
+        });
+      } catch (err) {
+        console.error('[Webhook] Existing ERP subscription activation failed:', err.message);
+        return res.status(err.statusCode || 500).json({
+          error: err.message,
+          details: err.details
+        });
+      }
+
+      try {
+        await prisma.paymentNotification.create({
+          data: {
+            title: 'Subscription activated via payment',
+            message: `${name} from ${companyName} paid Rs ${amount} and the existing ERP account was activated with ${userPackage} plan.`,
+            customerName: name,
+            customerEmail: email,
+            companyName,
+            plan: userPackage,
+            amount,
+            paymentId,
+          },
+        });
+      } catch (err) {
+        console.error('[Webhook] Failed to save payment notification:', err.message);
+      }
+
+      console.log(`[Webhook] Existing ERP subscription handled for payment ${paymentId}`);
+      return res.status(200).json({
+        status: 'ok',
+        activation: activationResult.status,
+        userId: activationResult.user?.userId
+      });
     }
 
     // ── 5. Check if user already exists ──────────────────────────────────────
@@ -84,7 +141,7 @@ router.post(
     // ── 7. Call your existing /api/superadmin/create-user internally ──────────
     let createResult;
     try {
-      const createRes = await fetch('http://localhost:5000/api/superadmin/create-user', {
+      const createRes = await fetch('http://localhost:5001/api/superadmin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -188,7 +245,7 @@ router.post(
 
           <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:10px;padding:20px;margin:20px 0">
             <p style="margin:0 0 10px;font-size:14px;color:#666">Your login details:</p>
-            <p style="margin:6px 0;font-size:14px"><strong>URL:</strong> <a href="http://localhost:5000">http://localhost:5000</a></p>
+            <p style="margin:6px 0;font-size:14px"><strong>URL:</strong> <a href="http://localhost:5001">http://localhost:5001</a></p>
             <p style="margin:6px 0;font-size:14px"><strong>Email:</strong> ${email}</p>
             <p style="margin:6px 0;font-size:14px"><strong>Password:</strong>
               <code style="background:#f4f4f4;padding:3px 8px;border-radius:4px;font-size:13px">${plainPassword}</code>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import EmployeeMaterialForm from "../../Employee/EmployeeMaterial/EmployeeMaterialForm";
 
 const EMPTY_MATERIAL = {
@@ -13,7 +13,8 @@ const AddMaterialFormInline = ({ categories, projects, loading, onClose, onSubmi
   const isSubmitDisabled =
     !newMaterial.name ||
     !newMaterial.defaultRate ||
-    (requestType === "PROJECT" && (!newMaterial.projectId || !newMaterial.quantity)) ||
+    !newMaterial.quantity ||
+    (requestType === "PROJECT" && !newMaterial.projectId) ||
     loading;
 
   const handleSubmit = async () => {

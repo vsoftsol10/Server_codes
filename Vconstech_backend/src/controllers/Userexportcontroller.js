@@ -1,9 +1,7 @@
 // src/controllers/userExportController.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import ExcelJS from 'exceljs';
 import jwt from 'jsonwebtoken';
-
-const prisma = new PrismaClient();
 
 // Helper: format date
 const fmt = (d) => d ? new Date(d).toLocaleDateString('en-IN') : 'N/A';

@@ -86,14 +86,14 @@ export const costCalculationService = {
         console.warn('No labour data found for project:', projectId, err.message);
       }
       
-      // 4. Get contract costs (paid amounts)
+      // 4. Get contract costs (committed contract amounts)
       let contractSpent = 0;
       try {
         const contractData = await getContractsByProject(projectId);
         if (contractData.success && contractData.contracts) {
-          // Sum paid amount for each contract
+          // Sum committed contract amount for each contract.
           contractSpent = contractData.contracts.reduce((sum, contract) => {
-            return sum + parseFloat(contract.paidAmount || 0);
+            return sum + parseFloat(contract.contractAmount || 0);
           }, 0);
         }
       } catch (err) {

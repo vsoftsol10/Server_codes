@@ -1,23 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Edit2, Printer, Plus, Save, X, AlertTriangle, Trash2 } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import {
+  Edit2, Printer, Plus, Save, X, Trash2,
+  Eye, Search, Filter,
+  FileText, Building2
+} from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
 import { financialAPI } from '../../api/financialAPI';
 import LoadingScreen from '../../components/common/Loadingscreen';
 
-const FinancialManagement = () => {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedCard, setExpandedCard] = useState(null);
-  const [editingExpense, setEditingExpense] = useState(null);
-  const [addingExpense, setAddingExpense] = useState(null);
-  const [newExpense, setNewExpense] = useState({ category: '', amount: '' });
-  const [showBudgetWarning, setShowBudgetWarning] = useState(false);
-  const [budgetWarningData, setBudgetWarningData] = useState(null);
+import { showToast } from '../../components/common/Toast';
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation';
 
-  // Load projects from API
+/* -- Pagination helper -- */
+const getPaginationItems = (current, total) => {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
+};
+
+/* -- Status badge -- */
+const StatusBadge = ({ status }) => {
+  const cfg = {
+    Active:    'bg-green-100 text-green-700',
+    Planning:  'bg-blue-100 text-blue-700',
+    'On Hold': 'bg-orange-100 text-orange-700',
+    Completed: 'bg-purple-100 text-purple-700',
+  }[status] || 'bg-gray-100 text-gray-600';
+  return (
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${cfg}`}>{status || 'Active'}</span>
+  );
+};
+
+const FinancialManagement = () => {
+  const [projects, setProjects]               = useState([]);
+  const [loading, setLoading]                 = useState(true);
+  const [searchQuery, setSearchQuery]         = useState('');
+  const [showFilterDrop, setShowFilterDrop]   = useState(false);
+  const [filterStatus, setFilterStatus]       = useState('all');
+
+  /* pagination */
+  const [currentPage, setCurrentPage]         = useState(1);
+  const [rowsPerPage, setRowsPerPage]         = useState(10);
+
+  /* right drawer */
+  const [drawerProject, setDrawerProject]     = useState(null);
+
+  /* expense state */
+  const [editingExpense, setEditingExpense]   = useState(null);
+  const [addingExpense, setAddingExpense]     = useState(false);
+  const [newExpense, setNewExpense]           = useState({ amount: '', category: '' });
+  const [expenseErrors, setExpenseErrors]     = useState({});
+  const [editExpenseErrors, setEditExpenseErrors] = useState({});
+
   useEffect(() => {
-    document.title = "Vconstech - Admin";
+    document.title = 'Vconstech - Admin';
     loadProjects();
   }, []);
 
@@ -28,449 +66,661 @@ const FinancialManagement = () => {
       setProjects(response.projects || []);
     } catch (error) {
       console.error('Failed to load projects:', error);
-      alert(`Error loading projects: ${error.error || error.message}`);
+      showToast(`Error loading projects: ${error.error || error.message}`, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleCard = (id) => {
-    setExpandedCard(expandedCard === id ? null : id);
+  /* -- helpers -- */
+  const getProjectBudgetSummary = (project) => {
+    const summary = project?.budgetSummary || {};
+    const totalBudget = Number(summary.totalBudget ?? project?.totalBudget ?? project?.budget ?? project?.quotationAmount ?? 0);
+    const totalSpent = Number(summary.totalSpent ?? project?.totalSpent ?? 0);
+
+    return {
+      totalBudget,
+      totalSpent,
+      materialCost: Number(summary.materialCost ?? project?.materialCost ?? summary.breakdown?.materialCost ?? 0),
+      labourCost: Number(summary.labourCost ?? project?.labourCost ?? summary.breakdown?.labourCost ?? 0),
+      contractCost: Number(summary.contractCost ?? project?.contractCost ?? summary.breakdown?.contractAmount ?? 0),
+      expenseCost: Number(summary.expenseCost ?? project?.expenseCost ?? summary.breakdown?.expenseCost ?? summary.breakdown?.financialExpenses ?? 0),
+      remainingBudget: Number(summary.remainingBudget ?? project?.remainingBudget ?? (totalBudget - totalSpent)),
+    };
   };
 
-  const handleEditExpense = (projectId, expense) => {
-    setEditingExpense({ projectId, ...expense });
+  const getAvailableBudgetForExpense = (project, existingExpenseId = null) => {
+    const budgetSummary = getProjectBudgetSummary(project);
+    const existingExpense = existingExpenseId
+      ? (project?.expenses || []).find((expense) => String(expense.id || expense._id) === String(existingExpenseId))
+      : null;
+
+    return budgetSummary.remainingBudget + Number(existingExpense?.amount || 0);
+  };
+
+  const exceedsProjectBudget = (project, nextAmount, existingExpenseId = null) => {
+    const availableBudget = getAvailableBudgetForExpense(project, existingExpenseId);
+    return Number(nextAmount || 0) > availableBudget;
+  };
+
+  const getProjectStatus = (project) =>
+    project.status || 'Active';
+
+  const fmtCurrency = (v) =>
+    `Rs.${Number(v || 0).toLocaleString('en-IN')}`;
+
+  const fmtDate = (d) => {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  /* -- filtered + paginated -- */
+  const filteredProjects = projects.filter((p) => {
+    const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchFilter = filterStatus === 'all' || getProjectStatus(p) === filterStatus;
+    return matchSearch && matchFilter;
+  });
+
+  const totalPages  = Math.max(1, Math.ceil(filteredProjects.length / rowsPerPage));
+  const startIdx    = (currentPage - 1) * rowsPerPage;
+  const endIdx      = Math.min(startIdx + rowsPerPage, filteredProjects.length);
+  const pageProjects = filteredProjects.slice(startIdx, endIdx);
+
+  const handleRowsPerPageChange = (val) => {
+    setRowsPerPage(Number(val));
+    setCurrentPage(1);
+  };
+
+  /* -- drawer open/close -- */
+  const openDrawer = (project) => {
+    setDrawerProject(project);
+    setAddingExpense(false);
+    setEditingExpense(null);
+    setNewExpense({ amount: '', category: '' });
+  };
+  const closeDrawer = () => {
+    setDrawerProject(null);
+    setEditingExpense(null);
+    setAddingExpense(false);
+  };
+
+  /* sync drawer project when projects reload */
+  useEffect(() => {
+    if (drawerProject) {
+      const updated = projects.find(p => p.id === drawerProject.id);
+      if (updated) setDrawerProject(updated);
+    }
+  }, [projects]);
+
+  /* -- expense handlers (backend unchanged) -- */
+  const refreshProjectFinance = async (projectId) => {
+    const projectResponse = await financialAPI.getProjectById(projectId);
+    const updatedProject = projectResponse.project;
+
+    if (updatedProject) {
+      setProjects((prev) => prev.map((project) => (
+        project.id === projectId ? updatedProject : project
+      )));
+      setDrawerProject(updatedProject);
+    }
+
+    return updatedProject;
   };
 
   const handleSaveExpense = async () => {
-    try {
-      await financialAPI.updateExpense(editingExpense.id, {
-        category: editingExpense.category,
-        amount: parseFloat(editingExpense.amount)
-      });
-      
-      // Reload projects to get updated data
-      await loadProjects();
-      setEditingExpense(null);
-      alert('Expense updated successfully!');
-    } catch (error) {
-      console.error('Failed to update expense:', error);
-      alert(`Error: ${error.error || error.message}`);
-    }
-  };
-
-  const handleDeleteExpense = async (projectId, expenseId) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await financialAPI.deleteExpense(expenseId);
-        await loadProjects();
-        alert('Expense deleted successfully!');
-      } catch (error) {
-        console.error('Failed to delete expense:', error);
-        alert(`Error: ${error.error || error.message}`);
-      }
-    }
-  };
-
-  const handleAddExpenseClick = (projectId) => {
-    setAddingExpense(projectId);
-    setNewExpense({ category: '', amount: '' });
-  };
-
-  const handleAddExpense = async (projectId) => {
-    if (!newExpense.category || !newExpense.amount) {
-      alert('Please fill in both category and amount');
+    const errors = validateFields([
+      { name: 'editExpenseAmount', value: editingExpense.amount, label: 'Amount', rules: ['amount'] },
+    ]);
+    setEditExpenseErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
       return;
     }
 
-    const project = projects.find(p => p.id === projectId);
-    const totalSpent = calculateTotalSpent(project.expenses);
-    const newAmount = parseFloat(newExpense.amount);
-    const newTotal = totalSpent + newAmount;
-    const exceedAmount = newTotal - project.budget;
-
-    if (exceedAmount > 0) {
-      setBudgetWarningData({
-        projectId,
-        exceedAmount,
-        newExpense: { ...newExpense, amount: newAmount }
-      });
-      setShowBudgetWarning(true);
-    } else {
-      await addExpenseToProject(projectId);
+    const nextAmount = parseFloat(editingExpense.amount);
+    if (exceedsProjectBudget(drawerProject, nextAmount, editingExpense.id)) {
+      showToast('Expense exceeds the remaining project budget.', 'warning');
+      return;
     }
+
+    try {
+      await financialAPI.updateExpense(editingExpense.id, {
+        amount: nextAmount,
+      });
+      await refreshProjectFinance(editingExpense.projectId || drawerProject.id);
+      setEditingExpense(null);
+      setEditExpenseErrors({});
+      showToast('Expense updated successfully!', 'success');
+    } catch (error) {
+      showToast(`Error: ${error.error || error.message}`, "error");
+    }
+  };
+
+  const handleDeleteExpense = async (expenseId) => {
+    if (!window.confirm('Are you sure you want to delete this expense?')) return;
+    try {
+      const response = await financialAPI.deleteExpense(expenseId);
+      await refreshProjectFinance(response.projectId || drawerProject.id);
+      showToast('Expense deleted successfully!', 'success');
+    } catch (error) {
+      showToast(`Error: ${error.error || error.message}`, "error");
+    }
+  };
+
+  const handleAddExpense = async () => {
+    const errors = validateFields([
+      { name: 'expenseCategory', value: newExpense.category, label: 'Expense Category', rules: ['required'] },
+      { name: 'expenseAmount', value: newExpense.amount, label: 'Amount', rules: ['amount'] },
+    ]);
+    setExpenseErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
+      return;
+    }
+    const newAmount   = parseFloat(newExpense.amount);
+    if (exceedsProjectBudget(drawerProject, newAmount)) {
+      showToast('Expense exceeds the remaining project budget.', 'warning');
+      return;
+    }
+    await addExpenseToProject(drawerProject.id);
   };
 
   const addExpenseToProject = async (projectId) => {
     try {
       await financialAPI.addExpense(projectId, {
         category: newExpense.category,
-        amount: parseFloat(newExpense.amount)
+        amount: parseFloat(newExpense.amount),
       });
-      
-      await loadProjects();
-      setAddingExpense(null);
-      setNewExpense({ category: '', amount: '' });
-      setShowBudgetWarning(false);
-      setBudgetWarningData(null);
-      alert('Expense added successfully!');
+
+      await refreshProjectFinance(projectId);
+
+      setAddingExpense(false);
+      setNewExpense({ amount: '', category: '' });
+      setExpenseErrors({});
+      showToast('Expense added successfully!', 'success');
     } catch (error) {
-      console.error('Failed to add expense:', error);
-      alert(`Error: ${error.error || error.message}`);
+      showToast(`Error: ${error.error || error.message}`, "error");
     }
   };
 
   const handlePrint = (project) => {
     const printWindow = window.open('', '_blank');
-    const totalSpent = project.expenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const remaining = project.budget - totalSpent;
-    
+    const budgetSummary = getProjectBudgetSummary(project);
+    const totalSpent = budgetSummary.totalSpent;
+    const remaining  = budgetSummary.remainingBudget;
+    const generatedDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const expenseRows = (project.expenses || []).map((expense, index) => `
+      <tr>
+        <td>${index + 1}</td>
+        <td>${expense.category || '--'}</td>
+        <td>${fmtCurrency(expense.amount)}</td>
+        <td><span class="status-pill">Paid</span></td>
+      </tr>
+    `).join('');
+
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Project Financial Report - ${project.name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; }
-            h1 { color: #1e40af; border-bottom: 3px solid #1e40af; padding-bottom: 10px; }
-            h2 { color: #374151; margin-top: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-            th { background-color: #f3f4f6; font-weight: bold; }
-            .summary { background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-top: 20px; }
-            .summary-item { display: flex; justify-content: space-between; padding: 8px 0; }
-            .total { font-weight: bold; font-size: 18px; border-top: 2px solid #1e40af; padding-top: 10px; }
-          </style>
-        </head>
-        <body>
-          <h1>Project Financial Report</h1> 
-          <p><strong>Project Name: </strong>${project.name}</p>
-          <p><strong>Due Date:</strong> ${new Date(project.dueDate).toLocaleDateString()}</p>
-          
-          <div class="summary">
-            <div class="summary-item">
-              <span>Budget:</span>
-              <span>₹${project.budget.toLocaleString()}</span>
+      <html><head><title>Financial Report - ${project.name}</title>
+      <style>
+        *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
+        html,body{background:#f3f4f6!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f3f4f6;color:#111827}
+        .page{padding:32px}
+        .report{background:#ffffff!important;border-radius:18px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.12)}
+        .hero{background:#111827!important;color:#ffffff!important;padding:28px 32px;display:flex;justify-content:space-between;gap:24px;align-items:flex-start;border-bottom:5px solid #ffbe2a}
+        .brand{font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffbe2a!important;margin-bottom:8px}
+        h1{font-size:28px;margin:0 0 8px;font-weight:800}
+        .muted{color:#d1d5db!important;font-size:13px;margin:0}
+        .meta{background:#1f2937!important;border:1px solid #374151;border-radius:14px;padding:14px 16px;min-width:220px}
+        .meta-row{display:flex;justify-content:space-between;gap:16px;font-size:12px;padding:4px 0}
+        .meta-row span:first-child{color:#d1d5db!important}
+        .meta-row span:last-child{font-weight:700;color:#ffffff!important}
+        .content{padding:28px 32px}
+        .section-title{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#111827!important;border-left:4px solid #ffbe2a;padding-left:10px;margin:0 0 14px}
+        .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+        .card{background:#f9fafb!important;border:1px solid #e5e7eb;border-radius:14px;padding:16px}
+        .card-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#6b7280!important;font-weight:700;margin-bottom:8px}
+        .card-value{font-size:18px;font-weight:800;color:#111827!important}
+        .positive{color:#059669!important}.negative{color:#dc2626!important}
+        .project-box{background:#f9fafb!important;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:28px}
+        .project-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 22px;font-size:13px}
+        .label{color:#6b7280!important;font-weight:600}.value{font-weight:800;color:#111827!important}
+        table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #e5e7eb;border-radius:14px}
+        th{background:#111827!important;color:#ffbe2a!important;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:13px 14px}
+        td{padding:13px 14px;border-top:1px solid #e5e7eb;font-size:13px}
+        tbody tr:nth-child(even){background:#f9fafb!important}
+        .status-pill{display:inline-block;background:#dcfce7!important;color:#166534!important;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800}
+        .empty{padding:24px;text-align:center;color:#6b7280!important;background:#f9fafb!important;border:1px dashed #d1d5db;border-radius:14px}
+        .footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e5e7eb;margin-top:28px;padding-top:16px;color:#6b7280!important;font-size:12px}
+        @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}body{background:#ffffff!important}.page{padding:0}.report{background:#ffffff!important;box-shadow:none;border-radius:0}.hero,th{background:#111827!important}.card,.project-box,.empty,tbody tr:nth-child(even){background:#f9fafb!important}.status-pill{background:#dcfce7!important}.footer:after{content:'Page ' counter(page)}}
+      </style></head><body>
+      <div class="page">
+        <div class="report">
+          <div class="hero">
+            <div>
+              <div class="brand">Vconstech ERP</div>
+              <h1>Project Financial Report</h1>
+              <p class="muted">Professional budget, quotation, and expense summary</p>
             </div>
-            <div class="summary-item">
-              <span>Quotation Amount:</span>
-              <span>₹${project.quotationAmount.toLocaleString()}</span>
-            </div>
-            <div class="summary-item">
-              <span>Total Spent:</span>
-              <span>₹${totalSpent.toLocaleString()}</span>
-            </div>
-            <div class="summary-item total">
-              <span>Remaining:</span>
-              <span style="color: ${remaining >= 0 ? '#059669' : '#dc2626'}">₹${remaining.toLocaleString()}</span>
+            <div class="meta">
+              <div class="meta-row"><span>Generated</span><span>${generatedDate}</span></div>
+              <div class="meta-row"><span>Project</span><span>${project.name}</span></div>
+              <div class="meta-row"><span>Due Date</span><span>${fmtDate(project.dueDate)}</span></div>
             </div>
           </div>
-
-          <h2>Expense Details</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Category</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${project.expenses.map(exp => `
-                <tr>
-                  <td>${exp.category}</td>
-                  <td>₹${exp.amount.toLocaleString()}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          
-          <script>window.print(); window.onafterprint = () => window.close();</script>
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-  };
-
-  const calculateTotalSpent = (expenses) => {
-    return expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  };
-
- if (loading) return <LoadingScreen message="Loading Projects..." />;
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="fixed top-0 left-0 right-0 z-50 h-16">
-        <Navbar />
-      </nav>
-
-      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto">
-        <SidePannel />
-      </aside>
-
-      <div className="pt-20 pl-0 md:pl-64">
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800">
-                Financial Management
-              </h1>
+          <div class="content">
+            <p class="section-title">Financial Summary</p>
+            <div class="cards">
+              <div class="card"><div class="card-label">Budget</div><div class="card-value">${fmtCurrency(project.budget)}</div></div>
+              <div class="card"><div class="card-label">Quotation</div><div class="card-value">${fmtCurrency(project.quotationAmount)}</div></div>
+              <div class="card"><div class="card-label">Total Spent</div><div class="card-value">${fmtCurrency(totalSpent)}</div></div>
+              <div class="card"><div class="card-label">Remaining</div><div class="card-value ${remaining >= 0 ? 'positive' : 'negative'}">${fmtCurrency(remaining)}</div></div>
             </div>
-
-            {/* Budget Warning Modal */}
-            {showBudgetWarning && budgetWarningData && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-xl p-6 sm:p-8 max-w-md w-full shadow-2xl border-4 border-red-500">
-                  <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle size={32} className="text-red-600" />
-                    <h2 className="text-xl sm:text-2xl font-bold text-red-600">Budget Warning!</h2>
-                  </div>
-                  <p className="text-gray-700 mb-6">
-                    Adding this expense will exceed the budget by <span className="font-bold text-red-600">₹{budgetWarningData.exceedAmount.toLocaleString()}</span>
-                  </p>
-                  <p className="text-gray-600 mb-6 text-sm">Do you want to continue?</p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => addExpenseToProject(budgetWarningData.projectId)}
-                      className="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold"
-                    >
-                      Yes, Continue
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowBudgetWarning(false);
-                        setBudgetWarningData(null);
-                      }}
-                      className="flex-1 bg-gray-300 text-gray-800 px-4 py-3 rounded-lg hover:bg-gray-400 transition-colors font-semibold"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
+            <p class="section-title">Project Details</p>
+            <div class="project-box">
+              <div class="project-grid">
+                <div><span class="label">Project Name</span><div class="value">${project.name}</div></div>
+                <div><span class="label">Status</span><div class="value">${project.status || 'Active'}</div></div>
+                <div><span class="label">Due Date</span><div class="value">${fmtDate(project.dueDate)}</div></div>
+                <div><span class="label">Expenses</span><div class="value">${(project.expenses || []).length}</div></div>
               </div>
-            )}
-
-            {/* Projects List */}
-            <div className="space-y-4">
-              {projects.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-                  <p className="text-gray-500 text-lg">No projects found.</p>
-                </div>
-              ) : (
-                projects.map((project) => {
-                  const totalSpent = calculateTotalSpent(project.expenses);
-                  const remaining = project.budget - totalSpent;
-                  const exceeded = remaining < 0 ? Math.abs(remaining) : 0;
-                  const isExpanded = expandedCard === project.id;
-
-                  return (
-                    <div key={project.id} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300">
-                      <div
-                        onClick={() => toggleCard(project.id)}
-                        className="p-4 sm:p-6 cursor-pointer hover:bg-amber-50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start sm:items-center gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3 truncate">
-                              {project.name}
-                            </h2>
-                            <div className="flex flex-col sm:flex-row sm:gap-6 lg:gap-8 text-xs sm:text-sm space-y-2 sm:space-y-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500">Budget:</span>
-                                <span className="font-semibold text-gray-800">₹{project.budget.toLocaleString()}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500">Due:</span>
-                                <span className="font-semibold text-gray-800">
-                                  {new Date(project.dueDate).toLocaleDateString('en-IN', { 
-                                    day: '2-digit', 
-                                    month: 'short', 
-                                    year: 'numeric' 
-                                  })}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500">Spent:</span>
-                                <span className="font-semibold text-gray-800">₹{totalSpent.toLocaleString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-amber-600 flex-shrink-0">
-                            {isExpanded ? <ChevronUp size={24} className="sm:w-7 sm:h-7" /> : <ChevronDown size={24} className="sm:w-7 sm:h-7" />}
-                          </div>
-                        </div>
-                      </div>
-
-                      {isExpanded && (
-                        <div className="px-4 sm:px-6 pb-4 sm:pb-6 border-t-2 border-gray-200 bg-amber-50">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-6 mb-4 sm:mb-6">
-                            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
-                              <p className="text-xs sm:text-sm text-gray-600 mb-1">Quotation Amount</p>
-                              <p className="text-xl sm:text-2xl font-bold text-blue-600">₹{project.quotationAmount.toLocaleString()}</p>
-                            </div>
-                            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
-                              <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Spent</p>
-                              <p className="text-xl sm:text-2xl font-bold text-green-600">₹{totalSpent.toLocaleString()}</p>
-                            </div>
-                            <div className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
-                              <p className="text-xs sm:text-sm text-gray-600 mb-1">Remaining Budget</p>
-                              <p className={`text-xl sm:text-2xl font-bold ${remaining >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                                ₹{remaining.toLocaleString()}
-                              </p>
-                            </div>
-                            {exceeded > 0 && (
-                              <div className="bg-red-50 p-3 sm:p-4 rounded-lg shadow-md border-2 border-red-400">
-                                <p className="text-xs sm:text-sm text-red-600 mb-1 flex items-center gap-1">
-                                  <AlertTriangle size={16} />
-                                  Budget Exceeded
-                                </p>
-                                <p className="text-xl sm:text-2xl font-bold text-red-600">₹{exceeded.toLocaleString()}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
-                            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Expense Breakdown</h3>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddExpenseClick(project.id);
-                                }}
-                                className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-md"
-                              >
-                                <Plus size={18} />
-                                <span>Add Expense</span>
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePrint(project);
-                                }}
-                                className="flex items-center justify-center gap-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 transition-colors shadow-md"
-                              >
-                                <Printer size={18} />
-                                <span>Print Report</span>
-                              </button>
-                            </div>
-                          </div>
-
-                          {addingExpense === project.id && (
-                            <div className="bg-green-50 p-4 rounded-lg shadow-md mb-4 border-2 border-green-400">
-                              <h4 className="font-semibold text-gray-800 mb-3">Add New Expense</h4>
-                              <div className="space-y-3">
-                                <input
-                                  type="text"
-                                  value={newExpense.category}
-                                  onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
-                                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm"
-                                  placeholder="Category (e.g., Furniture, Materials)"
-                                />
-                                <input
-                                  type="number"
-                                  value={newExpense.amount}
-                                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:border-green-400 text-sm"
-                                  placeholder="Amount"
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleAddExpense(project.id)}
-                                    className="flex-1 flex items-center justify-center gap-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                                  >
-                                    <Save size={16} />
-                                    Add Expense
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setAddingExpense(null);
-                                      setNewExpense({ category: '', amount: '' });
-                                    }}
-                                    className="flex-1 flex items-center justify-center gap-1 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
-                                  >
-                                    <X size={16} />
-                                    Cancel
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="space-y-3">
-                            {project.expenses.map((expense) => (
-                              <div key={expense.id} className="bg-white p-3 sm:p-4 rounded-lg shadow-md">
-                                {editingExpense && editingExpense.id === expense.id && editingExpense.projectId === project.id ? (
-                                  <div className="space-y-3">
-                                    <input
-                                      type="text"
-                                      value={editingExpense.category}
-                                      onChange={(e) => setEditingExpense({ ...editingExpense, category: e.target.value })}
-                                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm"
-                                      placeholder="Category"
-                                    />
-                                    <input
-                                      type="number"
-                                      value={editingExpense.amount}
-                                      onChange={(e) => setEditingExpense({ ...editingExpense, amount: e.target.value })}
-                                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm"
-                                      placeholder="Amount"
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={handleSaveExpense}
-                                        className="flex-1 flex items-center justify-center gap-1 bg-[#ffbe2a] text-[#000000] px-4 py-2 rounded-lg hover:bg-[#f5b621] transition-colors text-sm font-medium"
-                                      >
-                                        <Save size={16} />
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={() => setEditingExpense(null)}
-                                        className="flex-1 flex items-center justify-center gap-1 bg-[#000] text-[#ffbe2a] px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium"
-                                      >
-                                        <X size={16} />
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                                        <span className="bg-[#FFbe2a] text-black px-3 py-1 rounded-full text-xs sm:text-sm font-semibold">
-                                          {expense.category}
-                                        </span>
-                                        <span className="text-lg sm:text-xl font-bold text-gray-800">₹{expense.amount.toLocaleString()}</span>
-                                      </div>
-                                    </div>
-                                    <div className="flex gap-5">
-                                      <button
-                                        onClick={() => handleEditExpense(project.id, expense)}
-                                        className="flex items-center gap-1 text-blue-600 hover:text-blue-700 transition-colors font-medium text-sm"
-                                      >
-                                        <Edit2 size={16} className="sm:w-5 sm:h-5" />
-                                        <span>Edit</span>
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteExpense(project.id, expense.id)}
-                                        className="flex items-center gap-1 text-red-600 hover:text-red-700 transition-colors font-medium text-sm"
-                                      >
-                                        <Trash2 size={16} className="sm:w-5 sm:h-5" />
-                                        <span>Delete</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+            </div>
+            <p class="section-title">Expense Breakdown</p>
+            ${(project.expenses || []).length > 0 ? `
+              <table>
+                <thead><tr><th>#</th><th>Expense</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>${expenseRows}</tbody>
+              </table>
+            ` : '<div class="empty">No expenses recorded yet.</div>'}
+            <div class="footer">
+              <span>Vconstech ERP Financial Management</span>
+              <span>Generated Date: ${generatedDate}</span>
             </div>
           </div>
         </div>
       </div>
+      <script>window.print();window.onafterprint=()=>window.close();</script>
+      </body></html>
+    `);
+    printWindow.document.close();
+  };
+
+  if (loading) return <LoadingScreen message="Loading Financial Data..." />;
+
+  /* -- drawer expense filtered -- */
+  const drawerBudgetSummary = getProjectBudgetSummary(drawerProject);
+  const drawerTotalBudget   = drawerBudgetSummary.totalBudget;
+  const drawerTotalSpent    = drawerBudgetSummary.totalSpent;
+  const drawerRemaining     = drawerBudgetSummary.remainingBudget;
+  const drawerExpenses      = drawerProject?.expenses || [];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <nav className="fixed top-0 left-0 right-0 z-50 h-16"><Navbar /></nav>
+      <aside className="fixed left-0 top-0 bottom-0 w-16 md:w-64 z-40 overflow-y-auto"><SidePannel /></aside>
+
+      {/* -- Main content -- */}
+      <div className="pt-20 md:pl-64 md:pt-25">
+        <div className="px-4 md:px-8 pb-10">
+
+          {/* Page header */}
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Financial Management</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage all your projects, quotations, budgets, and expenses.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search Project..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  className="pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 w-56 shadow-sm"
+                />
+              </div>
+              {/* Filter */}
+              <div className="relative">
+                <button onClick={() => setShowFilterDrop(!showFilterDrop)}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                  <Filter className="w-4 h-4" /> Filter
+                  {filterStatus !== 'all' && <span className="w-2 h-2 bg-yellow-400 rounded-full" />}
+                </button>
+                {showFilterDrop && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowFilterDrop(false)} />
+                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-xl shadow-lg border border-gray-100 z-20 py-1 text-sm">
+                      {['all', 'Active', 'Planning', 'On Hold', 'Completed'].map(s => (
+                        <button key={s} onClick={() => { setFilterStatus(s); setShowFilterDrop(false); setCurrentPage(1); }}
+                          className={`w-full text-left px-3 py-2 transition-colors ${filterStatus === s ? 'bg-yellow-50 text-yellow-800 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}>
+                          {s === 'all' ? 'All Status' : s}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+              
+            </div>
+          </div>
+
+          {/* All Projects label + count */}
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-base font-bold text-gray-800">All Projects</span>
+            <span className="bg-yellow-400 text-black text-xs font-bold px-2.5 py-0.5 rounded-full">
+              {filteredProjects.length}
+            </span>
+          </div>
+
+          {/* Table card */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px]">
+                <thead>
+                  <tr className="bg-yellow-400">
+                    {['Project Name', 'Budget (Rs.)', 'Spent (Rs.)', 'Remaining (Rs.)', 'Due Date', 'Status', 'Action'].map((h) => (
+                      <th key={h} className="px-5 py-4 text-left text-xs font-bold text-black uppercase tracking-wider">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {pageProjects.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-16 text-center">
+                        <FileText className="mx-auto text-gray-300 mb-3" size={48} />
+                        <p className="text-sm text-gray-500">No projects found</p>
+                      </td>
+                    </tr>
+                  ) : pageProjects.map((project) => {
+                    const projectSummary = getProjectBudgetSummary(project);
+                    const totalSpent = projectSummary.totalSpent;
+                    const remaining  = projectSummary.remainingBudget;
+                    return (
+                      <tr key={project.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-4 text-sm font-semibold text-gray-900">{project.name}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700">{fmtCurrency(projectSummary.totalBudget)}</td>
+                        <td className="px-5 py-4 text-sm text-gray-700">{fmtCurrency(totalSpent)}</td>
+                        <td className="px-5 py-4 text-sm font-medium">
+                          <span className={remaining >= 0 ? 'text-green-600' : 'text-red-600'}>
+                            {fmtCurrency(remaining)}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-sm text-gray-700 whitespace-nowrap">{fmtDate(project.dueDate)}</td>
+                        <td className="px-5 py-4"><StatusBadge status={getProjectStatus(project)} /></td>
+                        <td className="px-5 py-4">
+                          <button onClick={() => openDrawer(project)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">
+                            <Eye size={14} /> View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* -- Pagination -- */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4 border-t border-gray-100">
+              {/* Left: Showing info + Show rows dropdown */}
+              <div className="flex items-center gap-3 text-sm text-gray-500">
+                <span>
+                  Showing {filteredProjects.length === 0 ? 0 : startIdx + 1}-{endIdx} of {filteredProjects.length} Records
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span>Show:</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => handleRowsPerPageChange(e.target.value)}
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 cursor-pointer"
+                  >
+                    {[10, 25, 50, 100].map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Right: Prev / pages / Next */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Prev
+                </button>
+                {getPaginationItems(currentPage, totalPages).map((item, i) =>
+                  item === '...'
+                    ? <span key={`e${i}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">...</span>
+                    : <button key={item} onClick={() => setCurrentPage(item)}
+                        className={`w-8 h-8 rounded-lg text-sm font-semibold transition-colors ${currentPage === item ? 'bg-yellow-400 text-black' : 'text-gray-500 hover:bg-gray-100'}`}>
+                        {item}
+                      </button>
+                )}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ====================================================== */}
+      {/* -- RIGHT DRAWER OVERLAY -- */}
+      {/* ====================================================== */}
+      {drawerProject && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 z-50"
+            onClick={closeDrawer}
+          />
+          {/* Drawer panel */}
+          <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white z-50 shadow-2xl flex flex-col overflow-hidden animate-slide-in-right">
+
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">Project Finance Details</h2>
+              <button onClick={closeDrawer} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Scrollable drawer body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+              {/* Project title row */}
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                  <Building2 size={24} className="text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{drawerProject.name}</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Budget: {fmtCurrency(drawerProject.budget)}
+                    <span className="mx-2 text-gray-300">|</span>
+                    Due Date: {fmtDate(drawerProject.dueDate)}
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 summary cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total Budget',      value: fmtCurrency(drawerTotalBudget),             color: 'text-blue-600',   bg: 'bg-blue-50',   icon: '' },
+                  { label: 'Total Spent',       value: fmtCurrency(drawerTotalSpent),              color: 'text-green-600', bg: 'bg-green-50',  icon: '' },
+                  { label: 'Remaining Budget',  value: fmtCurrency(drawerRemaining),               color: drawerRemaining >= 0 ? 'text-orange-500' : 'text-red-600', bg: 'bg-orange-50', icon: '' },
+                ].map((card) => (
+                  <div key={card.label} className={`${card.bg} rounded-xl p-4`}>
+                    <p className="text-xs text-gray-500 mb-2">{card.label}</p>
+                    <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Expense History section */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-base font-bold text-gray-900">Expense History</h4>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setAddingExpense(true); setNewExpense({ amount: '', category: '' }); setExpenseErrors({}); }}
+                      className="flex items-center gap-1 bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      <Plus size={12} /> Add Expense
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add Expense inline form */}
+                {addingExpense && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-3">
+                    <h5 className="text-sm font-semibold text-gray-800 mb-3">Add New Expense</h5>
+                    <div className="grid grid-cols-1 gap-3 mb-3">
+                      <input
+                        name="expenseCategory"
+                        type="text"
+                        value={newExpense.category}
+                        onChange={(e) => { setNewExpense({ ...newExpense, category: e.target.value }); setExpenseErrors((prev) => ({ ...prev, expenseCategory: '' })); }}
+                        className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${expenseErrors.expenseCategory ? 'border-red-500' : 'border-gray-200'}`}
+                        placeholder="Enter Expense Category"
+                      />
+                      {expenseErrors.expenseCategory && (
+                        <div>
+                          <p className="text-xs text-red-500">{expenseErrors.expenseCategory}</p>
+                        </div>
+                      )}
+                      <input
+                        name="expenseAmount"
+                        type="number"
+                        value={newExpense.amount}
+                        onChange={(e) => { setNewExpense({ ...newExpense, amount: e.target.value }); setExpenseErrors((prev) => ({ ...prev, expenseAmount: '' })); }}
+                        className={`px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${expenseErrors.expenseAmount ? 'border-red-500' : 'border-gray-200'}`}
+                        placeholder="Amount (Rs.)"
+                      />
+                    </div>
+                    {expenseErrors.expenseAmount && (
+                      <div className="mb-3">
+                        <p className="text-xs text-red-500">{expenseErrors.expenseAmount}</p>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={handleAddExpense}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                        <Save size={14} /> Add Expense
+                      </button>
+                      <button onClick={() => { setAddingExpense(false); setNewExpense({ amount: '', category: '' }); setExpenseErrors({}); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                        <X size={14} /> Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Expense table */}
+                <div className="rounded-xl border border-gray-100 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-amber-50 border-b border-gray-100">
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Category</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Amount (Rs.)</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {drawerExpenses.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-8 text-center text-sm text-gray-400">
+                            No expenses recorded yet
+                          </td>
+                        </tr>
+                      ) : drawerExpenses.map((expense, index) => (
+                        <tr key={expense.id} className="hover:bg-gray-50 transition-colors">
+                          {editingExpense && editingExpense.id === expense.id ? (
+                            <td colSpan={4} className="px-4 py-3">
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  name="editExpenseAmount"
+                                  type="number"
+                                  value={editingExpense.amount}
+                                  onChange={(e) => { setEditingExpense({ ...editingExpense, amount: e.target.value }); setEditExpenseErrors((prev) => ({ ...prev, editExpenseAmount: '' })); }}
+                                  className={`w-32 px-3 py-1.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${editExpenseErrors.editExpenseAmount ? 'border-red-500' : 'border-gray-200'}`}
+                                  placeholder="Amount"
+                                />
+                                <button onClick={handleSaveExpense}
+                                  className="flex items-center gap-1 bg-yellow-400 text-black px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                  <Save size={12} /> Save
+                                </button>
+                                <button onClick={() => { setEditingExpense(null); setEditExpenseErrors({}); }}
+                                  className="flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs">
+                                  <X size={12} /> Cancel
+                                </button>
+                              </div>
+                              {editExpenseErrors.editExpenseAmount && (
+                                <div className="mt-1">
+                                  <p className="text-xs text-red-500">{editExpenseErrors.editExpenseAmount}</p>
+                                </div>
+                              )}
+                            </td>
+                          ) : (
+                            <>
+                              <td className="px-4 py-3 font-medium text-gray-900">{expense.category || '--'}</td>
+                              <td className="px-4 py-3 font-semibold text-gray-900">{fmtCurrency(expense.amount)}</td>
+                              <td className="px-4 py-3">
+                                <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                  Paid
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => setEditingExpense({ ...expense, projectId: drawerProject.id })}
+                                    className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                                    <Edit2 size={14} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteExpense(expense.id)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {drawerExpenses.length > 0 && (
+                  <p className="text-xs text-gray-400 mt-2 px-1">
+                    Showing 1 to {drawerExpenses.length} of {drawerExpenses.length} expenses
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Drawer footer */}
+            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+              <button onClick={() => handlePrint(drawerProject)}
+                className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <Printer size={16} /> Print Report
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

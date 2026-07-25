@@ -1,1035 +1,778 @@
 // src/services/projectReportService.js
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { getToken } from '../utils/tabToken';
+import companyLogoUrl from '../assets/constech-logo.png';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-/**
- * Project Report Service
- * Generates comprehensive HTML reports for projects
- */
-const projectReportService = {
-  /**
-   * Generate comprehensive project report
-   * @param {Object} project - Project data
-   * @returns {Promise<string>} HTML report
-   */
-  generateReport: async (project) => {
+const PDF_THEME = {
+  primary: '#FFBE2A',
+  ink: '#111827',
+  text: '#1F2937',
+  muted: '#6B7280',
+  border: '#E5E7EB',
+  surface: '#F9FAFB',
+  rowAlt: '#FFFDF7',
+  white: '#FFFFFF',
+  green: '#10B981',
+  red: '#EF4444',
+  blue: '#3B82F6',
+  amber: '#F59E0B',
+};
+
+const MATERIAL_CATEGORIES = [
+  'material', 'paint', 'cement', 'steel', 'wood', 'tiles', 'hardware',
+  'glass', 'window', 'door', 'aluminium', 'aluminum', 'iron', 'brick',
+  'sand', 'aggregate', 'marble', 'granite', 'plywood', 'pipe', 'wire',
+  'cable', 'fixture', 'sanitary', 'plumbing', 'electrical',
+];
+
+const toArray = (value) => (Array.isArray(value) ? value : []);
+
+const hexToRgb = (hex) => {
+  const normalized = hex.replace('#', '');
+  return [
+    parseInt(normalized.slice(0, 2), 16),
+    parseInt(normalized.slice(2, 4), 16),
+    parseInt(normalized.slice(4, 6), 16),
+  ];
+};
+
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const quantityFormatter = new Intl.NumberFormat('en-IN', {
+  maximumFractionDigits: 2,
+});
+
+const money = (amount) => (
+  currencyFormatter.format(Number(amount || 0))
+);
+
+const plainMoney = money;
+
+const formatQuantity = (amount) => quantityFormatter.format(Number(amount || 0));
+
+const formatDate = (value) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+};
+
+const formatDateTime = (value = new Date()) => (
+  new Date(value).toLocaleString('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  })
+);
+
+const textValue = (value, fallback = 'N/A') => {
+  if (value === null || value === undefined || value === '') return fallback;
+  if (typeof value === 'object') return value.name || value.fullName || value.title || fallback;
+  return String(value);
+};
+
+const clampPercent = (value) => Math.max(0, Math.min(100, Number(value) || 0));
+
+const getProjectId = (project = {}) => project.dbId || project.id || project.projectId;
+
+const getProjectName = (project = {}) => (
+  project.name || project.projectName || project.title || 'Project Report'
+);
+
+const getEngineerName = (project = {}) => (
+  project.assignedEngineer?.name
+  || project.assignedEmployee?.name
+  || project.engineer?.name
+  || project.assignedEngineerName
+  || project.assignedEmployeeName
+  || project.engineerName
+  || 'Not Assigned'
+);
+
+const getClientName = (project = {}) => (
+  project.clientName || project.client || project.customerName || project.customer?.name || 'N/A'
+);
+
+const getCompanyName = (company = {}, project = {}) => (
+  company.name || project.companyName || project.company?.name || 'Vconstech'
+);
+
+const getBudget = (project = {}) => Number(project.totalBudget ?? project.budget ?? project.quotationAmount ?? 0) || 0;
+
+const getSpent = (project = {}, expenses = []) => {
+  const explicit = project.totalSpent ?? project.spent ?? project.actualCost;
+  if (explicit !== undefined && explicit !== null && explicit !== '') return Number(explicit) || 0;
+  return expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+};
+
+const getStatusCounts = (projects) => ({
+  planning: projects.filter((item) => String(item.status || '').toLowerCase().trim() === 'planning').length,
+  inProgress: projects.filter((item) => ['in progress', 'ongoing'].includes(String(item.status || '').toLowerCase().trim())).length,
+  onHold: projects.filter((item) => ['on hold', 'hold'].includes(String(item.status || '').toLowerCase().trim())).length,
+  completed: projects.filter((item) => String(item.status || '').toLowerCase().trim() === 'completed').length,
+});
+
+const fetchJsonWithFallback = async (token, url, fallback) => {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) return fallback;
+
+    const data = await response.json();
+    return data && typeof data === 'object' ? data : fallback;
+  } catch (error) {
+    console.error(`Failed to fetch ${url}:`, error);
+    return fallback;
+  }
+};
+
+const normalizeReportData = (report = {}) => {
+  const projects = toArray(report.projects);
+  const featuredProject = report.featuredProject || projects[0] || {};
+  const financialExpenses = toArray(report.financialExpenses);
+  const totalBudget = Number(report.totalBudget ?? projects.reduce((sum, item) => sum + getBudget(item), 0) ?? getBudget(featuredProject)) || 0;
+  const totalSpent = Number(report.totalSpent ?? projects.reduce((sum, item) => sum + getSpent(item), 0) ?? getSpent(featuredProject, financialExpenses)) || 0;
+
+  return {
+    generatedAtText: report.generatedAtText || formatDateTime(),
+    company: report.company || featuredProject.company || {},
+    projects,
+    featuredProject,
+    projectMaterials: toArray(report.projectMaterials),
+    financialExpenses,
+    dailyUpdates: toArray(report.dailyUpdates),
+    teamMembers: toArray(report.teamMembers),
+    totalBudget,
+    totalSpent,
+    totalRemaining: Number(report.totalRemaining ?? (totalBudget - totalSpent)) || 0,
+    statusCounts: report.statusCounts || getStatusCounts(projects),
+  };
+};
+
+const getStatusTone = (status) => {
+  const normalized = String(status || '').toLowerCase().trim();
+  if (normalized === 'planning') return { fill: '#FEF3C7', text: '#92400E', accent: PDF_THEME.amber };
+  if (normalized === 'in progress' || normalized === 'ongoing') return { fill: '#DBEAFE', text: '#1D4ED8', accent: PDF_THEME.blue };
+  if (normalized === 'on hold' || normalized === 'hold') return { fill: '#FEE2E2', text: '#B91C1C', accent: PDF_THEME.red };
+  if (normalized === 'completed') return { fill: '#D1FAE5', text: '#065F46', accent: PDF_THEME.green };
+  return { fill: '#E5E7EB', text: '#374151', accent: '#9CA3AF' };
+};
+
+const loadImageAsDataUrl = async (src) => {
+  if (!src) return null;
+
+  try {
+    const response = await fetch(src);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.warn('Company logo could not be loaded for PDF report:', error);
+    return null;
+  }
+};
+
+const addFooter = (doc, generatedAtText) => {
+  const pageCount = doc.getNumberOfPages();
+
+  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+    doc.setPage(pageNumber);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+    doc.line(36, pageHeight - 32, pageWidth - 36, pageHeight - 32);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+    doc.text('Generated by ERP', 36, pageHeight - 17);
+    doc.text(generatedAtText, pageWidth / 2, pageHeight - 17, { align: 'center' });
+    doc.text(`Page ${pageNumber} of ${pageCount}`, pageWidth - 36, pageHeight - 17, { align: 'right' });
+  }
+};
+
+const createPdfContext = (orientation = 'portrait') => {
+  const doc = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 36;
+  return {
+    doc,
+    pageWidth,
+    pageHeight,
+    margin,
+    contentWidth: pageWidth - (margin * 2),
+    y: 36,
+  };
+};
+
+const ensureSpace = (ctx, height) => {
+  if (ctx.y + height > ctx.pageHeight - 52) {
+    ctx.doc.addPage();
+    ctx.y = 36;
+  }
+};
+
+const drawHeader = (ctx, title, subtitle, generatedAtText, company = {}, logoDataUrl = null) => {
+  const { doc, margin, contentWidth, pageWidth } = ctx;
+  const headerHeight = 86;
+  const companyName = getCompanyName(company);
+
+  doc.setFillColor(...hexToRgb(PDF_THEME.white));
+  doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+  doc.roundedRect(margin, ctx.y, contentWidth, headerHeight, 6, 6, 'FD');
+  doc.setFillColor(...hexToRgb(PDF_THEME.ink));
+  doc.rect(margin, ctx.y, contentWidth, 8, 'F');
+  doc.setFillColor(...hexToRgb(PDF_THEME.white));
+
+  doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+  doc.roundedRect(margin + 16, ctx.y + 22, 48, 48, 6, 6, 'D');
+  if (logoDataUrl) {
     try {
-      const token = getToken();
-      
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
+      doc.addImage(logoDataUrl, 'PNG', margin + 20, ctx.y + 26, 40, 40);
+    } catch (error) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+      doc.text('VC', margin + 40, ctx.y + 52, { align: 'center' });
+    }
+  } else {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+    doc.text('VC', margin + 40, ctx.y + 52, { align: 'center' });
+  }
 
-      console.log('📊 Generating report for project:', project.name, 'ID:', project.dbId || project.id);
-      
-      const fetchWithFallback = async (url, fallback) => {
-        try {
-          console.log('🌐 Fetching:', url);
-          
-          const response = await fetch(url, {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          console.log(`📡 Response status for ${url}:`, response.status);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`❌ API Error (${response.status}):`, errorText);
-            return fallback;
-          }
-          
-          const data = await response.json();
-          console.log(`✅ Data from ${url}:`, JSON.stringify(data).substring(0, 200));
-          
-          if (!data || typeof data !== 'object') {
-            console.warn(`⚠️ Invalid data structure from ${url}`);
-            return fallback;
-          }
-          
-          return data;
-        } catch (error) {
-          console.error(`❌ Fetch error for ${url}:`, error.message);
-          return fallback;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+  doc.text(companyName, margin + 78, ctx.y + 31);
+  doc.setFontSize(20);
+  doc.text(title, margin + 78, ctx.y + 54);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+  doc.text(`Project: ${subtitle}`, margin + 78, ctx.y + 70);
+  doc.setFontSize(9);
+  doc.text('Generated Date & Time', pageWidth - margin - 8, ctx.y + 33, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+  doc.text(generatedAtText, pageWidth - margin - 8, ctx.y + 50, { align: 'right' });
+  doc.setFillColor(...hexToRgb(PDF_THEME.primary));
+  doc.rect(margin, ctx.y + headerHeight - 4, contentWidth, 4, 'F');
+  ctx.y += headerHeight + 18;
+};
+
+const drawSectionTitle = (ctx, title) => {
+  ensureSpace(ctx, 38);
+  const { doc, margin, contentWidth } = ctx;
+  doc.setFillColor(...hexToRgb(PDF_THEME.surface));
+  doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+  doc.roundedRect(margin, ctx.y, contentWidth, 24, 5, 5, 'FD');
+  doc.setFillColor(...hexToRgb(PDF_THEME.primary));
+  doc.rect(margin, ctx.y, 5, 24, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+  doc.text(title, margin + 14, ctx.y + 16);
+  ctx.y += 34;
+};
+
+const drawMetricCards = (ctx, cards) => {
+  const { doc, margin, contentWidth } = ctx;
+  const gap = 10;
+  const cardWidth = (contentWidth - (gap * (cards.length - 1))) / cards.length;
+  ensureSpace(ctx, 64);
+
+  cards.forEach((card, index) => {
+    const x = margin + index * (cardWidth + gap);
+    doc.setFillColor(...hexToRgb(card.fill || '#FFF7D6'));
+    doc.setDrawColor(...hexToRgb('#F2CF68'));
+    doc.roundedRect(x, ctx.y, cardWidth, 56, 6, 6, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+    doc.text(String(card.label).toUpperCase(), x + 8, ctx.y + 16);
+    doc.setFontSize(12);
+    doc.setTextColor(...hexToRgb(card.text || PDF_THEME.text));
+    doc.text(doc.splitTextToSize(String(card.value), cardWidth - 16).slice(0, 2), x + 8, ctx.y + 35);
+  });
+
+  ctx.y += 70;
+};
+
+const drawKeyValueTable = (ctx, title, rows) => {
+  drawSectionTitle(ctx, title);
+  autoTable(ctx.doc, {
+    startY: ctx.y,
+    margin: { left: ctx.margin, right: ctx.margin, bottom: 48 },
+    body: rows,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 9,
+      cellPadding: 6,
+      lineColor: hexToRgb(PDF_THEME.border),
+      lineWidth: 0.35,
+      valign: 'middle',
+    },
+    columnStyles: {
+      0: { cellWidth: 112, fillColor: hexToRgb(PDF_THEME.surface), textColor: hexToRgb(PDF_THEME.muted), fontStyle: 'bold' },
+      1: { cellWidth: 155, textColor: hexToRgb(PDF_THEME.text) },
+      2: { cellWidth: 112, fillColor: hexToRgb(PDF_THEME.surface), textColor: hexToRgb(PDF_THEME.muted), fontStyle: 'bold' },
+      3: { cellWidth: ctx.contentWidth - 379, textColor: hexToRgb(PDF_THEME.text) },
+    },
+  });
+  ctx.y = ctx.doc.lastAutoTable.finalY + 16;
+};
+
+const drawTable = (ctx, title, head, body, emptyText, options = {}) => {
+  drawSectionTitle(ctx, title);
+
+  if (!body.length) {
+    ensureSpace(ctx, 42);
+    ctx.doc.setFillColor(...hexToRgb(PDF_THEME.surface));
+    ctx.doc.setDrawColor(...hexToRgb(PDF_THEME.border));
+    ctx.doc.roundedRect(ctx.margin, ctx.y, ctx.contentWidth, 34, 6, 6, 'FD');
+    ctx.doc.setFont('helvetica', 'bold');
+    ctx.doc.setFontSize(9);
+    ctx.doc.setTextColor(...hexToRgb(PDF_THEME.muted));
+    ctx.doc.text(emptyText, ctx.pageWidth / 2, ctx.y + 21, { align: 'center' });
+    ctx.y += 48;
+    return;
+  }
+
+  autoTable(ctx.doc, {
+    startY: ctx.y,
+    margin: { left: ctx.margin, right: ctx.margin, bottom: 48 },
+    head: [head],
+    body,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: options.fontSize || 8,
+      cellPadding: options.cellPadding || 5,
+      lineColor: hexToRgb(PDF_THEME.border),
+      lineWidth: 0.35,
+      valign: 'middle',
+      overflow: 'linebreak',
+    },
+    headStyles: {
+      fillColor: hexToRgb(PDF_THEME.ink),
+      textColor: hexToRgb(PDF_THEME.white),
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: hexToRgb(PDF_THEME.rowAlt),
+    },
+    columnStyles: options.columnStyles || {},
+    didParseCell: options.didParseCell,
+    didDrawCell: options.didDrawCell,
+  });
+
+  ctx.y = ctx.doc.lastAutoTable.finalY + 16;
+};
+
+const drawProgress = (ctx, progress) => {
+  drawSectionTitle(ctx, 'Progress');
+  const width = ctx.contentWidth;
+  ensureSpace(ctx, 42);
+  ctx.doc.setFillColor(...hexToRgb('#E5E7EB'));
+  ctx.doc.roundedRect(ctx.margin, ctx.y, width, 28, 14, 14, 'F');
+  if (progress > 0) {
+    ctx.doc.setFillColor(...hexToRgb(PDF_THEME.primary));
+    ctx.doc.rect(ctx.margin, ctx.y, (width * progress) / 100, 28, 'F');
+  }
+  ctx.doc.setFont('helvetica', 'bold');
+  ctx.doc.setFontSize(14);
+  ctx.doc.setTextColor(...hexToRgb(PDF_THEME.ink));
+  ctx.doc.text(`${progress}%`, ctx.pageWidth / 2, ctx.y + 19, { align: 'center' });
+  ctx.y += 48;
+};
+
+const buildMaterialRows = (materials) => materials.map((item) => {
+  const material = item.material || item;
+  const quantity = item.quantityNeeded ?? item.quantity ?? item.usedQuantity ?? material.quantity ?? '';
+  const rate = material.defaultRate ?? item.defaultRate ?? item.rate ?? item.unitRate ?? 0;
+  const total = Number(item.totalCost ?? item.amount ?? ((Number(quantity) || 0) * (Number(rate) || 0))) || 0;
+  return [
+    textValue(material.name || item.name),
+    textValue(material.category || item.category),
+    formatQuantity(quantity),
+    textValue(material.unit || item.unit, ''),
+    money(rate),
+    money(total),
+    formatDate(item.dueDate || item.createdAt || item.date),
+  ];
+});
+
+const getMaterialUsageSummary = (materials) => (
+  materials.reduce((summary, item) => {
+    const material = item.material || item;
+    const quantity = Number(item.quantityNeeded ?? item.quantity ?? item.usedQuantity ?? material.quantity ?? 0) || 0;
+    const rate = Number(material.defaultRate ?? item.defaultRate ?? item.rate ?? item.unitRate ?? 0) || 0;
+    const total = Number(item.totalCost ?? item.amount ?? (quantity * rate)) || 0;
+
+    return {
+      totalEntries: summary.totalEntries + 1,
+      totalQuantity: summary.totalQuantity + quantity,
+      grandTotalCost: summary.grandTotalCost + total,
+    };
+  }, {
+    totalEntries: 0,
+    totalQuantity: 0,
+    grandTotalCost: 0,
+  })
+);
+
+const buildExpenseRows = (expenses) => expenses.map((expense) => [
+  textValue(expense.description || expense.title || expense.name || expense.category),
+  textValue(expense.category),
+  money(expense.amount),
+  textValue(expense.status || expense.paymentStatus || 'Recorded'),
+  formatDate(expense.date || expense.createdAt || expense.expenseDate),
+]);
+
+const buildDailyUpdateRows = (updates) => updates.map((update) => [
+  formatDate(update.date || update.createdAt),
+  textValue(update.workDone || update.update || update.description || update.progressNote || update.notes),
+  textValue(update.progress ?? update.progressPercentage ?? update.completionPercentage, 'N/A'),
+  textValue(update.createdBy?.name || update.employee?.name || update.user?.name || update.updatedBy),
+]);
+
+const buildTeamRows = (teamMembers) => teamMembers.map((member) => [
+  textValue(member.name || member.fullName),
+  textValue(member.role || member.designation || member.position || 'Team Member'),
+  textValue(member.phone || member.mobile || member.email),
+]);
+
+const drawSingleProjectReport = (report, logoDataUrl = null) => {
+  const normalized = normalizeReportData(report);
+  const project = normalized.featuredProject || {};
+  const expenses = normalized.financialExpenses;
+  const materialSummary = getMaterialUsageSummary(normalized.projectMaterials);
+  const budget = getBudget(project) || normalized.totalBudget;
+  const spent = getSpent(project, expenses) || normalized.totalSpent;
+  const remaining = budget - spent;
+  const materialCost = expenses
+    .filter((expense) => MATERIAL_CATEGORIES.some((item) => String(expense.category || '').toLowerCase().includes(item)))
+    .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const progress = clampPercent(project.progress);
+  const ctx = createPdfContext('portrait');
+
+  drawHeader(ctx, 'Material Usage Report', getProjectName(project), normalized.generatedAtText, normalized.company, logoDataUrl);
+  drawMetricCards(ctx, [
+    { label: 'Project Name', value: getProjectName(project) },
+    { label: 'Total Entries', value: materialSummary.totalEntries },
+    { label: 'Total Quantity', value: formatQuantity(materialSummary.totalQuantity) },
+    { label: 'Grand Total Cost', value: money(materialSummary.grandTotalCost), text: PDF_THEME.green },
+  ]);
+
+  drawKeyValueTable(ctx, 'Company Information', [
+    ['Company', textValue(normalized.company.name || project.companyName || 'Vconstech'), 'Generated By', 'Vconstech ERP'],
+    ['Address', textValue(normalized.company.address || project.companyAddress), 'Contact', textValue(normalized.company.phone || normalized.company.email)],
+  ]);
+
+  drawKeyValueTable(ctx, 'Customer Information', [
+    ['Customer', getClientName(project), 'Phone', textValue(project.clientPhone || project.customerPhone || project.customer?.phone)],
+    ['Email', textValue(project.clientEmail || project.customerEmail || project.customer?.email), 'Address', textValue(project.clientAddress || project.customerAddress || project.customer?.address)],
+  ]);
+
+  drawKeyValueTable(ctx, 'Project Information', [
+    ['Project ID', textValue(project.projectId || project.id), 'Project Name', getProjectName(project)],
+    ['Type', textValue(project.projectType || project.type), 'Location', textValue(project.location)],
+    ['Site Engineer', getEngineerName(project), 'Description', textValue(project.description)],
+  ]);
+
+  drawKeyValueTable(ctx, 'Project Status', [
+    ['Status', textValue(project.status), 'Current Progress', `${progress}%`],
+    ['Priority', textValue(project.priority), 'Phase', textValue(project.phase || project.stage)],
+  ]);
+
+  drawKeyValueTable(ctx, 'Timeline', [
+    ['Start Date', formatDate(project.startDate), 'End Date', formatDate(project.endDate)],
+    ['Expected Completion', formatDate(project.expectedCompletionDate || project.endDate), 'Contract Date', formatDate(project.contractDate)],
+  ]);
+
+  drawProgress(ctx, progress);
+
+  drawKeyValueTable(ctx, 'Budget Summary', [
+    ['Quoted Amount', money(project.quotationAmount), 'Approved Budget', money(budget)],
+    ['Total Spent', money(spent), 'Remaining Budget', money(remaining)],
+  ]);
+
+  drawKeyValueTable(ctx, 'Financial Summary', [
+    ['Material Expenses', money(materialCost), 'Other Expenses', money(spent - materialCost)],
+    ['Utilization', budget > 0 ? `${((spent / budget) * 100).toFixed(1)}%` : '0.0%', 'Balance Status', remaining < 0 ? 'Over Budget' : 'Within Budget'],
+  ]);
+
+  drawTable(
+    ctx,
+    'Material Usage Details',
+    ['Material', 'Category', 'Qty', 'Unit', 'Rate (\u20B9)', 'Cost (\u20B9)', 'Date'],
+    buildMaterialRows(normalized.projectMaterials),
+    'No materials available for this project.',
+    {
+      fontSize: 8,
+      cellPadding: 5,
+      columnStyles: {
+        0: { cellWidth: 108 },
+        1: { cellWidth: 78 },
+        2: { cellWidth: 46, halign: 'center' },
+        3: { cellWidth: 44, halign: 'center' },
+        4: { cellWidth: 76, halign: 'right' },
+        5: { cellWidth: 82, halign: 'right' },
+        6: { cellWidth: 88 },
+      },
+    }
+  );
+  drawTable(ctx, 'Expense History', ['Expense', 'Category', 'Amount', 'Status', 'Date'], buildExpenseRows(expenses), 'No expenses recorded for this project.');
+  drawTable(ctx, 'Team Members', ['Name', 'Role', 'Contact'], buildTeamRows(normalized.teamMembers), 'No team members assigned.');
+  drawTable(ctx, 'Daily Updates', ['Date', 'Update', 'Progress', 'Updated By'], buildDailyUpdateRows(normalized.dailyUpdates), 'No daily updates available.');
+
+  addFooter(ctx.doc, normalized.generatedAtText);
+  return ctx.doc;
+};
+
+const drawAllProjectsReport = (report, logoDataUrl = null) => {
+  const normalized = normalizeReportData(report);
+  const ctx = createPdfContext('landscape');
+
+  drawHeader(ctx, 'Project Management Report', `${normalized.projects.length} Projects`, normalized.generatedAtText, normalized.company, logoDataUrl);
+  drawMetricCards(ctx, [
+    { label: 'Total Projects', value: normalized.projects.length },
+    { label: 'Total Budget', value: money(normalized.totalBudget) },
+    { label: 'Total Spent', value: money(normalized.totalSpent) },
+    { label: 'Remaining', value: money(normalized.totalRemaining), text: normalized.totalRemaining < 0 ? PDF_THEME.red : PDF_THEME.green },
+  ]);
+
+  drawMetricCards(ctx, [
+    { label: 'Planning', value: normalized.statusCounts.planning, fill: '#FEF3C7' },
+    { label: 'In Progress', value: normalized.statusCounts.inProgress, fill: '#DBEAFE' },
+    { label: 'On Hold', value: normalized.statusCounts.onHold, fill: '#FEE2E2' },
+    { label: 'Completed', value: normalized.statusCounts.completed, fill: '#D1FAE5' },
+  ]);
+
+  drawTable(
+    ctx,
+    'Project Portfolio',
+    ['Project ID', 'Project', 'Customer', 'Type', 'Status', 'Timeline', 'Progress', 'Budget', 'Spent', 'Engineer', 'Location'],
+    normalized.projects.map((project) => {
+      const budget = getBudget(project);
+      const spent = getSpent(project);
+      return [
+        textValue(project.projectId || project.id),
+        getProjectName(project),
+        getClientName(project),
+        textValue(project.projectType || project.type),
+        textValue(project.status),
+        `${formatDate(project.startDate)} to ${formatDate(project.endDate)}`,
+        `${clampPercent(project.progress)}%`,
+        plainMoney(budget),
+        plainMoney(spent),
+        getEngineerName(project),
+        textValue(project.location),
+      ];
+    }),
+    'No projects available to report.',
+    {
+      fontSize: 7.5,
+      cellPadding: 4,
+      columnStyles: {
+        0: { cellWidth: 48 },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 70 },
+        3: { cellWidth: 52 },
+        4: { cellWidth: 58 },
+        5: { cellWidth: 86 },
+        6: { cellWidth: 44, halign: 'center' },
+        7: { cellWidth: 58, halign: 'right' },
+        8: { cellWidth: 58, halign: 'right' },
+        9: { cellWidth: 66 },
+        10: { cellWidth: 72 },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          const tone = getStatusTone(data.cell.raw);
+          data.cell.styles.fillColor = hexToRgb(tone.fill);
+          data.cell.styles.textColor = hexToRgb(tone.text);
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.halign = 'center';
         }
-      };
+      },
+    }
+  );
 
-      const projectId = project.dbId || project.id;
+  if (normalized.featuredProject && getProjectId(normalized.featuredProject)) {
+    drawKeyValueTable(ctx, 'Featured Project Information', [
+      ['Project', getProjectName(normalized.featuredProject), 'Customer', getClientName(normalized.featuredProject)],
+      ['Timeline', `${formatDate(normalized.featuredProject.startDate)} to ${formatDate(normalized.featuredProject.endDate)}`, 'Engineer', getEngineerName(normalized.featuredProject)],
+    ]);
+    drawTable(
+      ctx,
+      'Featured Project Materials',
+      ['Material', 'Category', 'Qty', 'Unit', 'Rate (\u20B9)', 'Cost (\u20B9)', 'Date'],
+      buildMaterialRows(normalized.projectMaterials),
+      'No materials available for the featured project.',
+      {
+        columnStyles: {
+          2: { halign: 'center' },
+          3: { halign: 'center' },
+          4: { halign: 'right' },
+          5: { halign: 'right' },
+        },
+      }
+    );
+    drawTable(ctx, 'Featured Project Expenses', ['Expense', 'Category', 'Amount', 'Status', 'Date'], buildExpenseRows(normalized.financialExpenses), 'No expenses recorded for the featured project.');
+    drawTable(ctx, 'Featured Project Daily Updates', ['Date', 'Update', 'Progress', 'Updated By'], buildDailyUpdateRows(normalized.dailyUpdates), 'No daily updates available for the featured project.');
+  }
 
-      if (!projectId) {
-        throw new Error('Project ID is missing. Cannot generate report.');
+  addFooter(ctx.doc, normalized.generatedAtText);
+  return ctx.doc;
+};
+
+const buildSingleProjectReportData = async (project) => {
+  const authToken = getToken();
+  if (!authToken) throw new Error('No authentication token found');
+
+  const selectedProjectId = getProjectId(project);
+  if (!selectedProjectId) throw new Error('Project ID is missing. Cannot generate report.');
+
+  const [projectDetailsRaw, financialRaw, projectMaterialsRaw, dailyUpdatesRaw] = await Promise.all([
+    fetchJsonWithFallback(authToken, `${API_BASE_URL}/projects/${selectedProjectId}`, { success: false, project: null }),
+    fetchJsonWithFallback(authToken, `${API_BASE_URL}/financial/projects/${selectedProjectId}`, { success: false, project: { expenses: [] } }),
+    fetchJsonWithFallback(authToken, `${API_BASE_URL}/project-materials/${selectedProjectId}`, { success: false, projectMaterials: [], materials: [], data: [] }),
+    fetchJsonWithFallback(authToken, `${API_BASE_URL}/daily-progress/project/${selectedProjectId}`, { success: false, dailyUpdates: [], updates: [], data: [] }),
+  ]);
+
+  const fullProject = {
+    ...project,
+    ...(projectDetailsRaw.project || projectDetailsRaw.data || {}),
+  };
+  const financialProject = financialRaw.project || financialRaw.data || {};
+  const expenses = Array.isArray(financialProject.expenses)
+    ? financialProject.expenses
+    : toArray(financialRaw.expenses);
+  const projectMaterials = toArray(projectMaterialsRaw.projectMaterials || projectMaterialsRaw.materials || projectMaterialsRaw.data);
+  const dailyUpdates = toArray(dailyUpdatesRaw.dailyUpdates || dailyUpdatesRaw.updates || dailyUpdatesRaw.data);
+  const teamMembers = toArray(fullProject.teamMembers || fullProject.assignedEmployees);
+  const assignedEngineer = fullProject.assignedEngineer || projectDetailsRaw.project?.assignedEngineer || project.assignedEngineer;
+  if (assignedEngineer && !teamMembers.length) teamMembers.push(assignedEngineer);
+
+  const budget = Number(fullProject.totalBudget ?? fullProject.budget ?? fullProject.quotationAmount ?? financialProject.totalBudget ?? 0) || 0;
+  const spent = Number(
+    fullProject.totalSpent
+    ?? fullProject.spent
+    ?? financialProject.totalSpent
+    ?? financialProject.spent
+    ?? expenses.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0)
+  ) || 0;
+
+  return normalizeReportData({
+    generatedAtText: formatDateTime(),
+    projects: [fullProject],
+    featuredProject: fullProject,
+    company: fullProject.company,
+    projectMaterials,
+    financialExpenses: expenses,
+    dailyUpdates,
+    teamMembers,
+    totalBudget: budget,
+    totalSpent: spent,
+    totalRemaining: budget - spent,
+    statusCounts: getStatusCounts([fullProject]),
+  });
+};
+
+const projectReportService = {
+  generateReport: async (project) => buildSingleProjectReportData(project),
+
+  downloadAllProjectsReport: async (projects) => {
+    try {
+      const authToken = getToken();
+      if (!authToken) throw new Error('No authentication token found');
+      if (!Array.isArray(projects) || projects.length === 0) {
+        throw new Error('No projects available to generate report');
       }
 
-      console.log('📍 Using project ID:', projectId);
-
-      // Fetch full project details to get engineer info
-      const projectDetailsRaw = await fetchWithFallback(
-        `${API_BASE_URL}/projects/${projectId}`,
-        { success: false, project: null }
-      );
-
-      // Merge fetched project details with passed project data
-      const fullProject = {
-        ...project,
-        ...(projectDetailsRaw.project || {}),
-        // Preserve the original values if they exist
-        name: project.name || projectDetailsRaw.project?.name,
-        id: project.id || projectDetailsRaw.project?.id
-      };
-
-      console.log('📋 Full project data with engineer:', fullProject);
-
-      const [materialsRaw, labourRaw, contractsRaw, financialRaw] = await Promise.all([
-        fetchWithFallback(
-          `${API_BASE_URL}/usage-logs?projectId=${projectId}`,
-          { success: false, usageLogs: [] }
-        ),
-        fetchWithFallback(
-          `${API_BASE_URL}/labours/project/${projectId}`,
-          { success: false, data: [] }
-        ),
-        fetchWithFallback(
-          `${API_BASE_URL}/contracts/project/${projectId}`,
-          { success: false, contracts: [] }
-        ),
-        fetchWithFallback(
-          `${API_BASE_URL}/financial/projects/${projectId}`,
-          { success: false, project: { expenses: [] } }
-        )
+      const featuredProject = projects[0] || {};
+      const featuredProjectId = getProjectId(featuredProject);
+      const [financialRaw, projectMaterialsRaw, dailyUpdatesRaw] = await Promise.all([
+        featuredProjectId
+          ? fetchJsonWithFallback(authToken, `${API_BASE_URL}/financial/projects/${featuredProjectId}`, { success: false, project: { expenses: [] } })
+          : Promise.resolve({ success: false, project: { expenses: [] } }),
+        featuredProjectId
+          ? fetchJsonWithFallback(authToken, `${API_BASE_URL}/project-materials/${featuredProjectId}`, { success: false, projectMaterials: [], materials: [], data: [] })
+          : Promise.resolve({ success: false, projectMaterials: [], materials: [], data: [] }),
+        featuredProjectId
+          ? fetchJsonWithFallback(authToken, `${API_BASE_URL}/daily-progress/project/${featuredProjectId}`, { success: false, dailyUpdates: [], updates: [], data: [] })
+          : Promise.resolve({ success: false, dailyUpdates: [], updates: [], data: [] }),
       ]);
 
-      const materials = {
-        success: materialsRaw.success,
-        logs: materialsRaw.usageLogs || materialsRaw.logs || []
-      };
-
-      const labour = {
-        success: labourRaw.success,
-        labourers: labourRaw.data || labourRaw.labourers || []
-      };
-
-      const contracts = {
-        success: contractsRaw.success,
-        contracts: contractsRaw.contracts || []
-      };
-
-      const financial = {
-        success: financialRaw.success,
-        project: financialRaw.project || { expenses: [] }
-      };
-
-      console.log('📦 Materials logs sample:', materials.logs?.[0]);
-      console.log('👷 Labour data sample:', labour.labourers?.[0]);
-      console.log('📋 Contracts sample:', contracts.contracts?.[0]);
-      console.log('💰 Financial expenses sample:', financial.project?.expenses?.[0]);
-
-      // ✅ FIXED: Calculate material cost using defaultRate
-      const materialCost = Array.isArray(materials.logs) 
-        ? materials.logs.reduce((sum, log) => {
-            const qty = parseFloat(log.quantity) || 0;
-            // ✅ FIX: Use defaultRate from material (this is what your schema has!)
-            const price = parseFloat(log.material?.defaultRate) || 0;
-            
-            console.log(`Material: ${log.material?.name}, Qty: ${qty}, Rate: ${price}, Total: ${qty * price}`);
-            
-            return sum + (qty * price);
-          }, 0)
-        : 0;
-
-      console.log('💰 Total material cost from usage logs:', materialCost);
-
-      const labourCost = Array.isArray(labour.labourers)
-        ? labour.labourers.reduce((sum, lab) => {
-            if (Array.isArray(lab.payments)) {
-              return sum + lab.payments.reduce((pSum, payment) => 
-                pSum + (parseFloat(payment.amount) || 0), 0
-              );
-            }
-            return sum + (parseFloat(lab.totalPaid) || 0);
-          }, 0)
-        : 0;
-
-      const contractCost = Array.isArray(contracts.contracts)
-        ? contracts.contracts.reduce((sum, con) => 
-            sum + (parseFloat(con.paidAmount) || 0), 0
-          )
-        : 0;
-
-      const financialExpenses = Array.isArray(financial.project?.expenses) 
-        ? financial.project.expenses 
-        : [];
-      
-      const materialCategories = [
-        'material', 'paint', 'cement', 'steel', 'wood', 'tiles', 'hardware',
-        'glass', 'glasses', 'window', 'door', 'aluminium', 'aluminum', 'iron',
-        'brick', 'sand', 'aggregate', 'marble', 'granite', 'plywood', 'ply',
-        'pipe', 'wire', 'cable', 'fixture', 'sanitary', 'plumbing', 'electrical'
-      ];
-      
-      const financialMaterialCost = financialExpenses
-        .filter(exp => {
-          const category = (exp.category || '').toLowerCase();
-          return materialCategories.some(mat => category.includes(mat));
-        })
-        .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-      
-      const financialOtherCost = financialExpenses
-        .filter(exp => {
-          const category = (exp.category || '').toLowerCase();
-          return !materialCategories.some(mat => category.includes(mat));
-        })
-        .reduce((sum, exp) => sum + (parseFloat(exp.amount) || 0), 0);
-
-      const totalCalculated = materialCost + financialMaterialCost + labourCost + contractCost + financialOtherCost;
-
-      console.log('💰 Calculated costs:', {
-        materialsFromUsageLogs: materialCost,
-        materialsFromFinancial: financialMaterialCost,
-        totalMaterials: materialCost + financialMaterialCost,
-        labour: labourCost,
-        contracts: contractCost,
-        otherExpenses: financialOtherCost,
-        total: totalCalculated
+      const featuredFinancial = financialRaw.project || financialRaw.data || {};
+      const report = normalizeReportData({
+        generatedAtText: formatDateTime(),
+        projects,
+        featuredProject,
+        projectMaterials: projectMaterialsRaw.projectMaterials || projectMaterialsRaw.materials || projectMaterialsRaw.data,
+        financialExpenses: featuredFinancial.expenses || financialRaw.expenses,
+        dailyUpdates: dailyUpdatesRaw.dailyUpdates || dailyUpdatesRaw.updates || dailyUpdatesRaw.data,
+        teamMembers: featuredProject.assignedEngineer ? [featuredProject.assignedEngineer] : [],
+        totalBudget: projects.reduce((sum, item) => sum + getBudget(item), 0),
+        totalSpent: projects.reduce((sum, item) => sum + getSpent(item), 0),
+        statusCounts: getStatusCounts(projects),
       });
 
-      const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-          style: 'currency',
-          currency: 'INR',
-          maximumFractionDigits: 0
-        }).format(amount || 0);
-      };
-
-      const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Report - ${fullProject.name}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      padding: 40px;
-      background: #f5f5f5;
-      color: #1f2937;
-    }
-    .container { 
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      padding: 40px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    .header { 
-      border-bottom: 3px solid #2563eb;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
-    }
-    .header h1 { 
-      color: #1f2937;
-      font-size: 28px;
-      margin-bottom: 10px;
-    }
-    .header-meta {
-      color: #6b7280;
-      font-size: 14px;
-    }
-    .section { 
-      margin-bottom: 30px;
-      page-break-inside: avoid;
-    }
-    .section-title { 
-      color: #1f2937;
-      font-size: 20px;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .info-grid { 
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-    }
-    .info-item { 
-      padding: 12px;
-      background: #f9fafb;
-      border-radius: 6px;
-    }
-    .info-label { 
-      color: #6b7280;
-      font-size: 12px;
-      text-transform: uppercase;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .info-value { 
-      color: #1f2937;
-      font-size: 16px;
-      font-weight: 600;
-    }
-    .status-badge { 
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      background: #e5e7eb;
-    }
-    .progress-bar { 
-      width: 100%;
-      height: 24px;
-      background: #e5e7eb;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .progress-fill { 
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #2563eb);
-      color: white;
-      font-size: 12px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    table { 
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-    th, td { 
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #e5e7eb;
-    }
-    th { 
-      background: #f9fafb;
-      color: #6b7280;
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    tr:hover { background: #f9fafb; }
-    .cost-summary { 
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      padding: 20px;
-      border-radius: 8px;
-      margin-top: 20px;
-      border: 1px solid #bae6fd;
-    }
-    .cost-row { 
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #bfdbfe;
-    }
-    .cost-row:last-child { 
-      border-bottom: none;
-      font-weight: 700;
-      font-size: 18px;
-      color: #1e40af;
-      margin-top: 8px;
-      padding-top: 12px;
-      border-top: 2px solid #3b82f6;
-    }
-    .footer { 
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
-      text-align: center;
-      color: #6b7280;
-      font-size: 12px;
-    }
-    .empty { 
-      text-align: center;
-      padding: 30px;
-      color: #9ca3af;
-      font-style: italic;
-    }
-    .warning { 
-      background: #fef3c7;
-      border: 1px solid #fbbf24;
-      padding: 12px;
-      border-radius: 6px;
-      margin: 10px 0;
-      color: #92400e;
-      font-size: 14px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .container { box-shadow: none; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${fullProject.name}</h1>
-      <div class="header-meta">
-        Project ID: ${fullProject.id} | Generated: ${new Date().toLocaleString('en-IN', { 
-          dateStyle: 'medium', 
-          timeStyle: 'short' 
-        })}
-      </div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Project Overview</h2>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Client</div>
-          <div class="info-value">${fullProject.clientName || fullProject.client || 'N/A'}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Type</div>
-          <div class="info-value">${fullProject.projectType || fullProject.type || 'N/A'}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Location</div>
-          <div class="info-value">${fullProject.location || 'N/A'}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Status</div>
-          <div class="info-value">
-            <span class="status-badge">${fullProject.status || 'N/A'}</span>
-          </div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Site Engineer</div>
-          <div class="info-value">${fullProject.assignedEngineer?.name || fullProject.engineerName || fullProject.engineer?.name || 'Not Assigned'}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Timeline</div>
-          <div class="info-value">${
-            fullProject.startDate 
-              ? new Date(fullProject.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
-              : 'N/A'
-          } to ${
-            fullProject.endDate 
-              ? new Date(fullProject.endDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' })
-              : 'N/A'
-          }</div>
-        </div>
-      </div>
-      <div style="margin-top: 20px;">
-        <div class="info-label">Project Progress</div>
-        <div class="progress-bar">
-          <div class="progress-fill" style="width: ${fullProject.progress || 0}%">
-            ${fullProject.progress || 0}%
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Financial Summary</h2>
-      <div class="info-grid">
-        <div class="info-item">
-          <div class="info-label">Total Budget</div>
-          <div class="info-value">${formatCurrency(fullProject.budget || 0)}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Total Spent</div>
-          <div class="info-value">${formatCurrency(fullProject.spent || totalCalculated)}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Remaining Budget</div>
-          <div class="info-value">${formatCurrency((fullProject.budget || 0) - (fullProject.spent || totalCalculated))}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">Budget Utilization</div>
-          <div class="info-value">${fullProject.budget > 0 ? (((fullProject.spent || totalCalculated) / fullProject.budget) * 100).toFixed(1) : 0}%</div>
-        </div>
-      </div>
-      
-      <div class="cost-summary">
-        <div class="cost-row">
-          <span>Materials Cost</span>
-          <span>${formatCurrency(materialCost + financialMaterialCost)}</span>
-        </div>
-        ${materialCost > 0 ? `
-        <div class="cost-row" style="padding-left: 20px; font-size: 14px; color: #6b7280; border: none;">
-          <span>└ From Usage Logs</span>
-          <span>${formatCurrency(materialCost)}</span>
-        </div>
-        ` : ''}
-        ${financialMaterialCost > 0 ? `
-        <div class="cost-row" style="padding-left: 20px; font-size: 14px; color: #6b7280; border: none;">
-          <span>└ From Expenses (Material-related)</span>
-          <span>${formatCurrency(financialMaterialCost)}</span>
-        </div>
-        ` : ''}
-        <div class="cost-row">
-          <span>Labour Cost</span>
-          <span>${formatCurrency(labourCost)}</span>
-        </div>
-        <div class="cost-row">
-          <span>Contract Payments</span>
-          <span>${formatCurrency(contractCost)}</span>
-        </div>
-        ${financialOtherCost > 0 ? `
-        <div class="cost-row">
-          <span>Other Expenses</span>
-          <span>${formatCurrency(financialOtherCost)}</span>
-        </div>
-        ` : ''}
-        <div class="cost-row">
-          <span>Total Calculated</span>
-          <span>${formatCurrency(totalCalculated)}</span>
-        </div>
-      </div>
-    </div>
-
-    ${materials.logs && materials.logs.length > 0 ? `
-    <div class="section">
-      <h2 class="section-title">Materials Used (${materials.logs.length})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Material Name</th>
-            <th>Quantity</th>
-            <th>Unit Rate</th>
-            <th>Total Cost</th>
-            <th>Date Used</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${materials.logs.map(log => {
-            const qty = parseFloat(log.quantity) || 0;
-            // ✅ FIX: Use defaultRate (the actual field in your schema)
-            const rate = parseFloat(log.material?.defaultRate) || 0;
-            const total = qty * rate;
-            
-            // ✅ Better date handling
-            let dateStr = 'N/A';
-            if (log.date) {
-              try {
-                dateStr = new Date(log.date).toLocaleDateString('en-IN');
-              } catch (e) {
-                dateStr = 'Invalid Date';
-              }
-            }
-            
-            return `
-            <tr>
-              <td>${log.material?.name || 'Unknown Material'}</td>
-              <td>${qty.toFixed(2)} ${log.material?.unit || ''}</td>
-              <td>${formatCurrency(rate)}</td>
-              <td>${formatCurrency(total)}</td>
-              <td>${dateStr}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    ` : `
-    <div class="section">
-      <h2 class="section-title">Materials Used</h2>
-      <div class="empty">No materials have been used in this project yet.</div>
-    </div>
-    `}
-
-    ${labour.labourers && labour.labourers.length > 0 ? `
-    <div class="section">
-      <h2 class="section-title">Labour Details (${labour.labourers.length})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Phone</th>
-            <th>Total Paid</th>
-            <th>Payment Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${labour.labourers.map(lab => {
-            const totalPaid = Array.isArray(lab.payments) 
-              ? lab.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0)
-              : parseFloat(lab.totalPaid) || 0;
-            return `
-            <tr>
-              <td>${lab.name || 'N/A'}</td>
-              <td>${lab.phone || 'N/A'}</td>
-              <td>${formatCurrency(totalPaid)}</td>
-              <td>${lab.payments?.length || 0} payments</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
-    ` : `
-    <div class="section">
-      <h2 class="section-title">Labour Details</h2>
-      <div class="empty">No labour records found for this project.</div>
-    </div>
-    `}
-
-    ${contracts.contracts && contracts.contracts.length > 0 ? `
-    <div class="section">
-      <h2 class="section-title">Contracts (${contracts.contracts.length})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Contractor</th>
-            <th>Work Type</th>
-            <th>Contract Amount</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${contracts.contracts.map(con => `
-            <tr>
-              <td>${con.contractorName || 'N/A'}</td>
-              <td>${con.workStatus || 'N/A'}</td>
-              <td>${formatCurrency(con.contractAmount || 0)}</td>
-              <td><span class="status-badge">${con.workStatus || 'N/A'}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-    ` : `
-    <div class="section">
-      <h2 class="section-title">Contracts</h2>
-      <div class="empty">No contracts found for this project.</div>
-    </div>
-    `}
-
-    ${financial.project?.expenses && financial.project.expenses.length > 0 ? `
-    <div class="section">
-      <h2 class="section-title">Financial Expenses Breakdown (${financial.project.expenses.length})</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Classification</th>
-            <th>Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${financial.project.expenses.map(exp => {
-            const category = (exp.category || '').toLowerCase();
-            const isMaterial = materialCategories.some(mat => category.includes(mat));
-            
-            let dateStr = 'N/A';
-            if (exp.createdAt) {
-              try {
-                dateStr = new Date(exp.createdAt).toLocaleDateString('en-IN');
-              } catch (e) {
-                dateStr = 'Invalid Date';
-              }
-            }
-            
-            return `
-            <tr>
-              <td>${exp.category || 'N/A'}</td>
-              <td>${formatCurrency(exp.amount || 0)}</td>
-              <td>
-                <span class="status-badge" style="${isMaterial ? 'background: #dbeafe; color: #1e40af;' : 'background: #fef3c7; color: #92400e;'}">
-                  ${isMaterial ? 'Material-related' : 'Other Expense'}
-                </span>
-              </td>
-              <td>${dateStr}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-      <div style="margin-top: 15px; padding: 12px; background: #f0f9ff; border-left: 4px solid #3b82f6; font-size: 14px;">
-        <strong>Note:</strong> Expenses with categories like "material", "paint", "cement", etc. are automatically classified as material costs.
-      </div>
-    </div>
-    ` : ''}
-
-    <div class="footer">
-      <p>This report was automatically generated on ${new Date().toLocaleString('en-IN', { 
-        dateStyle: 'full', 
-        timeStyle: 'short' 
-      })}</p>
-      <p style="margin-top: 8px;">Project Management System</p>
-    </div>
-  </div>
-</body>
-</html>`;
-      
-      return html;
+      const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
+      const doc = drawAllProjectsReport(report, logoDataUrl);
+      doc.save(`Project_Management_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      return true;
     } catch (error) {
-      console.error('❌ Error generating report:', error);
+      console.error('Error generating all projects PDF report:', error);
       throw error;
     }
   },
 
-  /**
-   * Generate consolidated report for all projects
-   * @param {Array} projects - Array of project data
-   * @returns {Promise<string>} HTML report
-   */
-  /**
- * Generate consolidated report for all projects and download it
- * @param {Array} projects - Array of project data
- * @returns {Promise<boolean>} Success status
- */
-downloadAllProjectsReport: async (projects) => {
-  try {
-    const token = getToken();
-    
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
+  downloadReport: async (report, projectName) => {
+    try {
+      const normalizedReport = typeof report === 'string' ? null : normalizeReportData(report);
+      if (!normalizedReport) throw new Error('Project report data is required to generate the PDF');
 
-    if (!Array.isArray(projects) || projects.length === 0) {
-      throw new Error('No projects available to generate report');
+      const logoDataUrl = await loadImageAsDataUrl(companyLogoUrl);
+      const doc = drawSingleProjectReport(normalizedReport, logoDataUrl);
+      const sanitizedName = String(projectName || getProjectName(normalizedReport.featuredProject) || 'Project_Report').replace(/[^a-z0-9]/gi, '_');
+      doc.save(`${sanitizedName}_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+      return true;
+    } catch (error) {
+      console.error('Error generating project PDF report:', error);
+      throw error;
     }
-
-    console.log('📊 Generating consolidated report for', projects.length, 'projects');
-
-    const formatCurrency = (amount) => {
-      return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0
-      }).format(amount || 0);
-    };
-
-    // Calculate totals across all projects
-    const totalBudget = projects.reduce((sum, p) => sum + (parseFloat(p.budget) || 0), 0);
-    const totalSpent = projects.reduce((sum, p) => sum + (parseFloat(p.spent) || 0), 0);
-    const totalRemaining = totalBudget - totalSpent;
-
-    // Count projects by status
-    const statusCounts = {
-      planning: projects.filter(p => p.status === 'Planning').length,
-      inProgress: projects.filter(p => p.status === 'In Progress').length,
-      completed: projects.filter(p => p.status === 'Completed').length
-    };
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>All Projects Report</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      padding: 40px;
-      background: #f5f5f5;
-      color: #1f2937;
-    }
-    .container { 
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 40px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    .header { 
-      border-bottom: 3px solid #2563eb;
-      padding-bottom: 20px;
-      margin-bottom: 30px;
-    }
-    .header h1 { 
-      color: #1f2937;
-      font-size: 32px;
-      margin-bottom: 10px;
-    }
-    .header-meta {
-      color: #6b7280;
-      font-size: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 10px;
-    }
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .summary-card {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      padding: 20px;
-      border-radius: 8px;
-      border: 1px solid #bae6fd;
-    }
-    .summary-label {
-      color: #6b7280;
-      font-size: 12px;
-      text-transform: uppercase;
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-    .summary-value {
-      color: #1e40af;
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .status-overview {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: #f9fafb;
-      border-radius: 8px;
-    }
-    .status-item {
-      text-align: center;
-      padding: 15px;
-      background: white;
-      border-radius: 6px;
-      border: 1px solid #e5e7eb;
-    }
-    .status-count {
-      font-size: 28px;
-      font-weight: 700;
-      margin-bottom: 5px;
-    }
-    .status-label {
-      font-size: 12px;
-      color: #6b7280;
-      text-transform: uppercase;
-      font-weight: 600;
-    }
-    table { 
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td { 
-      padding: 12px;
-      text-align: left;
-      border-bottom: 1px solid #e5e7eb;
-      font-size: 14px;
-    }
-    th { 
-      background: #ffbe2a;
-      color: #1f2937;
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-      position: sticky;
-      top: 0;
-    }
-    tbody tr:hover { 
-      background: #f9fafb; 
-    }
-    .status-badge { 
-      display: inline-block;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    .status-planning {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    .status-progress {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-    .status-completed {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .progress-bar { 
-      width: 100px;
-      height: 20px;
-      background: #e5e7eb;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .progress-fill { 
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #2563eb);
-      color: white;
-      font-size: 10px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      white-space: nowrap;
-    }
-    .amount-positive {
-      color: #059669;
-      font-weight: 600;
-    }
-    .amount-negative {
-      color: #dc2626;
-      font-weight: 600;
-    }
-    .section-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1f2937;
-      margin: 30px 0 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #e5e7eb;
-    }
-    .footer { 
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
-      text-align: center;
-      color: #6b7280;
-      font-size: 12px;
-    }
-    @media print {
-      body { background: white; padding: 0; }
-      .container { box-shadow: none; }
-      th { position: relative; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>All Projects Report</h1>
-      <div class="header-meta">
-        <span>Total Projects: <strong>${projects.length}</strong></span>
-        <span>Generated: ${new Date().toLocaleString('en-IN', { 
-          dateStyle: 'medium', 
-          timeStyle: 'short' 
-        })}</span>
-      </div>
-    </div>
-
-    <h2 class="section-title">Financial Overview</h2>
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="summary-label">Total Budget</div>
-        <div class="summary-value">${formatCurrency(totalBudget)}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Total Spent</div>
-        <div class="summary-value">${formatCurrency(totalSpent)}</div>
-      </div>
-      <div class="summary-card">
-        <div class="summary-label">Total Remaining</div>
-        <div class="summary-value" style="color: ${totalRemaining < 0 ? '#dc2626' : '#059669'}">${formatCurrency(totalRemaining)}</div>
-      </div>
-    </div>
-
-    <h2 class="section-title">Project Status Overview</h2>
-    <div class="status-overview">
-      <div class="status-item">
-        <div class="status-count" style="color: #d97706;">${statusCounts.planning}</div>
-        <div class="status-label">Planning</div>
-      </div>
-      <div class="status-item">
-        <div class="status-count" style="color: #2563eb;">${statusCounts.inProgress}</div>
-        <div class="status-label">In Progress</div>
-      </div>
-      <div class="status-item">
-        <div class="status-count" style="color: #059669;">${statusCounts.completed}</div>
-        <div class="status-label">Completed</div>
-      </div>
-    </div>
-
-    <h2 class="section-title">Project Details</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Project ID</th>
-          <th>Project Name</th>
-          <th>Client</th>
-          <th>Type</th>
-          <th>Status</th>
-          <th>Progress</th>
-          <th>Budget</th>
-          <th>Spent</th>
-          <th>Remaining</th>
-          <th>Site Engineer</th>
-          <th>Location</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${projects.map(project => {
-          const budget = parseFloat(project.budget) || 0;
-          const spent = parseFloat(project.spent) || 0;
-          const remaining = budget - spent;
-          const progress = project.progress || 0;
-          
-          let statusClass = 'status-badge';
-          if (project.status === 'Planning') statusClass += ' status-planning';
-          else if (project.status === 'In Progress') statusClass += ' status-progress';
-          else if (project.status === 'Completed') statusClass += ' status-completed';
-          
-          return `
-          <tr>
-            <td><strong>${project.id || 'N/A'}</strong></td>
-            <td><strong>${project.name || 'Unnamed Project'}</strong></td>
-            <td>${project.clientName || project.client || 'N/A'}</td>
-            <td>${project.type || project.projectType || 'N/A'}</td>
-            <td><span class="${statusClass}">${project.status || 'N/A'}</span></td>
-            <td>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: ${progress}%">${progress}%</div>
-              </div>
-            </td>
-            <td>${formatCurrency(budget)}</td>
-            <td>${formatCurrency(spent)}</td>
-            <td class="${remaining < 0 ? 'amount-negative' : 'amount-positive'}">${formatCurrency(remaining)}</td>
-            <td>${project.assignedEngineer?.name || project.assignedEngineerName || project.engineerName || project.engineer?.name || 'Not Assigned'}</td>
-            <td>${project.location || 'N/A'}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-
-    <div class="footer">
-      <p>This consolidated report was automatically generated on ${new Date().toLocaleString('en-IN', { 
-        dateStyle: 'full', 
-        timeStyle: 'short' 
-      })}</p>
-      <p style="margin-top: 8px;">Project Management System</p>
-    </div>
-  </div>
-</body>
-</html>`;
-
-    // ✅ Download the generated HTML
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const date = new Date().toISOString().split('T')[0];
-    a.download = `All_Projects_Report_${date}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    console.log('✅ All projects report downloaded successfully');
-    return true;
-  } catch (error) {
-    console.error('❌ Error generating all projects report:', error);
-    throw error;
-  }
-},
-
-  downloadReport: (html, projectName) => {
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const sanitizedName = projectName.replace(/[^a-z0-9]/gi, '_');
-    const date = new Date().toISOString().split('T')[0];
-    a.download = `${sanitizedName}_Report_${date}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
+  },
 };
 
 export default projectReportService;

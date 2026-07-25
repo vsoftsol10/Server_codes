@@ -1,5 +1,167 @@
   // src/controllers/labourController.js
   import * as labourService from '../services/labourService.js';
+  import ExcelJS from 'exceljs';
+
+  const getCellText = (value) => {
+    if (value == null) return '';
+    if (typeof value === 'object') {
+      if (value.text) return String(value.text).trim();
+      if (value.result != null) return String(value.result).trim();
+      if (Array.isArray(value.richText)) return value.richText.map((part) => part.text).join('').trim();
+    }
+    return String(value).trim();
+  };
+
+  const normalizeHeader = (value) => getCellText(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+
+  const parseCsvRows = (text) => {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      const nextChar = text[index + 1];
+
+      if (char === '"' && inQuotes && nextChar === '"') {
+        cell += '"';
+        index += 1;
+      } else if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        row.push(cell.trim());
+        cell = '';
+      } else if ((char === '\n' || char === '\r') && !inQuotes) {
+        if (char === '\r' && nextChar === '\n') index += 1;
+        row.push(cell.trim());
+        if (row.some(Boolean)) rows.push(row);
+        row = [];
+        cell = '';
+      } else {
+        cell += char;
+      }
+    }
+
+    row.push(cell.trim());
+    if (row.some(Boolean)) rows.push(row);
+    return rows;
+  };
+
+  const parseLabourFile = async (file) => {
+    const extension = file.originalname.split('.').pop()?.toLowerCase();
+
+    if (extension !== 'xlsx') {
+      throw new Error('Only Excel (.xlsx) files are allowed. Please use the official template.');
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer);
+    const worksheet = workbook.worksheets[0];
+    const rows = [];
+
+    worksheet.eachRow((worksheetRow) => {
+      const values = [];
+      worksheetRow.eachCell({ includeEmpty: true }, (cell) => {
+        values.push(getCellText(cell.value));
+      });
+      if (values.some(Boolean)) rows.push(values);
+    });
+
+    return rows;
+  };
+
+  const pickValue = (row, headerMap, keys) => {
+    const index = keys.map((key) => headerMap[key]).find((value) => value !== undefined);
+    return index === undefined ? '' : getCellText(row[index]);
+  };
+
+  export const downloadLabourTemplate = async (req, res) => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Labour List');
+
+      const headers = ['Name', 'Phone Number', 'Designation', 'Project', 'Address'];
+      const sampleRow = ['Ramesh', '9876543210', 'Electrician', 'Apartment Project', 'Chennai'];
+
+      worksheet.columns = headers.map((header, index) => ({
+        key: header.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        width: Math.max(header.length, sampleRow[index].length) + 6
+      }));
+
+      const headerRow = worksheet.addRow(headers);
+      const exampleRow = worksheet.addRow(sampleRow);
+
+      headerRow.height = 22;
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FF111827' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFF3F4F6' }
+        };
+        cell.alignment = {
+          horizontal: 'center',
+          vertical: 'middle'
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
+        };
+      });
+
+      exampleRow.eachCell((cell) => {
+        cell.alignment = {
+          horizontal: 'left',
+          vertical: 'middle'
+        };
+      });
+
+      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+      worksheet.autoFilter = 'A1:E1';
+
+      const instructionsSheet = workbook.addWorksheet('Instructions');
+      instructionsSheet.columns = [
+        { key: 'instruction', width: 92 }
+      ];
+
+      instructionsSheet.getCell('A1').value = 'Labour Import Instructions';
+      instructionsSheet.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF111827' } };
+      instructionsSheet.getCell('A1').alignment = { horizontal: 'left', vertical: 'middle' };
+
+      const instructionRows = [
+        'Only Excel (.xlsx) files are supported.',
+        'Do not rename or delete the column headers.',
+        'Phone Number should contain valid mobile numbers.',
+        'Leave no mandatory fields empty.',
+        'Use the official template only.',
+        'Maximum upload size: 5 MB.'
+      ];
+
+      instructionRows.forEach((text) => {
+        const row = instructionsSheet.addRow([`- ${text}`]);
+        row.getCell(1).alignment = { wrapText: true, vertical: 'top' };
+      });
+
+      instructionsSheet.getRow(1).height = 24;
+      instructionsSheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="labour-list-template.xlsx"');
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error('Download labour template error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to download labour template',
+        details: error.message
+      });
+    }
+  };
 
   // Get all labourers for a company
   export const getAllLabourers = async (req, res) => {
@@ -352,6 +514,66 @@
       res.status(500).json({
         success: false,
         error: 'Failed to fetch labour statistics',
+        details: error.message
+      });
+    }
+  };
+
+  export const uploadLabourList = async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded' });
+      }
+
+      const companyId = req.user.companyId;
+      const rows = await parseLabourFile(req.file);
+
+      if (rows.length < 2) {
+        return res.status(400).json({ success: false, error: 'Upload file must include a header row and at least one labour row' });
+      }
+
+      const headerMap = rows[0].map(normalizeHeader).reduce((map, header, index) => ({ ...map, [header]: index }), {});
+      const created = [];
+      const skipped = [];
+
+      for (const row of rows.slice(1)) {
+        const name = pickValue(row, headerMap, ['name', 'labourname', 'labourername', 'workername']);
+        const phone = pickValue(row, headerMap, ['phone', 'phonenumber', 'mobile', 'mobilenumber', 'contact', 'contactnumber']);
+
+        if (!name || !phone) {
+          skipped.push({ row: created.length + skipped.length + 2, reason: 'Missing name or phone' });
+          continue;
+        }
+
+        const projectId = pickValue(row, headerMap, ['projectid']);
+        const labourer = await labourService.createLabourer({
+          name,
+          phone,
+          address: pickValue(row, headerMap, ['address']),
+          designation: pickValue(row, headerMap, ['designation', 'role', 'trade']),
+          project: pickValue(row, headerMap, ['project', 'projectname', 'assignedproject']),
+          projectId: projectId ? parseInt(projectId, 10) : null,
+          companyId
+        });
+        created.push(labourer);
+      }
+
+      if (created.length === 0) {
+        return res.status(400).json({ success: false, error: 'No valid labour rows found', skipped });
+      }
+
+      res.status(201).json({
+        success: true,
+        data: created,
+        skipped,
+        count: created.length,
+        message: `Uploaded ${created.length} labour${created.length === 1 ? '' : 'ers'} successfully${skipped.length ? `, skipped ${skipped.length}` : ''}.`
+      });
+    } catch (error) {
+      console.error('Upload labour list error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to upload labour list',
         details: error.message
       });
     }

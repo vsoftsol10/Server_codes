@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { User, Lock, AlertCircle } from 'lucide-react';
+import { User, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import adminLogin from "../../assets/admin login.png";
 import adminTab from "../../assets/AdminTab.png";
 import { useNavigate } from 'react-router-dom';
 import { loginEngineer } from '../../api/engineerService';
 import { handleLoginSuccess } from '../../utils/auth';
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation';
 
 export default function EmployeeLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,9 +24,13 @@ export default function EmployeeLogin() {
     e.preventDefault();
     setError('');
 
-    // Validation
-    if (!username.trim() || !password.trim()) {
-      setError('Please enter both username and password');
+    const errors = validateFields([
+      { name: 'username', value: username, label: 'Username', rules: ['required'] },
+      { name: 'password', value: password, label: 'Password', rules: ['required'] },
+    ]);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors);
       return;
     }
 
@@ -98,17 +105,20 @@ export default function EmployeeLogin() {
                     <User className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
+                    name="username"
                     type="text"
                     value={username}
                     onChange={(e) => {
                       setUsername(e.target.value);
                       setError('');
+                      setFieldErrors((prev) => ({ ...prev, username: '' }));
                     }}
                     placeholder="Enter your username"
                     className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none"
                     disabled={loading}
                   />
                 </div>
+                {fieldErrors.username && <p className="text-red-500 text-sm mt-1">{fieldErrors.username}</p>}
               </div>
 
               <div>
@@ -120,17 +130,28 @@ export default function EmployeeLogin() {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type="password"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
                       setError('');
+                      setFieldErrors((prev) => ({ ...prev, password: '' }));
                     }}
                     placeholder="Enter your password"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none"
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none"
                     disabled={loading}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
+                {fieldErrors.password && <p className="text-red-500 text-sm mt-1">{fieldErrors.password}</p>}
               </div>
 
               <button

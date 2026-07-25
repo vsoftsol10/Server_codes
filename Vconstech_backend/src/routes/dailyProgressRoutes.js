@@ -2,11 +2,10 @@
 // FIXED VERSION - Uses correct model accessor
 
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * @route   POST /api/daily-progress
@@ -46,13 +45,24 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     console.log('\n3️⃣ Looking up project...');
-    console.log('   Searching for project ID:', parseInt(projectId));
+    console.log('   Searching for project ID:', projectId);
 
-    // Verify project exists and engineer is assigned
-    const project = await prisma.project.findUnique({
-      where: { id: parseInt(projectId) },
-      include: { assignedEngineer: true }
-    });
+    const normalizedProjectId = Number.parseInt(projectId, 10);
+    let project = null;
+
+    if (!Number.isNaN(normalizedProjectId)) {
+      project = await prisma.project.findUnique({
+        where: { id: normalizedProjectId },
+        include: { assignedEngineer: true }
+      });
+    }
+
+    if (!project && projectId) {
+      project = await prisma.project.findUnique({
+        where: { projectId: String(projectId) },
+        include: { assignedEngineer: true }
+      });
+    }
 
     console.log('\n4️⃣ Project lookup result:');
     if (project) {
@@ -80,10 +90,12 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
+    const resolvedProjectId = project.id;
+
     console.log('\n5️⃣ Creating daily progress update...');
     console.log('   Data to insert:');
     console.log('   {');
-    console.log('     projectId:', parseInt(projectId));
+    console.log('     projectId:', resolvedProjectId);
     console.log('     engineerId:', engineerId);
     console.log('     message: "' + message.substring(0, 50) + '..."');
     console.log('   }');
@@ -91,7 +103,7 @@ router.post('/', authenticateToken, async (req, res) => {
     // ✅ FIXED: Use the exact model name from schema
     const dailyUpdate = await prisma.daily_progress_updates.create({
       data: {
-        projectId: parseInt(projectId),
+        projectId: resolvedProjectId,
         engineerId,
         message,
         workDone: workDone || null,
@@ -161,9 +173,23 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
     const { projectId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
 
+    const normalizedProjectId = Number.parseInt(projectId, 10);
+    let resolvedProjectId = normalizedProjectId;
+
+    if (Number.isNaN(resolvedProjectId) && projectId) {
+      const projectLookup = await prisma.project.findUnique({
+        where: { projectId: String(projectId) }
+      });
+      resolvedProjectId = projectLookup?.id;
+    }
+
+    if (!resolvedProjectId || Number.isNaN(resolvedProjectId)) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
     const updates = await prisma.daily_progress_updates.findMany({
       where: {
-        projectId: parseInt(projectId)
+        projectId: resolvedProjectId
       },
       include: {
         engineers: {
@@ -183,7 +209,7 @@ router.get('/project/:projectId', authenticateToken, async (req, res) => {
 
     const totalCount = await prisma.daily_progress_updates.count({
       where: {
-        projectId: parseInt(projectId)
+        projectId: resolvedProjectId
       }
     });
 

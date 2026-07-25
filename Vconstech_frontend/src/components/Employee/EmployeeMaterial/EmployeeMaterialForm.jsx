@@ -1,7 +1,7 @@
+import { getTodayDateInputValue } from "../../../utils/formValidation";
+
 const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecific = false, projects = [] }) => (
   <div className="flex flex-col gap-3">
-
-    {/* Basic Details Section */}
     <div className="bg-white rounded-xl p-4 flex flex-col gap-3">
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Basic Details</p>
 
@@ -30,7 +30,6 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
           value={material.name}
           onChange={(e) => onChange({ ...material, name: e.target.value })}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
-          placeholder=""
         />
       </div>
 
@@ -41,12 +40,10 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
           value={material.vendor}
           onChange={(e) => onChange({ ...material, vendor: e.target.value })}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
-          placeholder=""
         />
       </div>
     </div>
 
-    {/* Material Details Section */}
     <div className="bg-white rounded-xl p-4 flex flex-col gap-3">
       <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Material Details</p>
 
@@ -88,41 +85,37 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
               value={material.defaultRate}
               onChange={(e) => onChange({ ...material, defaultRate: e.target.value })}
               className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
-              placeholder=""
             />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-800 mb-1">Due Date</label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₹</span>
-            <input
-              type="date"
-              value={material.dueDate || ''}
-              onChange={(e) => onChange({ ...material, dueDate: e.target.value })}
-              className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
-            />
-          </div>
+          <input
+            type="date"
+            value={material.dueDate || ''}
+            min={getTodayDateInputValue()}
+            onChange={(e) => onChange({ ...material, dueDate: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
+          />
         </div>
       </div>
 
-      {isProjectSpecific && (
-        <div>
-          <label className="block text-sm font-medium text-gray-800 mb-1">
-            Quantity Needed <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            value={material.quantity || ''}
-            onChange={(e) => onChange({ ...material, quantity: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
-            placeholder="100"
-          />
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-gray-800 mb-1">
+          Quantity <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="number"
+          min="0.01"
+          step="0.01"
+          value={material.quantity || ''}
+          onChange={(e) => onChange({ ...material, quantity: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400"
+          placeholder="100"
+        />
+      </div>
     </div>
 
-    {/* Upload Section */}
     <div className="bg-white rounded-xl p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div>
@@ -149,7 +142,8 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
           id="quotation-upload"
         />
       </div>
-      {material.quotationFile && (
+
+      {material.quotationFile ? (
         <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
           <span className="text-sm text-gray-700 truncate">{material.quotationFile.name}</span>
           <span
@@ -164,10 +158,9 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
             ×
           </span>
         </div>
-      )}
+      ) : null}
     </div>
 
-    {/* Description Section */}
     <div className="bg-white rounded-xl p-4">
       <label className="block text-sm font-medium text-gray-800 mb-2">Description</label>
       <textarea
@@ -175,10 +168,8 @@ const EmployeeMaterialForm = ({ material, onChange, categories, isProjectSpecifi
         onChange={(e) => onChange({ ...material, description: e.target.value })}
         rows="3"
         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 focus:outline-none focus:border-yellow-400 resize-none"
-        placeholder=""
       />
     </div>
-
   </div>
 );
 

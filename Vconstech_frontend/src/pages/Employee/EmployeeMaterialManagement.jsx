@@ -5,12 +5,14 @@ import EmployeeRequestTab from "../../components/Employee/EmployeeMaterial/Emplo
 import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
 import { materialRequestAPI, usageLogAPI, notificationAPI } from "../../api/materialService";
 import { getToken } from '../../utils/tabToken';
+import { isProjectExecutionEnabled } from '../../utils/dashboardUtils';
 
 import useEmployeeMaterialData from "../../hooks/Useemployeematerialdata";
 import NotificationsDropdown from "../../components/Employee/EmployeeMaterial/Notificationsdropdown";
 import AddMaterialModal from "../../components/Employee/EmployeeMaterial/Addmaterialmodal";
 import AddProjectMaterialModal from "../../components/Employee/EmployeeMaterial/Addprojectmaterialmodal";
-import LogUsageModal from "../../components/Employee/EmployeeMaterial/Logusagemodal";
+import LogUsageModal from "../../components/Employee/EmployeeMaterial/Logusagemodal";
+import { showToast } from '../../components/common/Toast';
 
 const TABS = ["materials", "projects", "my-requests"];
 
@@ -35,6 +37,10 @@ const EmployeeMaterialManagement = () => {
   const [showAddMaterial, setShowAddMaterial] = useState(false);
   const [showAddProjectMaterial, setShowAddProjectMaterial] = useState(false);
   const [showUsageLog, setShowUsageLog] = useState(false);
+  const selectedProjectData = projects.find((project) => Number(project.id) === Number(selectedProject));
+  const executableProjects = projects.filter((project) => isProjectExecutionEnabled(project.status));
+  const canExecuteSelectedProject = isProjectExecutionEnabled(selectedProjectData?.status);
+  const canRequestMaterials = executableProjects.length > 0;
 
     useEffect(() => {
         document.title = "Vconstech - Engineer";
@@ -54,6 +60,11 @@ const EmployeeMaterialManagement = () => {
 
 const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
   try {
+    if (requestType === 'PROJECT' && !isProjectExecutionEnabled(projects.find((p) => Number(p.id) === Number(newMaterial.projectId))?.status)) {
+      showToast("Material requests are available only when the project is In Progress.", "warning");
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -64,10 +75,10 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     formData.append('vendor', newMaterial.vendor || '');
     formData.append('description', newMaterial.description || '');
     formData.append('type', requestType);
+    formData.append('quantity', newMaterial.quantity);
     if (newMaterial.dueDate) formData.append('dueDate', newMaterial.dueDate);
     if (requestType === 'PROJECT') {
       formData.append('projectId', parseInt(newMaterial.projectId));
-      formData.append('quantity', parseFloat(newMaterial.quantity));
     }
     // Attach file if present
     if (newMaterial.quotationFile) {
@@ -78,9 +89,9 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
       await fetchMaterialRequests();
       await fetchNotifications();
       setShowAddMaterial(false);
-      alert("Material request submitted successfully! You will be notified once it is reviewed.");
+      showToast("Material request submitted successfully! You will be notified once it is reviewed.", "success");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to submit material request");
+      showToast(err.response?.data?.error || "Failed to submit material request", "error");
     } finally {
       setLoading(false);
     }
@@ -88,6 +99,11 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
   const handleAddProjectMaterial = async (newProjectMaterial) => {
     try {
+      if (!canExecuteSelectedProject) {
+        showToast("Project material requests are available only when the selected project is In Progress.", "warning");
+        return;
+      }
+
       setLoading(true);
       const material = materials.find((m) => m.id === parseInt(newProjectMaterial.materialId));
       const requestData = {
@@ -104,9 +120,9 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
       await fetchMaterialRequests();
       await fetchNotifications();
       setShowAddProjectMaterial(false);
-      alert("Project material request submitted successfully!");
+      showToast("Project material request submitted successfully!", "success");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to submit project material request");
+      showToast(err.response?.data?.error || "Failed to submit project material request", "error");
     } finally {
       setLoading(false);
     }
@@ -114,6 +130,11 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
   const handleAddUsageLog = async (newUsageLog) => {
     try {
+      if (!canExecuteSelectedProject) {
+        showToast("Usage logging is available only when the selected project is In Progress.", "warning");
+        return;
+      }
+
       setLoading(true);
       const projectMaterialsWithDetails = getProjectMaterialsWithDetails();
       const selectedMaterialId = parseInt(newUsageLog.materialId);
@@ -123,15 +144,16 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
       );
 
       if (!projectMaterial) {
-        alert("Selected material not found in project!");
+        showToast("Selected material not found in project!", "warning");
         return;
       }
 
       if (quantityToLog > projectMaterial.remaining) {
-        alert(
+        showToast(
           `You are trying to log ${quantityToLog - projectMaterial.remaining} ` +
           `${projectMaterial.material?.unit} more than available.\n` +
-          `Please reduce the quantity or request more materials.`
+          `Please reduce the quantity or request more materials.`,
+          "warning"
         );
         return;
       }
@@ -144,14 +166,14 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         date: newUsageLog.date,
       });
 
-      if (response.warning) alert(`Warning: ${response.warning}`);
+      if (response.warning) showToast(`Warning: ${response.warning}`, "warning");
 
       await fetchProjectMaterials(selectedProject);
       await fetchUsageLogs(selectedProject);
       setShowUsageLog(false);
-      alert("Usage logged successfully!");
+      showToast("Usage logged successfully!", "success");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to log usage");
+      showToast(err.response?.data?.error || "Failed to log usage", "error");
     } finally {
       setLoading(false);
     }
@@ -159,6 +181,11 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
   const handleEditUsageLog = async (originalLog, _index, updatedData) => {
     try {
+      if (!canExecuteSelectedProject) {
+        showToast("Usage changes are available only when the selected project is In Progress.", "warning");
+        return;
+      }
+
       setLoading(true);
       const projectMaterialsWithDetails = getProjectMaterialsWithDetails();
       const projectMaterial = projectMaterialsWithDetails.find(
@@ -166,7 +193,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
       );
 
       if (!projectMaterial) {
-        alert("Material not found in project!");
+        showToast("Material not found in project!", "warning");
         return;
       }
 
@@ -174,12 +201,13 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         projectMaterial.remaining + originalLog.quantity - updatedData.quantity;
 
       if (newRemaining < 0) {
-        alert(
+        showToast(
           `Cannot update to ${updatedData.quantity} ${projectMaterial.material?.unit}!\n\n` +
           `Current used: ${projectMaterial.used} ${projectMaterial.material?.unit}\n` +
           `Assigned: ${projectMaterial.assigned} ${projectMaterial.material?.unit}\n` +
           `This change would exceed available quantity by ${Math.abs(newRemaining)} ` +
-          `${projectMaterial.material?.unit}\n\nPlease use a smaller quantity.`
+          `${projectMaterial.material?.unit}\n\nPlease use a smaller quantity.`,
+          "warning"
         );
         return;
       }
@@ -191,9 +219,9 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
       await fetchProjectMaterials(selectedProject);
       await fetchUsageLogs(selectedProject);
-      alert("Usage log updated successfully!");
+      showToast("Usage log updated successfully!", "success");
     } catch (err) {
-      alert(err.response?.data?.error || "Failed to update usage log");
+      showToast(err.response?.data?.error || "Failed to update usage log", "error");
     } finally {
       setLoading(false);
     }
@@ -201,14 +229,19 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
   const handleDownloadReport = async () => {
     try {
-      const selectedProjectData = projects.find((p) => p.id === selectedProject);
       if (usageLogs.length === 0) {
-        alert("No usage logs found for this project. Please log some usage first.");
+        showToast("No usage logs found for this project. Please log some usage first.", "info");
+        return;
+      }
+
+      if (!selectedProjectData?.name) {
+        showToast("Please select a valid project before downloading the report.", "warning");
         return;
       }
 
       const reportData = {
-        projectName: selectedProjectData?.name || "Unknown Project",
+        projectId: selectedProjectData.id,
+        projectName: selectedProjectData.name,
         generatedDate: new Date().toLocaleDateString("en-IN"),
         generatedTime: new Date().toLocaleTimeString("en-IN"),
         usageLogs: usageLogs.map((log) => {
@@ -231,7 +264,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         }, 0),
       };
 
-      const response = await fetch("http://localhost:5000/api/reports/usage-pdf", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "/api"}/reports/usage-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),
@@ -250,7 +283,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
       document.body.removeChild(a);
     } catch (error) {
       console.error("Error downloading PDF report:", error);
-      alert("Failed to download PDF report. Please try again.");
+      showToast("Failed to download PDF report. Please try again.", "error");
     }
   };
 
@@ -269,7 +302,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     setLoading(true);
 
     // ✅ Always send formData — multer handles both file and non-file cases
-    await fetch(`http://localhost:5000/api/material-requests/${updatedRequest.id}`, {
+    await fetch(`http://localhost:5001/api/material-requests/${updatedRequest.id}`, {
       method: 'PUT',
       headers: { 
         Authorization: `Bearer ${getToken()}`,
@@ -280,9 +313,9 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
 
     await fetchMaterialRequests();
     await fetchNotifications(); // ✅ refresh notifications too
-    alert('Request updated successfully!');
+    showToast('Request updated successfully!', 'success');
   } catch (err) {
-    alert('Failed to update request');
+    showToast('Failed to update request', 'error');
   } finally {
     setLoading(false);
   }
@@ -368,9 +401,10 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     filterCategory={filterCategory}
     setFilterCategory={setFilterCategory}
     categories={categories}
-    projects={projects}                              // ← was missing
-    loading={loading}                                // ← was missing
-    onAddMaterial={handleSubmitMaterialRequest}      // ← direct handler, not modal opener
+    projects={executableProjects}
+    loading={loading}
+    onAddMaterial={handleSubmitMaterialRequest}
+    canRequestMaterials={canRequestMaterials}
   />
 )}
 
@@ -385,6 +419,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
             onLogUsage={() => setShowUsageLog(true)}
             onEditUsage={handleEditUsageLog}
             onDownloadReport={handleDownloadReport}
+            canExecuteSelectedProject={canExecuteSelectedProject}
           />
         )}
 
@@ -402,7 +437,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         onClose={() => setShowAddMaterial(false)}
         onSubmit={handleSubmitMaterialRequest}
         categories={categories}
-        projects={projects}
+        projects={executableProjects}
         loading={loading}
       />
 

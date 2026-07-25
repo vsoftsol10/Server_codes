@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
 const MaterialRequestTable = ({ 
@@ -15,7 +15,7 @@ const MaterialRequestTable = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold text-gray-900">Material Request Status</h2>
         <div className="flex gap-4 text-sm">
-          <span className="text-green-600 font-medium">✓ {approvedCount} Approved</span>
+          <span className="text-green-600 font-medium">check {approvedCount} Approved</span>
           <span className="text-orange-600 font-medium flex gap-1">
             <AlertCircle size={15} className='mt-1'/> {pendingCount} Pending
           </span>

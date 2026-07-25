@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { MessageSquare, Calendar, User, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { getToken } from '../../utils/tabToken';
 
@@ -17,9 +17,11 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
   const fetchDailyUpdates = async () => {
     try {
       setLoading(true);
-      const token = getToken(); // Get token from tabToken utility
-      
-      const response = await fetch(`${API_BASE_URL}/daily-progress/project/${projectId}`, {
+      setError(null);
+      const token = getToken();
+      const resolvedProjectId = projectId ?? '';
+
+      const response = await fetch(`${API_BASE_URL}/daily-progress/project/${encodeURIComponent(resolvedProjectId)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -31,7 +33,9 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
       }
 
       const data = await response.json();
-      setUpdates(data.updates || []);
+      const updatesData = Array.isArray(data) ? data : (data.updates || []);
+      const sortedUpdates = [...updatesData].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      setUpdates(sortedUpdates);
     } catch (err) {
       console.error('Error fetching daily updates:', err);
       setError(err.message);
@@ -67,8 +71,8 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading daily updates...</p>
@@ -79,8 +83,8 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-yellow-300 to-yellow-400">
           <div>
@@ -129,12 +133,12 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
                   <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-white font-semibold">
-                        {update.engineers.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                        {(update.engineers?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{update.engineers.name}</span>
-                          <span className="text-xs text-gray-500">({update.engineers.empId})</span>
+                          <span className="font-medium text-gray-900">{update.engineers?.name || 'Unknown Engineer'}</span>
+                          {update.engineers?.empId && <span className="text-xs text-gray-500">({update.engineers.empId})</span>}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-gray-600">
                           <Calendar className="w-3 h-3" />
@@ -175,21 +179,21 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
                       <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
                         {update.workDone && (
                           <div>
-                            <h4 className="text-xs font-semibold text-green-700 uppercase mb-1">✓ Work Completed</h4>
+                            <h4 className="text-xs font-semibold text-green-700 uppercase mb-1">check Work Completed</h4>
                             <p className="text-gray-900 whitespace-pre-wrap">{update.workDone}</p>
                           </div>
                         )}
                         
                         {update.challenges && (
                           <div>
-                            <h4 className="text-xs font-semibold text-orange-700 uppercase mb-1">⚠ Challenges</h4>
+                            <h4 className="text-xs font-semibold text-orange-700 uppercase mb-1">Warning: Challenges</h4>
                             <p className="text-gray-900 whitespace-pre-wrap">{update.challenges}</p>
                           </div>
                         )}
                         
                         {update.nextSteps && (
                           <div>
-                            <h4 className="text-xs font-semibold text-yellow-700 uppercase mb-1">→ Next Steps</h4>
+                            <h4 className="text-xs font-semibold text-yellow-700 uppercase mb-1">{"-> Next Steps"}</h4>
                             <p className="text-gray-900 whitespace-pre-wrap">{update.nextSteps}</p>
                           </div>
                         )}

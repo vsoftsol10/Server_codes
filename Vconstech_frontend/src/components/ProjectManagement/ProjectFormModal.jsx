@@ -1,6 +1,13 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { X, Upload } from "lucide-react";
 import { projectAPI } from "../../api/projectAPI";
+import {
+  focusFirstInvalidField,
+  getTodayDateInputValue,
+  isDateBefore,
+  validateFields,
+  validators,
+} from "../../utils/formValidation";
 
 // Project Form Modal Component
 const ProjectFormModal = ({
@@ -18,6 +25,24 @@ const ProjectFormModal = ({
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+
+  const statusOptions = ["Planning", "In Progress", "On Hold", "Completed"];
+
+  const getDisplayProgress = (status, progress) => {
+    if (status === "Planning") return 0;
+    if (status === "Completed") return 100;
+
+    const parsedProgress = Number.parseInt(progress, 10);
+    return Number.isNaN(parsedProgress) ? 0 : parsedProgress;
+  };
+
+  const displayedProgress = getDisplayProgress(project.status, project.progress);
+  const isProgressEditable = project.status === "In Progress";
+  const progressDisplayText =
+    project.status === "Planning"
+      ? "0% (Not Started)"
+      : `${displayedProgress}%`;
+  const todayDate = getTodayDateInputValue();
 
   // Load employees when modal opens
   useEffect(() => {
@@ -61,52 +86,40 @@ const ProjectFormModal = ({
     }
   };
 
+  const activeEmployees = employees.filter((emp) => (emp.status || "Active") === "Active");
+  const selectedEngineer = project.assignedEmployee
+    ? employees.find((emp) => String(emp.id) === String(project.assignedEmployee))
+    : null;
+  const availableEmployees = selectedEngineer && !activeEmployees.some((emp) => emp.id === selectedEngineer.id)
+    ? [selectedEngineer, ...activeEmployees]
+    : activeEmployees;
+
   const validateForm = () => {
-    const errors = {};
+    const errors = validateFields([
+      { name: 'name', value: project.name, label: 'Project name', rules: ['name'] },
+      { name: 'client', value: project.client, label: 'Client name', rules: ['name'] },
+      { name: 'location', value: project.location, label: 'Project location', rules: ['required'] },
+      { name: 'budget', value: project.budget, label: 'Budget', rules: ['optionalAmount'] },
+      { name: 'quotationAmount', value: project.quotationAmount, label: 'Quotation amount', rules: ['optionalAmount'] },
+    ]);
 
-    // Required field validation
-    if (!project.name || project.name.trim() === "") {
-      errors.name = "Project name is required";
+    if (project.startDate) {
+      const startDateError = validators.todayOrFutureDate(project.startDate, 'Start date');
+      if (startDateError) errors.startDate = startDateError;
     }
 
-
-
-    if (!project.client || project.client.trim() === "") {
-      errors.client = "Client name is required";
+    if (project.endDate) {
+      const endDateError = validators.date(project.endDate, 'End date');
+      if (endDateError) errors.endDate = endDateError;
     }
 
-    if (!project.location || project.location.trim() === "") {
-      errors.location = "Project location is required";
-    }
-
-   
-
-
-
-    // Date validation
     if (project.startDate && project.endDate) {
       const start = new Date(project.startDate);
       const end = new Date(project.endDate);
 
-      if (end < start) {
-        errors.endDate = "End date must be after start date";
+      if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end < start) {
+        errors.endDate = "End date cannot be earlier than start date";
       }
-    }
-
-    // Budget validation
-    if (
-      project.budget &&
-      (isNaN(project.budget) || parseFloat(project.budget) < 0)
-    ) {
-      errors.budget = "Budget must be a positive number";
-    }
-
-    // Quotation Amount validation
-    if (
-      project.quotationAmount &&
-      (isNaN(project.quotationAmount) || parseFloat(project.quotationAmount) < 0)
-    ) {
-      errors.quotationAmount = "Quotation amount must be a positive number";
     }
 
     return errors;
@@ -119,6 +132,7 @@ const ProjectFormModal = ({
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       setError("Please fix the validation errors before submitting");
+      focusFirstInvalidField(errors);
       return;
     }
 
@@ -197,8 +211,8 @@ const ProjectFormModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900">
             {title}
@@ -226,6 +240,7 @@ const ProjectFormModal = ({
                 Project Name <span className="text-red-500">*</span>
               </label>
               <input
+                name="name"
                 type="text"
                 value={project.name || ""}
                 onChange={(e) => {
@@ -290,6 +305,7 @@ const ProjectFormModal = ({
                 Client Name <span className="text-red-500">*</span>
               </label>
               <input
+                name="client"
                 type="text"
                 value={project.client || ""}
                 onChange={(e) => {
@@ -332,56 +348,84 @@ const ProjectFormModal = ({
               </select>
             </div>
 
-            {/* Status (only for existing projects) */}
-           {project.id && (
-  <div>
-    <label className="block text-sm font-extrabold text-gray-700 mb-2">
-      Actual Progress (%)
-    </label>
-    <div className="space-y-2">
-      <input
-        type="range"
-        min="0"
-        max="100"
-        value={project.progress || 0}
-        onChange={(e) =>
-          onChange({ ...project, progress: parseInt(e.target.value) })
-        }
-        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-        disabled={loading}
-      />
-      <div className="flex items-center justify-between">
-        <input
-          type="number"
-          min="0"
-          max="100"
-          value={project.progress || 0}
-          onChange={(e) => {
-            const val = parseInt(e.target.value);
-            if (val >= 0 && val <= 100) {
-              onChange({ ...project, progress: val });
-            }
-          }}
-          className="w-20 px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          disabled={loading}
-        />
-        <span className="text-sm text-gray-600">
-          Current: <span className="font-semibold text-blue-600">{project.progress || 0}%</span>
-        </span>
-      </div>
-    </div>
-    <p className="text-xs text-gray-500 mt-1">
-      Manually set the actual work completion percentage
-    </p>
-  </div>
-)}
+            {project.id && (
+              <>
+                <div>
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={project.status || "Planning"}
+                    onChange={(e) => onChange({ ...project, status: e.target.value })}
+                    className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    disabled={loading}
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
+                    Actual Progress (%)
+                  </label>
+                  <div className="space-y-2">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={displayedProgress}
+                      onChange={(e) => {
+                        if (!isProgressEditable) return;
+                        onChange({ ...project, progress: parseInt(e.target.value, 10) });
+                      }}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      disabled={loading || !isProgressEditable}
+                    />
+                    <div className="flex items-center justify-between">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={displayedProgress}
+                        onChange={(e) => {
+                          if (!isProgressEditable) return;
+                          const val = parseInt(e.target.value, 10);
+                          if (val >= 0 && val <= 100) {
+                            onChange({ ...project, progress: val });
+                          }
+                        }}
+                        className="w-20 px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        disabled={loading || !isProgressEditable}
+                      />
+                      <span className="text-sm text-gray-600">
+                        Current: <span className="font-semibold text-blue-600">{progressDisplayText}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {isProgressEditable
+                      ? "Manually set the actual work completion percentage"
+                      : project.status === "Planning"
+                        ? "Read only based on project status"
+                        : project.status === "Completed"
+                          ? "Automatically set to 100%"
+                          : "Read only based on project status"}
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* Budget */}
             <div>
               <label className="block text-sm font-extrabold text-gray-700 mb-2">
-                Budget (₹)
+                Budget (Rs.)
               </label>
               <input
+                name="budget"
                 type="number"
                 value={project.budget || ""}
                 onChange={(e) => {
@@ -410,9 +454,10 @@ const ProjectFormModal = ({
             {/* Quotation Amount */}
             <div>
               <label className="block text-sm font-extrabold text-gray-700 mb-2">
-                Quotation Amount (₹)
+                Quotation Amount (Rs.)
               </label>
               <input
+                name="quotationAmount"
                 type="number"
                 value={project.quotationAmount || ""}
                 onChange={(e) => {
@@ -445,20 +490,37 @@ const ProjectFormModal = ({
                 Start Date
               </label>
               <input
+                name="startDate"
                 type="date"
                 value={project.startDate || ""}
+                min={todayDate}
                 onChange={(e) => {
-                  onChange({ ...project, startDate: e.target.value });
-                  if (validationErrors.endDate) {
+                  const nextStartDate = e.target.value;
+                  onChange({
+                    ...project,
+                    startDate: nextStartDate,
+                    endDate: isDateBefore(project.endDate, nextStartDate) ? "" : project.endDate,
+                  });
+                  if (validationErrors.startDate || validationErrors.endDate) {
                     setValidationErrors({
                       ...validationErrors,
+                      startDate: undefined,
                       endDate: undefined,
                     });
                   }
                 }}
-                className="w-full px-3 py-2 text-sm text-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-3 py-2 text-sm text-gray-500 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                  validationErrors.startDate
+                    ? "border-red-500"
+                    : "border-gray-300"
+                }`}
                 disabled={loading}
               />
+              {validationErrors.startDate && (
+                <p className="text-red-500 text-xs mt-1">
+                  {validationErrors.startDate}
+                </p>
+              )}
             </div>
 
             {/* End Date */}
@@ -467,8 +529,10 @@ const ProjectFormModal = ({
                 End Date
               </label>
               <input
+                name="endDate"
                 type="date"
                 value={project.endDate || ""}
+                min={project.startDate || todayDate}
                 onChange={(e) => {
                   onChange({ ...project, endDate: e.target.value });
                   if (validationErrors.endDate) {
@@ -498,6 +562,7 @@ const ProjectFormModal = ({
                 Project Location <span className="text-red-500">*</span>
               </label>
               <input
+                name="location"
                 type="text"
                 value={project.location || ""}
                 onChange={(e) => {
@@ -546,20 +611,20 @@ const ProjectFormModal = ({
                     ? "border-red-500"
                     : "border-gray-300"
                 }`}
-                disabled={loading || employees.length === 0}
+                disabled={loading || availableEmployees.length === 0}
               >
                 <option value="">Select Site Engineer</option>
-                {employees.map((emp) => (
+                {availableEmployees.map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.name} ({emp.empId})
                   </option>
                 ))}
               </select>
             
-              {employees.length > 0 && (
+              {activeEmployees.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
-                  {employees.length} site engineer
-                  {employees.length !== 1 ? "s" : ""} available
+                  {activeEmployees.length} active site engineer
+                  {activeEmployees.length !== 1 ? "s" : ""} available
                 </p>
               )}
             </div>

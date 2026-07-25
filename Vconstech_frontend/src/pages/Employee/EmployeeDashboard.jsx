@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FileText, AlertCircle, FolderOpen } from "lucide-react";
 import EmployeeNavbar from "../../components/Employee/EmployeeNavbar";
 import projectReportService from "../../services/projectReportService";
@@ -10,6 +10,7 @@ import {
   formatFileSize,
   getStatusColor,
   getStatusDisplay,
+  isProjectExecutionEnabled,
   handleViewFile,
   generatePrintContent,
 } from "../../utils/dashboardUtils";
@@ -20,10 +21,12 @@ import MaterialRequestTable from "../../components/Employee/EmployeeDashboard/Ma
 import RecentFiles from "../../components/Employee/EmployeeDashboard/RecentFiles";
 import DailyProgressHistory from "../../components/Employee/EmployeeDashboard/DailyProgressHistory";
 import Notifications from "../../components/Employee/EmployeeDashboard/Notifications";
-import QuickActions from "../../components/Employee/EmployeeDashboard/QuickActions";
+import QuickActions from "../../components/Employee/EmployeeDashboard/QuickActions";
+import { showToast } from '../../components/common/Toast';
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
   
@@ -90,11 +93,11 @@ const EmployeeDashboard = () => {
 
   const handleDownloadReport = async (project) => {
     try {
-      const html = await projectReportService.generateReport(project);
-      projectReportService.downloadReport(html, project.name);
+      const report = await projectReportService.generateReport(project);
+      await projectReportService.downloadReport(report, project.name);
     } catch (error) {
       console.error("❌ Error generating report:", error);
-      alert(`Failed to generate report: ${error.message}`);
+      showToast(`Failed to generate report: ${error.message}`, "error");
     }
   };
 
@@ -117,10 +120,29 @@ const EmployeeDashboard = () => {
   const completedProjectsCount = assignedProjects.filter(
     (p) => p.status?.toLowerCase() === "completed"
   ).length;
+  const hasExecutionProject = assignedProjects.some((project) =>
+    isProjectExecutionEnabled(project.status)
+  );
 
   useEffect(() => {
       document.title = "Vconstech - Engineer";
     }, []);
+
+  useEffect(() => {
+    if (location.hash !== "#daily-updates") {
+      return;
+    }
+
+    const scrollToDailyUpdates = () => {
+      const dailyUpdatesSection = document.getElementById("daily-updates");
+      if (dailyUpdatesSection) {
+        dailyUpdatesSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    };
+
+    const frame = requestAnimationFrame(scrollToDailyUpdates);
+    return () => cancelAnimationFrame(frame);
+  }, [location.hash]);
 
   const kpiData = [
     {
@@ -211,6 +233,7 @@ const EmployeeDashboard = () => {
           <QuickActions
             onMaterialRequest={() => navigate("/employee/material-management")}
             onFileUpload={() => navigate("/employee/file-management")}
+            canExecuteActions={hasExecutionProject}
             mobile
           />
         </div>
@@ -301,14 +324,17 @@ const EmployeeDashboard = () => {
               <QuickActions
                 onMaterialRequest={() => navigate("/employee/material-management")}
                 onFileUpload={() => navigate("/employee/file-management")}
+                canExecuteActions={hasExecutionProject}
               />
             </div>
 
-            <DailyProgressHistory
-              dailyProgressHistory={dailyProgressHistory}
-              loadingHistory={loadingHistory}
-              onPrintHistory={handlePrintHistory}
-            />
+            <div id="daily-updates" className="scroll-mt-28">
+              <DailyProgressHistory
+                dailyProgressHistory={dailyProgressHistory}
+                loadingHistory={loadingHistory}
+                onPrintHistory={handlePrintHistory}
+              />
+            </div>
           </div>
         </div>
       </div>

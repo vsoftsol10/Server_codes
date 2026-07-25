@@ -1,6 +1,6 @@
 // src/routes/engineerRoute.js
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -9,7 +9,6 @@ import path from 'path';
 import fs from 'fs';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -43,6 +42,11 @@ const upload = multer({
     }
   }
 });
+
+const normalizeEngineerStatus = (status) => {
+  const value = typeof status === 'string' ? status.trim().toLowerCase() : '';
+  return value === 'inactive' ? 'Inactive' : 'Active';
+};
 
 // ============================================
 // ENGINEER LOGIN ENDPOINT
@@ -133,6 +137,7 @@ router.post('/login', async (req, res) => {
         empId: engineer.empId,
         phone: engineer.phone,
         designation: engineer.designation || null, 
+        status: normalizeEngineerStatus(engineer.status),
         profileImage: engineer.profileImage,
         companyId: engineer.companyId,
         companyName: engineer.company.name
@@ -236,6 +241,7 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
       select: {
   id: true, name: true, empId: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
+  status: true,
   profileImage: true, username: true, createdAt: true,
   company: { select: { id: true, name: true } }
 }
@@ -248,7 +254,13 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
       });
     }
 
-    res.json({ success: true, engineer });
+    res.json({
+      success: true,
+      engineer: {
+        ...engineer,
+        status: normalizeEngineerStatus(engineer.status)
+      }
+    });
 
   } catch (error) {
     console.error('Error fetching engineer profile:', error);
@@ -300,15 +312,22 @@ router.get('/', authenticateToken, async (req, res) => {
       where: { companyId: req.user.companyId },
       orderBy: { createdAt: 'desc' },
       select: {
-  id: true, name: true, empId: true, phone: true,
-  alternatePhone: true, designation: true, address: true,  // <-- add designation
-  profileImage: true, username: true, plainPassword: true,
-  createdAt: true, updatedAt: true,
-  _count: { select: { projects: true } }
-}
+        id: true, name: true, empId: true, phone: true,
+        alternatePhone: true, designation: true, address: true,  // <-- add designation
+        status: true,
+        profileImage: true, username: true, plainPassword: true,
+        createdAt: true, updatedAt: true,
+        _count: { select: { projects: true } }
+      }
     });
 
-    res.json({ success: true, engineers });
+    res.json({
+      success: true,
+      engineers: engineers.map((engineer) => ({
+        ...engineer,
+        status: normalizeEngineerStatus(engineer.status)
+      }))
+    });
   } catch (error) {
     console.error('Error fetching engineers:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch engineers' });
@@ -326,10 +345,11 @@ router.get('/:id', authenticateToken, async (req, res) => {
         companyId: req.user.companyId
       },
       select: {
-          id: true, name: true, empId: true, phone: true,
-  alternatePhone: true, designation: true, address: true,  // <-- add designation
-  profileImage: true, username: true, plainPassword: true,
-  createdAt: true, updatedAt: true,
+        id: true, name: true, empId: true, phone: true,
+        alternatePhone: true, designation: true, address: true,  // <-- add designation
+        status: true,
+        profileImage: true, username: true, plainPassword: true,
+        createdAt: true, updatedAt: true,
         projects: {
           select: {
             id: true,
@@ -345,7 +365,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Engineer not found' });
     }
 
-    res.json({ success: true, engineer });
+    res.json({
+      success: true,
+      engineer: {
+        ...engineer,
+        status: normalizeEngineerStatus(engineer.status)
+      }
+    });
   } catch (error) {
     console.error('Error fetching engineer:', error);
     res.status(500).json({ success: false, error: 'Failed to fetch engineer' });
@@ -355,7 +381,9 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new engineer
 router.post('/', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
-const { name, phone, alternatePhone, empId, address, username, password, designation } = req.body;
+    const { name, phone, alternatePhone, empId, address, username, password, designation, status } = req.body;
+    const adminUserId = req.user?.userId || req.user?.id || req.user?.engineerId;
+    const fallbackCompanyId = req.user?.companyId;
     const missingFields = [];
     if (!name?.trim()) missingFields.push('name');
     if (!phone?.trim()) missingFields.push('phone');
@@ -381,8 +409,35 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
     }
 
+    const normalizedStatus = (status || 'Active').trim();
+    if (!['Active', 'Inactive'].includes(normalizedStatus)) {
+      return res.status(400).json({ success: false, error: 'Invalid engineer status' });
+    }
+
+    const normalizedEmpId = empId.trim();
+    const normalizedUsername = username.trim();
+
+    const admin = await prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { companyId: true, package: true, customMembers: true }
+    });
+
+    console.log('Admin package debug:', { userId: adminUserId, package: admin?.package, customMembers: admin?.customMembers });
+
+    if (!admin) {
+      return res.status(400).json({ success: false, error: 'Admin account not found.' });
+    }
+
+    const companyId = fallbackCompanyId || admin.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company context is missing for this request.'
+      });
+    }
+
     const existingEngineer = await prisma.engineer.findFirst({
-      where: { empId, companyId: req.user.companyId }
+      where: { empId: normalizedEmpId, companyId }
     });
 
     if (existingEngineer) {
@@ -398,36 +453,26 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       }
 
       const existingUsername = await prisma.engineer.findFirst({
-        where: { username }
+        where: { username: normalizedUsername, companyId }
       });
       if (existingUsername) {
-return res.status(400).json({ success: false, error: 'Username already taken. Please choose a different username.' });      }
+        return res.status(400).json({ success: false, error: 'Username already taken. Please choose a different username.' });
+      }
 
       if (password.length < 6) {
         return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
       }
     }
 
-    const admin = await prisma.user.findUnique({
-  where: { id: req.user.userId },
-  select: { companyId: true, package: true, customMembers: true }
-});
-
-console.log('Admin package debug:', { userId: req.user.userId, package: admin?.package, customMembers: admin?.customMembers });
-
-if (!admin) {
-  return res.status(400).json({ success: false, error: 'Admin account not found.' });
-}
-
-const pkg = admin.package?.toLowerCase();
-let memberLimit;
-if (pkg === 'basic') memberLimit = 5;
-else if (pkg === 'premium') memberLimit = 10;
-else if (pkg === 'advanced') memberLimit = admin.customMembers || 999;
-else memberLimit = 5; // fallback
+    const pkg = admin.package?.toLowerCase();
+    let memberLimit;
+    if (pkg === 'basic') memberLimit = 5;
+    else if (pkg === 'premium') memberLimit = 10;
+    else if (pkg === 'advanced') memberLimit = admin.customMembers || 999;
+    else memberLimit = 5; // fallback
 
     const existingEngineersCount = await prisma.engineer.count({
-      where: { companyId: req.user.companyId }
+      where: { companyId }
     });
 
     if (existingEngineersCount >= memberLimit) {
@@ -446,24 +491,35 @@ else memberLimit = 5; // fallback
 
     const engineer = await prisma.engineer.create({
       data: {
-        name, empId, phone,
+        name: name.trim(),
+        empId: normalizedEmpId,
+        phone: phone.trim(),
         alternatePhone: alternatePhone || null,
         designation: designation || null,
-        address,
+        address: address.trim(),
+        status: normalizedStatus,
         profileImage: profileImagePath,
-        username,
+        username: normalizedUsername,
         password: hashedPassword,
         plainPassword: password,
-        companyId: req.user.companyId
+        companyId
       },
       select: {
   id: true, name: true, empId: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
+  status: true,
   profileImage: true, username: true, createdAt: true, updatedAt: true
 }
     });
 
-    res.status(201).json({ success: true, message: 'Engineer added successfully', engineer });
+    res.status(201).json({
+      success: true,
+      message: 'Engineer added successfully',
+      engineer: {
+        ...engineer,
+        status: normalizeEngineerStatus(engineer.status)
+      }
+    });
   } catch (error) {
     console.error('Error creating engineer:', error);
     if (req.file) {
@@ -477,9 +533,16 @@ else memberLimit = 5; // fallback
 router.put('/:id', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
     const { id } = req.params;
-const { name, phone, alternatePhone, empId, address, username, password, designation } = req.body;
+    const { name, phone, alternatePhone, empId, address, username, password, designation, status } = req.body;
+    const companyId = req.user?.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company context is missing for this request.'
+      });
+    }
     const existingEngineer = await prisma.engineer.findFirst({
-      where: { id: parseInt(id), companyId: req.user.companyId }
+      where: { id: parseInt(id), companyId }
     });
 
     if (!existingEngineer) {
@@ -499,8 +562,13 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
     }
 
+    const normalizedStatus = status ? status.trim() : existingEngineer.status || 'Active';
+    if (!['Active', 'Inactive'].includes(normalizedStatus)) {
+      return res.status(400).json({ success: false, error: 'Invalid engineer status' });
+    }
+
     const duplicateEngineer = await prisma.engineer.findFirst({
-      where: { empId, companyId: req.user.companyId, NOT: { id: parseInt(id) } }
+      where: { empId: empId.trim(), companyId, NOT: { id: parseInt(id) } }
     });
 
     if (duplicateEngineer) {
@@ -516,8 +584,8 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
       }
 
       const duplicateUsername = await prisma.engineer.findFirst({
-  where: { username, NOT: { id: parseInt(id) } }
-});
+        where: { username: username.trim(), companyId, NOT: { id: parseInt(id) } }
+      });
       if (duplicateUsername) {
        return res.status(400).json({ success: false, error: 'Username already taken. Please choose a different username.' });
       }
@@ -546,23 +614,34 @@ const { name, phone, alternatePhone, empId, address, username, password, designa
     const engineer = await prisma.engineer.update({
       where: { id: parseInt(id) },
       data: {
-        name, empId, phone,
+        name: name.trim(),
+        empId: empId.trim(),
+        phone: phone.trim(),
         alternatePhone: alternatePhone || null,
         designation: designation || null,
-        address,
+        address: address.trim(),
+        status: normalizedStatus,
         profileImage: profileImagePath,
-        username: username || null,
+        username: username ? username.trim() : null,
         password: hashedPassword,
         plainPassword: plainPasswordToStore
       },
       select: {
   id: true, name: true, empId: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
+  status: true,
   profileImage: true, username: true, plainPassword: true, createdAt: true, updatedAt: true
 }
     });
 
-    res.json({ success: true, message: 'Engineer updated successfully', engineer });
+    res.json({
+      success: true,
+      message: 'Engineer updated successfully',
+      engineer: {
+        ...engineer,
+        status: normalizeEngineerStatus(engineer.status)
+      }
+    });
   } catch (error) {
     console.error('Error updating engineer:', error);
     if (req.file) {

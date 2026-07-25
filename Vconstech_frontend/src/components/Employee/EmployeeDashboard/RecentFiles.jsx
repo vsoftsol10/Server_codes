@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { FileText, ExternalLink } from 'lucide-react';
 
 const RecentFiles = ({ 
@@ -49,7 +49,7 @@ const RecentFiles = ({
                 </p>
                 <p className="text-[10px] text-gray-500 truncate">
                   {file.projectName}
-                  {file.uploaderName && ` • ${file.uploaderName}`}
+                  {file.uploaderName && ` - ${file.uploaderName}`}
                 </p>
                 <div className="flex items-center gap-1 mt-0.5">
                   {file.documentType && (

@@ -87,7 +87,7 @@ export const financialAPI = {
   /**
    * Add expense to project
    * @param {number} projectId - Project ID
-   * @param {Object} expenseData - { category, amount }
+   * @param {Object} expenseData - { amount }
    * @returns {Object} { success, message, expense }
    */
   addExpense: async (projectId, expenseData) => {
@@ -112,7 +112,7 @@ export const financialAPI = {
   /**
    * Update expense
    * @param {number} expenseId - Expense ID
-   * @param {Object} expenseData - { category, amount }
+   * @param {Object} expenseData - { amount }
    * @returns {Object} { success, message, expense }
    */
   updateExpense: async (expenseId, expenseData) => {

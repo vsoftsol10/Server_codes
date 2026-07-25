@@ -20,33 +20,37 @@ import SuperLogin from "./pages/SuperAdmin/Superlogin";
 import Billing from "./pages/Interiors/Billing";
 import Profile from "./pages/Interiors/Profile";
 import UsersPage from "./pages/SuperAdmin/UsersPage";
+import { ToastContainer } from "./components/common/Toast";
 // import Billing from './pages/Interiors/Billing';
 
 function App() {
 
   return (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard/>} />
-      <Route path="/project" element={<ProjectManagement/>} />
-      <Route path="/material" element={<MaterialManagement/>} />
-      <Route path="/contract" element={<ContractManagement/>} />
-      <Route path="/financial" element={<FinancialManagement/>} />
-      <Route path="/file-managememt" element={<FileManagement/>} />
-      <Route path="/financial-management/billing" element={<Billing />} />
-      <Route path="/financial-management" element={<FinancialManagement/>} />
-      <Route path="/labor-managememt" element={<AdminLabourManagemet/>} />
-      <Route path="/add-engineers" element={<AddEngineers/>} />
-      <Route path="/employee-login" element={<EmployeeLogin/>} />
-      <Route path="/employee-dashboard" element={<EmployeeDashboard/>} />
-      <Route path="/employee/file-management" element={<EmployeeFileManagement/>} />
-      <Route path="/employee/material-management" element={<EmployeeMaterialManagement/>} />
-      <Route path="/employee/labour-management" element={<LabourManagement/>} />
-      <Route path="/SuperAdmin/login" element={<SuperLogin/>} />
-      <Route path="/SuperAdmin/CreateUser" element={<CreateUser/>} />
-      <Route path="/profile" element={<Profile/>} />
-      <Route path="/SuperAdmin/users" element={<UsersPage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard/>} />
+        <Route path="/project" element={<ProjectManagement/>} />
+        <Route path="/material" element={<MaterialManagement/>} />
+        <Route path="/contract" element={<ContractManagement/>} />
+        <Route path="/financial" element={<FinancialManagement/>} />
+        <Route path="/file-managememt" element={<FileManagement/>} />
+        <Route path="/financial-management/billing" element={<Billing />} />
+        <Route path="/financial-management" element={<FinancialManagement/>} />
+        <Route path="/labor-managememt" element={<AdminLabourManagemet/>} />
+        <Route path="/add-engineers" element={<AddEngineers/>} />
+        <Route path="/employee-login" element={<EmployeeLogin/>} />
+        <Route path="/employee-dashboard" element={<EmployeeDashboard/>} />
+        <Route path="/employee/file-management" element={<EmployeeFileManagement/>} />
+        <Route path="/employee/material-management" element={<EmployeeMaterialManagement/>} />
+        <Route path="/employee/labour-management" element={<LabourManagement/>} />
+        <Route path="/SuperAdmin/login" element={<SuperLogin/>} />
+        <Route path="/SuperAdmin/CreateUser" element={<CreateUser/>} />
+        <Route path="/profile" element={<Profile/>} />
+        <Route path="/SuperAdmin/users" element={<UsersPage />} />
+      </Routes>
+      <ToastContainer />
+    </>
   );
 }
 

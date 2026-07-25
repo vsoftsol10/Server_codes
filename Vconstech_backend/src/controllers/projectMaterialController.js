@@ -1,8 +1,6 @@
 // src/controllers/projectMaterialController.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { determineProjectMaterialStatus } from '../utils/generateId.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Get all materials for a project
@@ -31,7 +29,15 @@ export const getProjectMaterials = async (req, res) => {
     const projectMaterials = await prisma.projectMaterial.findMany({
       where: { projectId: parseInt(projectId) },
       include: {
-        material: true
+        material: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+            projectId: true,
+            status: true
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -195,7 +201,15 @@ export const updateProjectMaterial = async (req, res) => {
         status: newStatus
       },
       include: {
-        material: true
+        material: true,
+        project: {
+          select: {
+            id: true,
+            name: true,
+            projectId: true,
+            status: true
+          }
+        }
       }
     });
 

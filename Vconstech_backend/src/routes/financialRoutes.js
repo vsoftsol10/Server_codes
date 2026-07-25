@@ -1,10 +1,36 @@
 // src/routes/financialRoutes.js
 import express from 'express';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
+import BudgetCalculationService from '../services/BudgetCalculationService.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
+
+const normalizeAmount = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+
+const enrichProject = async (project, companyId) => {
+  const budgetSummary = await BudgetCalculationService.calculateProjectFinancials(project.id, { companyId });
+  return {
+    id: project.id,
+    name: project.name,
+    budget: project.budget || 0,
+    dueDate: project.dueDate || project.endDate,
+    quotationAmount: project.quotationAmount || project.budget || 0,
+    totalBudget: budgetSummary.totalBudget,
+    materialCost: budgetSummary.materialCost,
+    labourCost: budgetSummary.labourCost,
+    contractCost: budgetSummary.contractCost,
+    expenseCost: budgetSummary.expenseCost,
+    totalSpent: budgetSummary.totalSpent,
+    remainingBudget: budgetSummary.remainingBudget,
+    budgetSummary,
+    expenses: project.expenses.map(exp => ({
+      id: exp.id,
+      category: exp.category,
+      amount: exp.amount
+    }))
+  };
+};
 
 // ============ GET ALL PROJECTS WITH FINANCIAL DATA ============
 router.get('/projects', authenticateToken, async (req, res) => {
@@ -21,19 +47,7 @@ router.get('/projects', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Transform data to match frontend structure
-    const transformedProjects = projects.map(project => ({
-      id: project.id,
-      name: project.name,
-      budget: project.budget || 0,
-      dueDate: project.dueDate || project.endDate,
-      quotationAmount: project.quotationAmount || project.budget || 0,
-      expenses: project.expenses.map(exp => ({
-        id: exp.id,
-        category: exp.category,
-        amount: exp.amount
-      }))
-    }));
+    const transformedProjects = await Promise.all(projects.map((project) => enrichProject(project, companyId)));
 
     res.json({
       success: true,
@@ -75,18 +89,7 @@ router.get('/projects/:id', authenticateToken, async (req, res) => {
       });
     }
 
-    const transformedProject = {
-      id: project.id,
-      name: project.name,
-      budget: project.budget || 0,
-      dueDate: project.dueDate || project.endDate,
-      quotationAmount: project.quotationAmount || project.budget || 0,
-      expenses: project.expenses.map(exp => ({
-        id: exp.id,
-        category: exp.category,
-        amount: exp.amount
-      }))
-    };
+    const transformedProject = await enrichProject(project, companyId);
 
     res.json({
       success: true,
@@ -170,14 +173,22 @@ router.post(
   async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
-      const { category, amount } = req.body;
+      const { amount, category } = req.body;
       const companyId = req.user.companyId;
 
       // Validation
-      if (!category || !amount) {
+      if (!amount) {
         return res.status(400).json({
           success: false,
-          error: 'Category and amount are required'
+          error: 'Amount is required'
+        });
+      }
+
+      const expenseCategory = typeof category === 'string' ? category : '';
+      if (!expenseCategory.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Expense category is required'
         });
       }
 
@@ -200,7 +211,7 @@ router.post(
       const expense = await prisma.projectExpense.create({
         data: {
           projectId,
-          category,
+          category: expenseCategory,
           amount: parseFloat(amount)
         }
       });
@@ -233,14 +244,15 @@ router.put(
   async (req, res) => {
     try {
       const expenseId = parseInt(req.params.id);
-      const { category, amount } = req.body;
+      const { amount } = req.body;
+      const category = typeof req.body.category === 'string' ? req.body.category.trim() : '';
       const companyId = req.user.companyId;
 
       // Validation
-      if (!category || !amount) {
+      if (!amount) {
         return res.status(400).json({
           success: false,
-          error: 'Category and amount are required'
+          error: 'Amount is required'
         });
       }
 
@@ -261,7 +273,7 @@ router.put(
       const updatedExpense = await prisma.projectExpense.update({
         where: { id: expenseId },
         data: {
-          category,
+          ...(category ? { category } : {}),
           amount: parseFloat(amount)
         }
       });
@@ -350,14 +362,15 @@ router.get('/summary', authenticateToken, async (req, res) => {
     let totalProjects = projects.length;
     let projectsOverBudget = 0;
 
-    projects.forEach(project => {
-      const budget = project.budget || 0;
-      const spent = project.expenses.reduce((sum, exp) => sum + exp.amount, 0);
-      
-      totalBudget += budget;
-      totalSpent += spent;
-      
-      if (spent > budget) {
+    const summaries = await Promise.all(projects.map((project) => (
+      BudgetCalculationService.calculateProjectFinancials(project.id, { companyId })
+    )));
+
+    summaries.forEach((summary) => {
+      totalBudget += summary.totalBudget;
+      totalSpent += summary.totalSpent;
+
+      if (summary.totalSpent > summary.totalBudget) {
         projectsOverBudget++;
       }
     });
@@ -365,9 +378,9 @@ router.get('/summary', authenticateToken, async (req, res) => {
     res.json({
       success: true,
       summary: {
-        totalBudget,
-        totalSpent,
-        totalRemaining: totalBudget - totalSpent,
+        totalBudget: normalizeAmount(totalBudget),
+        totalSpent: normalizeAmount(totalSpent),
+        totalRemaining: normalizeAmount(totalBudget - totalSpent),
         totalProjects,
         projectsOverBudget,
         utilizationPercentage: totalBudget > 0 ? ((totalSpent / totalBudget) * 100).toFixed(2) : 0

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Calendar, MessageSquare, Printer } from 'lucide-react';
 
 const DailyProgressHistory = ({ 

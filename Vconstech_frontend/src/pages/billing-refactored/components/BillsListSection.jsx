@@ -1,6 +1,15 @@
 import React from 'react';
 import { FileText, Eye, Pencil, Trash2, Search, Filter, X } from 'lucide-react';
 
+const ROWS_PER_PAGE_OPTIONS = [5, 10, 25, 50, 100];
+
+const getPaginationItems = (currentPage, totalPages) => {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  if (currentPage <= 4) return [1, 2, 3, 4, 5, '...', totalPages];
+  if (currentPage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+};
+
 const BillsListSection = ({
   activeSection,
   setActiveSection,
@@ -21,6 +30,26 @@ const BillsListSection = ({
 }) => {
   const [statusFilter, setStatusFilter] = React.useState('all');
   const [showStatusDropdown, setShowStatusDropdown] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const statusDropdownRef = React.useRef(null);
+  const dateDropdownRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!showStatusDropdown && !showFilterDropdown) return undefined;
+
+    const handleClickOutside = (event) => {
+      if (!statusDropdownRef.current?.contains(event.target)) {
+        setShowStatusDropdown(false);
+      }
+      if (!dateDropdownRef.current?.contains(event.target)) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStatusDropdown, showFilterDropdown, setShowFilterDropdown]);
   
   // Helper function for status colors
   const getStatusColor = (status) => {
@@ -95,7 +124,19 @@ const filteredBills = bills.filter(bill => {
     return sectionMatch && searchMatch && dateMatch && statusMatch;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filteredBills.length / rowsPerPage));
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages);
+  const startIndex = (safeCurrentPage - 1) * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, filteredBills.length);
+  const paginatedBills = filteredBills.slice(startIndex, endIndex);
 
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeSection, searchTerm, statusFilter, dateFilter, customDateRange.start, customDateRange.end, rowsPerPage]);
+
+  React.useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
 
   return (
@@ -154,9 +195,12 @@ const filteredBills = bills.filter(bill => {
           </div>
 
           {/* Status Filter Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={statusDropdownRef}>
             <button
-              onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              onClick={() => {
+                setShowStatusDropdown(!showStatusDropdown);
+                setShowFilterDropdown(false);
+              }}
               className="flex items-center gap-1 px-2 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm whitespace-nowrap"
             >
               <Filter className="w-5 h-5 text-gray-600" />
@@ -227,9 +271,12 @@ const filteredBills = bills.filter(bill => {
           </div>
 
           {/* Date Filter Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={dateDropdownRef}>
             <button
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              onClick={() => {
+                setShowFilterDropdown(!showFilterDropdown);
+                setShowStatusDropdown(false);
+              }}
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
               <Filter className="w-5 h-5 text-gray-600" />
@@ -284,6 +331,7 @@ const filteredBills = bills.filter(bill => {
                   <button
                     onClick={() => {
                       setDateFilter('custom');
+                      setShowFilterDropdown(false);
                     }}
                     className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 border-t"
                   >
@@ -406,7 +454,7 @@ const filteredBills = bills.filter(bill => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBills.map((bill) => {
+                {paginatedBills.map((bill) => {
                   const items = Array.isArray(bill?.BillItem) ? bill.BillItem : 
                                 Array.isArray(bill?.items) ? bill.items : [];
 
@@ -521,6 +569,77 @@ const filteredBills = bills.filter(bill => {
                 })}
               </tbody>
             </table>
+            <div className="flex flex-col gap-3 px-4 sm:px-6 py-4 border-t border-gray-100 bg-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <p className="text-sm font-medium text-gray-700">
+                    Showing <span className="font-semibold text-gray-900">{filteredBills.length === 0 ? 0 : startIndex + 1}</span>
+                    &ndash;<span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+                    <span className="font-semibold text-gray-900">{filteredBills.length}</span> Bills
+                  </p>
+                  <p className="text-sm font-medium text-gray-700">
+                    Current Page: <span className="font-semibold text-gray-900">{safeCurrentPage}</span> / Total Pages:{' '}
+                    <span className="font-semibold text-gray-900">{totalPages}</span>
+                  </p>
+                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    Rows Per Page:
+                    <select
+                      value={rowsPerPage}
+                      onChange={(e) => {
+                        setRowsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="h-9 rounded-xl border border-gray-200 bg-white px-3 pr-8 text-sm font-semibold text-gray-800 shadow-sm focus:border-[#ffbe2a] focus:outline-none focus:ring-2 focus:ring-yellow-200"
+                    >
+                      {ROWS_PER_PAGE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  {getPaginationItems(safeCurrentPage, totalPages).map((item, index) =>
+                    item === '...' ? (
+                      <span key={`ellipsis-${index}`} className="w-8 h-8 flex items-center justify-center text-sm text-gray-400">
+                        ...
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        key={item}
+                        onClick={() => setCurrentPage(item)}
+                        className={`w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-lg transition-colors ${
+                          safeCurrentPage === item
+                            ? 'bg-[#ffbe2a] text-black shadow-sm'
+                            : 'text-gray-600 hover:bg-gray-50 border border-gray-200'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    )
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                    disabled={safeCurrentPage === totalPages}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

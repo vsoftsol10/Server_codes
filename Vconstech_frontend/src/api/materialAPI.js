@@ -91,6 +91,7 @@ export const materialAPI = {
       category: materialData.category,
       unit: materialData.unit,
       defaultRate: materialData.defaultRate ? parseFloat(materialData.defaultRate) : null,
+      quantity: materialData.quantityNeeded ? parseFloat(materialData.quantityNeeded) : (materialData.quantity ? parseFloat(materialData.quantity) : null),
       vendor: materialData.vendor || null,
       description: materialData.description || null,
       type: materialData.type || null, // Optional field from schema
@@ -229,7 +230,7 @@ export const materialRequestAPI = {
       
       // Project-specific fields
       projectId: requestData.projectId ? parseInt(requestData.projectId) : null,
-      quantity: requestData.quantityNeeded ? parseFloat(requestData.quantityNeeded) : null,
+      quantity: requestData.quantityNeeded ?? requestData.quantity ?? null,
       
       // Status will default to PENDING in backend
       // employeeId will be set from token in backend

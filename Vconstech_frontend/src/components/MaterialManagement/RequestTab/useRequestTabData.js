@@ -5,7 +5,8 @@ import {
   materialAPI,
 } from "../../../api/materialService";
 import { projectAPI } from "../../../api/projectAPI";
-import { getToken } from "../../../utils/tabToken";
+import { getToken } from "../../../utils/tabToken";
+import { showToast } from '../../common/Toast';
 
 export const useRequestTabData = () => {
   const [requestStatusFilter, setRequestStatusFilter] = useState("All");
@@ -102,8 +103,9 @@ export const useRequestTabData = () => {
       fetchMaterialRequests();
       if (selectedProject) fetchProjectMaterials(selectedProject);
     } catch (err) {
-      alert(
+      showToast(
         `Failed to accept request: ${err.response?.data?.error || err.message}`,
+        "error"
       );
     }
   };
@@ -119,8 +121,9 @@ export const useRequestTabData = () => {
         setSelectedRequestId(null);
         fetchMaterialRequests();
       } catch (err) {
-        alert(
+        showToast(
           `Failed to reject request: ${err.response?.data?.error || err.message}`,
+          "error"
         );
       }
     }
@@ -133,8 +136,9 @@ export const useRequestTabData = () => {
       await materialRequestAPI.addComment(viewRequest.id, commandNote);
       fetchMaterialRequests();
     } catch (err) {
-      alert(
-        `Failed to send comment: ${err.response?.data?.error || err.message}`
+      showToast(
+        `Failed to send comment: ${err.response?.data?.error || err.message}`,
+        "error"
       );
     }
   }

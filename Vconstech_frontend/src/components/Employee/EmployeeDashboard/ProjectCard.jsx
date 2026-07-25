@@ -2,6 +2,26 @@ import React from 'react';
 import { FileDown, Percent, MessageSquare, X, Send } from 'lucide-react';
 import ProgressSlider from './ProgressSlider';
 import ProgressMessageInput from './ProgressMessageInput';
+import { isProjectExecutionEnabled } from '../../../utils/dashboardUtils';
+
+const formatProjectDate = (date) => {
+  if (!date) return 'N/A';
+  return new Date(date).toLocaleDateString('en-IN', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
+const getAssignedTeam = (project) => {
+  const team = [
+    project.assignedEngineer?.name,
+    ...(project.teamMembers || []).map((member) => member.name || member.employee?.name),
+    ...(project.assignments || []).map((assignment) => assignment.user?.name || assignment.engineer?.name)
+  ].filter(Boolean);
+
+  return [...new Set(team)].join(', ') || 'N/A';
+};
 
 const ProjectCard = ({
   project,
@@ -23,6 +43,8 @@ const ProjectCard = ({
   getStatusColor,
   getStatusDisplay
 }) => {
+  const canExecute = isProjectExecutionEnabled(project.status);
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:border-yellow-300 transition-colors">
       <div className="flex justify-between items-start mb-2">
@@ -45,7 +67,7 @@ const ProjectCard = ({
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-3">
         <div>
           <p className="text-gray-600">Type</p>
           <p className="font-medium text-gray-900">{project.projectType || 'N/A'}</p>
@@ -55,16 +77,16 @@ const ProjectCard = ({
           <p className="font-medium text-gray-900">{project.location || 'N/A'}</p>
         </div>
         <div>
-          <p className="text-gray-600">Deadline</p>
-          <p className="font-medium text-gray-900">
-            {project.endDate 
-              ? new Date(project.endDate).toLocaleDateString('en-IN', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
-                }) 
-              : 'N/A'}
-          </p>
+          <p className="text-gray-600">Start Date</p>
+          <p className="font-medium text-gray-900">{formatProjectDate(project.startDate)}</p>
+        </div>
+        <div>
+          <p className="text-gray-600">End Date</p>
+          <p className="font-medium text-gray-900">{formatProjectDate(project.endDate)}</p>
+        </div>
+        <div>
+          <p className="text-gray-600">Assigned Team</p>
+          <p className="font-medium text-gray-900">{getAssignedTeam(project)}</p>
         </div>
       </div>
       
@@ -83,7 +105,7 @@ const ProjectCard = ({
           </span>
           <div className="flex items-center gap-2">
             <span className="text-base font-bold text-black-600">{project.progress || 0}%</span>
-            {!showProgressSlider[project.id] && !showProgressMessage[project.id] && (
+            {canExecute && !showProgressSlider[project.id] && !showProgressMessage[project.id] && (
               <>
                 <button
                   onClick={() => onOpenProgressSlider(project.id, project.progress || 0)}
@@ -113,7 +135,13 @@ const ProjectCard = ({
         </div>
 
         {/* Progress Update Slider */}
-        {showProgressSlider[project.id] && (
+        {!canExecute && (
+          <p className="text-xs text-yellow-700 mt-2">
+            Planning stage is read-only. Execution actions unlock when the project is In Progress.
+          </p>
+        )}
+
+        {canExecute && showProgressSlider[project.id] && (
           <ProgressSlider
             projectId={project.id}
             tempProgress={tempProgress[project.id]}
@@ -126,7 +154,7 @@ const ProjectCard = ({
         )}
 
         {/* Daily Progress Message Input */}
-        {showProgressMessage[project.id] && (
+        {canExecute && showProgressMessage[project.id] && (
           <ProgressMessageInput
             projectId={project.id}
             message={progressMessage[project.id]}

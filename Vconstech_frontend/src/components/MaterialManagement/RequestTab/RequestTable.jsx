@@ -1,26 +1,22 @@
 import React from "react";
 import ViewButton from "./ViewButton";
-import ActionCell from "./ActionCell";
 
 const RequestTable = ({
   headers,
   filteredRequests,
   loading,
   materialTypeFilter,
-  getRequestReason,
   onViewRequest,
-  onAccept,
-  onReject,
 }) => {
   return (
     <div className="hidden lg:block overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
+      <table className="min-w-full divide-y divide-gray-100">
         <thead>
           <tr>
             {headers.map((header, i) => (
               <th
                 key={i}
-                className="px-4 lg:px-6 py-3 text-left text-sm font-bold text-gray-900 uppercase tracking-wider bg-white border-b border-gray-200 whitespace-nowrap"
+                className="px-4 lg:px-6 py-3 text-left text-xs font-bold text-black uppercase tracking-wide bg-yellow-400 whitespace-nowrap"
               >
                 {header}
               </th>
@@ -32,7 +28,7 @@ const RequestTable = ({
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-6 py-8 text-center text-gray-500 text-base"
+                className="px-6 py-8 text-center text-gray-500 text-sm"
               >
                 Loading...
               </td>
@@ -41,50 +37,44 @@ const RequestTable = ({
             <tr>
               <td
                 colSpan={headers.length}
-                className="px-6 py-8 text-center text-gray-500 text-base"
+                className="px-6 py-8 text-center text-gray-500 text-sm"
               >
                 No material requests found
               </td>
             </tr>
           ) : (
             filteredRequests.map((request) => (
-              <tr key={request.id} className="hover:bg-gray-50 transition-colors">
+              <tr
+                key={request.id}
+                className="hover:bg-gray-50 transition-colors duration-200"
+              >
                 <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium">
-                  {request.vendor || request.vendorName || "—"}
+                  {request.vendor || request.vendorName || "--"}
                 </td>
                 <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium">
-                  {request.employee?.name || request.assignedTo || "—"}
+                  {request.employee?.name || request.assignedTo || "--"}
                 </td>
                 {materialTypeFilter === "project" && (
                   <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium">
-                    {request.project?.name || request.projectName || "—"}
+                    {request.project?.name || request.projectName || "--"}
                   </td>
                 )}
-                <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium whitespace-nowrap">
+                <td className="px-4 lg:px-6 py-3 text-gray-600 text-sm whitespace-nowrap">
                   {request.dueDate
                     ? new Date(request.dueDate).toLocaleDateString("en-IN")
-                    : "—"}
+                    : "--"}
                 </td>
                 <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium">
-                  {request.name || "—"}
+                  {request.name || "--"}
                 </td>
-                <td className="px-4 lg:px-6 py-3 text-gray-700 text-sm font-medium whitespace-nowrap">
-                  {request.quantity || "—"} {request.unit || ""}
+                <td className="px-4 lg:px-6 py-3 text-gray-600 text-sm whitespace-nowrap">
+                  {request.quantity || "--"}
                 </td>
-                <td className="px-4 lg:px-6 py-3 text-gray-600 text-sm max-w-[180px]">
-                  {request.status === "PENDING" ? (
-                    <span className="text-gray-400 italic text-sm">—</span>
-                  ) : (
-                    <span className="break-words text-sm">
-                      {getRequestReason(request)}
-                    </span>
-                  )}
+                <td className="px-4 lg:px-6 py-3 text-gray-600 text-sm whitespace-nowrap">
+                  {request.unit || "--"}
                 </td>
-                <td className="px-4 lg:px-6 py-3">
-                  <ViewButton
-                    request={request}
-                    onView={onViewRequest}
-                  />
+                <td className="px-4 lg:px-6 py-3 text-center w-24">
+                  <ViewButton request={request} onView={onViewRequest} />
                 </td>
               </tr>
             ))

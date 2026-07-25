@@ -1,6 +1,6 @@
 // src/routes/engineerRoute.js
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -9,7 +9,6 @@ import path from 'path';
 import fs from 'fs';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({

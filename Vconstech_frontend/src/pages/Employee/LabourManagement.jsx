@@ -1,8 +1,10 @@
+﻿import { showToast } from '../../components/common/Toast';
 import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, X, IndianRupee, User, Phone, MapPin, Calendar, Loader2, Edit2, Eye, Trash2, Briefcase, FolderOpen, Search } from 'lucide-react'
 import labourApi from '../../api/labourAPI'
 import { projectAPI } from '../../api/projectAPI'
 import EmployeeNavbar from '../../components/Employee/EmployeeNavbar'
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation'
 
 const LabourManagement = () => {
   const [labourers, setLabourers] = useState([])
@@ -20,7 +22,7 @@ const LabourManagement = () => {
         document.title = "Vconstech - Engineer";
       }, []);
 
-  // ── Get logged-in engineer from localStorage ──
+  // -- Get logged-in engineer from localStorage --
   const engineer = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('engineer')) || null
@@ -83,6 +85,9 @@ const LabourManagement = () => {
   const [payment, setPayment] = useState({
     amount: '', date: new Date().toISOString().split('T')[0]
   })
+  const [labourErrors, setLabourErrors] = useState({})
+  const [editLabourErrors, setEditLabourErrors] = useState({})
+  const [paymentErrors, setPaymentErrors] = useState({})
 
   const fetchLabourers = async () => {
     try {
@@ -93,7 +98,7 @@ const LabourManagement = () => {
       }
     } catch (error) {
       console.error('Failed to fetch labourers:', error)
-      alert('Failed to load labourers: ' + error.message)
+      showToast('Failed to load labourers: ' + error.message, 'error')
     } finally {
       setLoading(false)
     }
@@ -118,13 +123,13 @@ const LabourManagement = () => {
     fetchProjects()
   }, [])
 
-  // ── Projects this engineer is assigned to (for dropdowns) ──
+  // -- Projects this engineer is assigned to (for dropdowns) --
   const assignedProjects = useMemo(() => {
     if (!engineer) return projects
     return projects.filter(isProjectAssignedToEngineer)
   }, [projects, engineer])
 
-  // ── Labourers belonging to engineer's projects, filtered by search ──
+  // -- Labourers belonging to engineer's projects, filtered by search --
   const filteredLabourers = useMemo(() => {
     let list = labourers
 
@@ -167,8 +172,15 @@ const LabourManagement = () => {
   }, [labourers, engineerProjectIds, assignedProjects, searchQuery])
 
   const handleAddLabour = async () => {
-    if (!newLabour.name || !newLabour.phone) {
-      alert('Please fill in all required fields')
+    const errors = validateFields([
+      { name: 'labourName', value: newLabour.name, label: 'Name', rules: ['name'] },
+      { name: 'labourPhone', value: newLabour.phone, label: 'Mobile number', rules: ['mobile'] },
+      { name: 'labourDesignation', value: newLabour.designation, label: 'Designation', rules: newLabour.designation ? ['name'] : [] },
+      { name: 'labourAddress', value: newLabour.address, label: 'Address', rules: newLabour.address ? ['textarea'] : [] },
+    ])
+    setLabourErrors(errors)
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors)
       return
     }
     try {
@@ -177,10 +189,10 @@ const LabourManagement = () => {
         await fetchLabourers()
         setNewLabour({ name: '', phone: '', address: '', designation: '', project: '', projectId: null })
         setShowAddForm(false)
-        alert('Labourer added successfully!')
+        showToast('Labourer added successfully!', 'success')
       }
     } catch (error) {
-      alert('Failed to add labourer: ' + error.message)
+      showToast('Failed to add labourer: ' + error.message, 'error')
     }
   }
 
@@ -194,12 +206,20 @@ const LabourManagement = () => {
       project: labour.project || '',
       projectId: labour.projectId || null
     })
+    setEditLabourErrors({})
     setShowEditForm(true)
   }
 
   const handleUpdateLabour = async () => {
-    if (!editLabour.name || !editLabour.phone) {
-      alert('Please fill in all required fields')
+    const errors = validateFields([
+      { name: 'editLabourName', value: editLabour.name, label: 'Name', rules: ['name'] },
+      { name: 'editLabourPhone', value: editLabour.phone, label: 'Mobile number', rules: ['mobile'] },
+      { name: 'editLabourDesignation', value: editLabour.designation, label: 'Designation', rules: editLabour.designation ? ['name'] : [] },
+      { name: 'editLabourAddress', value: editLabour.address, label: 'Address', rules: editLabour.address ? ['textarea'] : [] },
+    ])
+    setEditLabourErrors(errors)
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors)
       return
     }
     try {
@@ -214,16 +234,21 @@ const LabourManagement = () => {
         await fetchLabourers()
         setEditLabour({ id: null, name: '', phone: '', address: '', designation: '', project: '', projectId: null })
         setShowEditForm(false)
-        alert('Labourer updated successfully!')
+        showToast('Labourer updated successfully!', 'success')
       }
     } catch (error) {
-      alert('Failed to update labourer: ' + error.message)
+      showToast('Failed to update labourer: ' + error.message, 'error')
     }
   }
 
   const handleAddPayment = async () => {
-    if (!payment.amount || !selectedLabour) {
-      alert('Please enter a valid amount')
+    const errors = validateFields([
+      { name: 'paymentAmount', value: payment.amount, label: 'Amount', rules: ['amount'] },
+      { name: 'paymentDate', value: payment.date, label: 'Date', rules: ['date'] },
+    ])
+    setPaymentErrors(errors)
+    if (Object.keys(errors).length || !selectedLabour) {
+      focusFirstInvalidField(errors)
       return
     }
     try {
@@ -233,14 +258,14 @@ const LabourManagement = () => {
         setPayment({ amount: '', date: new Date().toISOString().split('T')[0] })
         setShowPaymentModal(false)
         setSelectedLabour(null)
-        alert('Payment added successfully!')
+        showToast('Payment added successfully!', 'success')
       }
     } catch (error) {
-      alert('Failed to add payment: ' + error.message)
+      showToast('Failed to add payment: ' + error.message, 'error')
     }
   }
 
-  const openPaymentModal = (labour) => { setSelectedLabour(labour); setShowPaymentModal(true) }
+  const openPaymentModal = (labour) => { setSelectedLabour(labour); setPaymentErrors({}); setShowPaymentModal(true) }
   const openViewPaymentsModal = (labour) => { setSelectedLabour(labour); setShowViewPaymentsModal(true) }
 
   const deleteLabour = async (id) => {
@@ -249,31 +274,33 @@ const LabourManagement = () => {
         const data = await labourApi.deleteLabourer(id)
         if (data.success) {
           await fetchLabourers()
-          alert('Labourer deleted successfully!')
+          showToast('Labourer deleted successfully!', 'success')
         }
       } catch (error) {
-        alert('Failed to delete labourer: ' + error.message)
+        showToast('Failed to delete labourer: ' + error.message, 'error')
       }
     }
   }
 
   const getPaymentCount = (labour) => labour.payments ? labour.payments.length : 0
 
-  // ── Reusable form fields (only shows engineer's assigned projects) ──
-  const renderLabourFields = (formState, setFormState) => (
+  // -- Reusable form fields (only shows engineer's assigned projects) --
+  const renderLabourFields = (formState, setFormState, errors = {}, fieldPrefix = 'labour') => (
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
         <div className="relative">
           <User className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
+            name={`${fieldPrefix}Name`}
             type="text"
             value={formState.name}
             onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
+            className={`w-full pl-10 pr-4 py-2 border font-medium rounded-lg focus:border-transparent ${errors[`${fieldPrefix}Name`] ? 'border-red-500' : 'border-gray-300'}`}
             placeholder="Enter name"
           />
         </div>
+        {errors[`${fieldPrefix}Name`] && <p className="text-red-500 text-sm mt-1">{errors[`${fieldPrefix}Name`]}</p>}
       </div>
 
       <div>
@@ -281,13 +308,15 @@ const LabourManagement = () => {
         <div className="relative">
           <Phone className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
+            name={`${fieldPrefix}Phone`}
             type="tel"
             value={formState.phone}
             onChange={(e) => setFormState({ ...formState, phone: e.target.value })}
-            className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
+            className={`w-full pl-10 pr-4 py-2 border font-medium rounded-lg focus:border-transparent ${errors[`${fieldPrefix}Phone`] ? 'border-red-500' : 'border-gray-300'}`}
             placeholder="Enter phone number"
           />
         </div>
+        {errors[`${fieldPrefix}Phone`] && <p className="text-red-500 text-sm mt-1">{errors[`${fieldPrefix}Phone`]}</p>}
       </div>
 
       <div>
@@ -295,6 +324,7 @@ const LabourManagement = () => {
         <div className="relative">
           <Briefcase className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
+            name={`${fieldPrefix}Designation`}
             type="text"
             value={formState.designation}
             onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
@@ -302,6 +332,7 @@ const LabourManagement = () => {
             placeholder="e.g. Mason, Electrician, Helper"
           />
         </div>
+        {errors[`${fieldPrefix}Designation`] && <p className="text-red-500 text-sm mt-1">{errors[`${fieldPrefix}Designation`]}</p>}
       </div>
 
       {/* Only engineer's assigned projects shown in dropdown */}
@@ -336,6 +367,7 @@ const LabourManagement = () => {
         <div className="relative">
           <MapPin className="absolute left-3 top-3 text-gray-400" size={20} />
           <textarea
+            name={`${fieldPrefix}Address`}
             value={formState.address}
             onChange={(e) => setFormState({ ...formState, address: e.target.value })}
             className="w-full pl-10 pr-4 py-2 border font-medium border-gray-300 rounded-lg focus:border-transparent"
@@ -343,6 +375,7 @@ const LabourManagement = () => {
             rows="3"
           />
         </div>
+        {errors[`${fieldPrefix}Address`] && <p className="text-red-500 text-sm mt-1">{errors[`${fieldPrefix}Address`]}</p>}
       </div>
     </div>
   )
@@ -359,7 +392,7 @@ const LabourManagement = () => {
     <div className="min-h-screen bg-gray-50">
       <EmployeeNavbar />
 
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <div className="mt-25 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
@@ -381,22 +414,22 @@ const LabourManagement = () => {
         </div>
       </div>
 
-      {/* ── Main content ── */}
+      {/* -- Main content -- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         {/* Add Labour Modal */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Add New Labour</h2>
                 <button onClick={() => setShowAddForm(false)} className="text-gray-500 hover:text-gray-700">
                   <X size={24} />
                 </button>
               </div>
-              {renderLabourFields(newLabour, setNewLabour)}
+              {renderLabourFields(newLabour, setNewLabour, labourErrors, 'labour')}
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowAddForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <button onClick={() => { setShowAddForm(false); setLabourErrors({}); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
                 <button onClick={handleAddLabour} className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium">
@@ -409,17 +442,17 @@ const LabourManagement = () => {
 
         {/* Edit Labour Modal */}
         {showEditForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full sm:max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Edit Labour Details</h2>
                 <button onClick={() => setShowEditForm(false)} className="text-gray-500 hover:text-gray-700">
                   <X size={24} />
                 </button>
               </div>
-              {renderLabourFields(editLabour, setEditLabour)}
+              {renderLabourFields(editLabour, setEditLabour, editLabourErrors, 'editLabour')}
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowEditForm(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <button onClick={() => { setShowEditForm(false); setEditLabourErrors({}); }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                   Cancel
                 </button>
                 <button onClick={handleUpdateLabour} className="flex-1 px-4 py-2 bg-[#ffbe2a] text-black rounded-lg hover:bg-[#e5ab26] transition font-medium">
@@ -432,8 +465,8 @@ const LabourManagement = () => {
 
         {/* Add Payment Modal */}
         {showPaymentModal && selectedLabour && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-md">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full sm:max-w-md">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">Add Payment</h2>
                 <button onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }} className="text-gray-500 hover:text-gray-700">
@@ -446,29 +479,33 @@ const LabourManagement = () => {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (₹) *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount (Rs.) *</label>
                   <div className="relative">
                     <IndianRupee className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
+                      name="paymentAmount"
                       type="number" min="0" step="0.01"
                       value={payment.amount}
-                      onChange={(e) => setPayment({ ...payment, amount: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                      onChange={(e) => { setPayment({ ...payment, amount: e.target.value }); setPaymentErrors((prev) => ({ ...prev, paymentAmount: '' })); }}
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent ${paymentErrors.paymentAmount ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="Enter amount"
                     />
                   </div>
+                  {paymentErrors.paymentAmount && <p className="text-red-500 text-sm mt-1">{paymentErrors.paymentAmount}</p>}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-3 text-gray-400" size={20} />
                     <input
+                      name="paymentDate"
                       type="date"
                       value={payment.date}
-                      onChange={(e) => setPayment({ ...payment, date: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                      onChange={(e) => { setPayment({ ...payment, date: e.target.value }); setPaymentErrors((prev) => ({ ...prev, paymentDate: '' })); }}
+                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent ${paymentErrors.paymentDate ? 'border-red-500' : 'border-gray-300'}`}
                     />
                   </div>
+                  {paymentErrors.paymentDate && <p className="text-red-500 text-sm mt-1">{paymentErrors.paymentDate}</p>}
                 </div>
                 <div className="flex gap-3 mt-6">
                   <button onClick={() => { setShowPaymentModal(false); setSelectedLabour(null) }} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
@@ -485,8 +522,8 @@ const LabourManagement = () => {
 
         {/* View Payments Modal */}
         {showViewPaymentsModal && selectedLabour && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-            <div className="bg-white rounded-t-2xl sm:rounded-lg shadow-xl p-6 w-full sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 w-full sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">Payment History</h2>
@@ -552,7 +589,7 @@ const LabourManagement = () => {
           </div>
         )}
 
-        {/* ── Search Bar ── */}
+        {/* -- Search Bar -- */}
         {labourers.length > 0 && (
           <div className="mb-4">
             <div className="relative max-w-sm">
@@ -581,7 +618,7 @@ const LabourManagement = () => {
           </div>
         )}
 
-        {/* ── Table ── */}
+        {/* -- Table -- */}
         {filteredLabourers.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <User className="mx-auto text-gray-300 mb-4" size={64} />

@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 
 // Stats Card Component
 const StatsCard = ({ icon: Icon, label, value, bgColor, iconColor }) => (

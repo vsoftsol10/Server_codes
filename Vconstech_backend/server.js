@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 
 
 import authRoutes from './src/routes/authRoute.js';
+import invitationRoutes from './src/routes/invitationRoutes.js';
+import registrationRoutes from './src/routes/registrationRoutes.js';
 import projectRoutes from './src/routes/projectRoute.js';
 import engineerRoutes from './src/routes/engineerRoute.js';
 import userRoute from './src/routes/userRoute.js';
@@ -39,9 +41,11 @@ import billingRoutes from './src/routes/billingRoutes.js';
 
 import webhookRoute from './src/routes/webhookRoute.js';
 import paymentNotificationRoute from './src/routes/paymentNotificationRoute.js';
+import subscriptionSyncRoutes from './src/routes/subscriptionSyncRoutes.js';
+import { scheduleTrialExpiryJob } from './src/services/subscriptionSyncService.js';
 
 import { authenticateToken, authorizeRole } from './src/middlewares/authMiddlewares.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './src/config/database.js';
 
 // ES module dirname workaround
 const __filename = fileURLToPath(import.meta.url);
@@ -50,8 +54,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
-const prisma = new PrismaClient();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use('/webhook', webhookRoute);
 // ========== MIDDLEWARE ==========
@@ -66,6 +69,8 @@ app.use('/api/projects',projectRoutes);
 
 // ========== EXISTING ROUTES ==========
 app.use('/api/auth', authRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/registration', registrationRoutes);
 app.use('/api/reports', reportRoute);
 app.use('/api/daily-progress', dailyprogressRoutes);
 // app.use('/api/projects', projectRoutes);
@@ -74,6 +79,7 @@ app.use('/api/users', userRoute);
 app.use('/api/clients', clientRoutes);
 
 app.use('/api/payment-notifications', paymentNotificationRoute);
+app.use('/api/subscription-sync', subscriptionSyncRoutes);
 console.log('\n🔍 Checking /api/users routes:');
 if (userRoute && userRoute.stack) {
   userRoute.stack.forEach((layer) => {
@@ -219,6 +225,7 @@ process.on('SIGTERM', async () => {
 
 // ========== START SERVER ==========
 app.listen(PORT, () => {
+  scheduleTrialExpiryJob();
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║  🚀 Server is running on port ${PORT}                         ║

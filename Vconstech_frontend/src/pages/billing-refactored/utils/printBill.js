@@ -1,9 +1,10 @@
+import { showToast } from '../../../components/common/Toast';
 // printBill.js
 // Screen preview: splits content across real A4 cards (794×1123px each).
 // Print:          browser handles pagination naturally via @page margins.
 
 export const printBill = (bill) => {
-  if (!bill) { alert("Invalid bill data"); return; }
+  if (!bill) { showToast("Invalid bill data", "warning"); return; }
 
   const printWindow = window.open("", "_blank");
   const items = Array.isArray(bill?.BillItem)
@@ -13,7 +14,7 @@ export const printBill = (bill) => {
       : [];
 
   if (items.length === 0) {
-    alert("No items found in this bill");
+    showToast("No items found in this bill", "warning");
     printWindow.close();
     return;
   }
@@ -32,7 +33,7 @@ export const printBill = (bill) => {
   const documentTitle = billType === "quotation" ? "QUOTATION" : "TAX INVOICE";
   const companyLogo   = bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  let API_BASE_URL = "http://localhost:5000";
+  let API_BASE_URL = "http://localhost:5001";
   if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
     API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
   else if (typeof process !== "undefined" && process.env?.VITE_API_URL)

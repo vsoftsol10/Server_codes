@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Edit, Trash2, Download, Loader2, Eye, X, User, Mail, Phone, Building2, MapPin, Package, Users, Search, Filter, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { getToken } from '../../../utils/tabToken';
+import { getToken } from '../../../utils/tabToken';
+import { showToast } from '../../../components/common/Toast';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const ROWS_PER_PAGE = 10;
 
@@ -30,8 +31,7 @@ const ViewUserModal = ({ user, onClose }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity duration-300 p-4"
       onClick={onClose}
     >
       <div
@@ -420,7 +420,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Download error:", error);
-      alert(`Failed to download data: ${error.message}`);
+      showToast(`Failed to download data: ${error.message}`, "error");
     } finally {
       setDownloadingId(null);
     }

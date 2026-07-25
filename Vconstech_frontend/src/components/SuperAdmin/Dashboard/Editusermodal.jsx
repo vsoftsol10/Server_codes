@@ -42,8 +42,7 @@ const EditUserModal = ({ user, loading, error, fieldErrors, onChange, onUpdate, 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity duration-300 p-4"
       onClick={onClose}
     >
       <div

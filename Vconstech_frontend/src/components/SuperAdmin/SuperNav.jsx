@@ -1,4 +1,4 @@
-import { Bell, LogOut, X, Users, LayoutDashboard } from 'lucide-react';
+﻿import { Bell, LogOut, X, Users, LayoutDashboard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate, NavLink } from 'react-router-dom';
 import logo from '../../assets/constech-logo.png'
@@ -97,7 +97,7 @@ const SuperNav = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl max-w-[90%] sm:max-w-md w-full p-6 sm:p-7 md:p-8 relative">
             <button
               onClick={cancelLogout}

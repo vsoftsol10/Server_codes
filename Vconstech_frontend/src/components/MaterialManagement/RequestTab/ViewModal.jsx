@@ -1,5 +1,17 @@
 import React from "react";
 
+const BACKEND_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+  window.location.origin;
+
+const resolveFileUrl = (file) => {
+  const rawUrl = typeof file === "string" ? file : file?.url || file?.fileUrl || "";
+  if (!rawUrl) return "";
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  return `${BACKEND_BASE_URL}${rawUrl.startsWith("/") ? "" : "/"}${rawUrl}`;
+};
+
 const ViewModal = ({
   isOpen,
   viewRequest,
@@ -15,7 +27,7 @@ const ViewModal = ({
   const hasFiles = files.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-100 rounded-sm shadow-2xl w-full max-w-xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
@@ -150,17 +162,11 @@ const ViewModal = ({
             <p className="text-sm font-bold text-gray-900 mb-2">Documents</p>
             <hr className="border-gray-200 mb-3" />
 
-            {hasFiles ? (
+              {hasFiles ? (
               <div className="flex flex-col gap-2">
                 {files.map((file, idx) => {
                   const fileName = file.name || file.fileName || `Document ${idx + 1}`;
-                  const rawUrl = file.url || file.fileUrl || file;
-const cleanUrl = typeof rawUrl === 'string' 
-  ? rawUrl.replace('/api/uploads', '/uploads') 
-  : rawUrl;
-const fileUrl = typeof cleanUrl === 'string'
-  ? cleanUrl.replace('http://localhost:5000', '')
-  : cleanUrl;
+                  const fileUrl = resolveFileUrl(file);
                   return (
                     <div
                       key={idx}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import {
   X,
   Camera,
@@ -9,6 +9,7 @@ import {
   Lock,
   UserCircle,
 } from "lucide-react";
+import { focusFirstInvalidField, validateFields } from "../../utils/formValidation";
 
 const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     phone: "",
     alternatePhone: "",
     designation: "",
+    status: "Active",
     empId: "",
     address: "",
     username: "",
@@ -41,58 +43,24 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors = validateFields([
+      { name: "name", value: formData.name, label: "Full name", rules: ["name"] },
+      { name: "phone", value: formData.phone, label: "Phone number", rules: ["mobile"] },
+      { name: "alternatePhone", value: formData.alternatePhone, label: "Alternate phone number", rules: formData.alternatePhone ? ["optionalMobile"] : [] },
+      { name: "status", value: formData.status, label: "Status", rules: ["dropdown"] },
+      { name: "empId", value: formData.empId, label: "Employee ID", rules: ["required"] },
+      { name: "address", value: formData.address, label: "Address", rules: ["textarea"] },
+      { name: "username", value: formData.username, label: "Username", rules: ["required"] },
+      { name: "password", value: formData.password, label: "Password", rules: ["password"] },
+      { name: "confirmPassword", value: formData.confirmPassword, label: "Confirm password", rules: ["required"] },
+    ]);
 
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
-    } else if (!/^\d{10}$/.test(formData.phone.trim())) {
-      newErrors.phone = "Please enter a valid 10-digit phone number";
-    }
-
-    if (
-      formData.alternatePhone.trim() &&
-      !/^\d{10}$/.test(formData.alternatePhone.trim())
-    ) {
-      newErrors.alternatePhone = "Please enter a valid 10-digit phone number";
-    }
-
-    if (!formData.empId.trim()) {
-      newErrors.empId = "Employee ID is required";
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = "Address is required";
-    }
-
-    // Username validation (mandatory)
-    if (!formData.username.trim()) {
-      newErrors.username = "Username is required";
-    } else if (formData.username.length < 4) {
-      newErrors.username = "Username must be at least 4 characters";
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username =
-        "Username can only contain letters, numbers, and underscores";
-    }
-
-    // Password validation (mandatory)
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-    }
-
-    // Confirm password validation (mandatory)
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
+    if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length) focusFirstInvalidField(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -107,6 +75,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     phone: formData.phone.trim(),
     alternatePhone: formData.alternatePhone.trim() || "",
     designation: formData.designation.trim() || "",
+    status: formData.status,
     empId: formData.empId.trim(),
     address: formData.address.trim(),
     username: formData.username.trim(),
@@ -129,6 +98,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
       phone: "",
       alternatePhone: "",
       designation: "",
+      status: "Active",
       empId: "",
       address: "",
       username: "",
@@ -150,8 +120,8 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full my-8">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-8">
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-2xl font-bold text-gray-900">Add New Engineer</h3>
           <button
@@ -268,6 +238,29 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                   )}
                 </div>
 
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
+                    Status <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleInputChange}
+                      className={`block w-full px-3 py-2 border ${errors.status ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2`}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                  {errors.status && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.status}
+                    </p>
+                  )}
+                </div>
+
                 {/* Employee ID */}
                 <div >
                   <label className="block text-sm font-extrabold text-gray-700 mb-2">
@@ -367,7 +360,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                       value={formData.password}
                       onChange={handleInputChange}
                       className={`block w-full pl-10 pr-10 py-2 border  ${errors.password ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2 `}
-                      placeholder="Enter password"
+                      placeholder="Password (e.g. Abc@123)"
                     />
                     <button
                       type="button"
@@ -423,7 +416,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
         </div>
 {serverError && (
   <div className="mx-6 mb-2 p-3 bg-red-50 border border-red-300 rounded-lg">
-    <p className="text-red-600 text-sm font-medium">⚠️ {serverError}</p>
+    <p className="text-red-600 text-sm font-medium">Warning: {serverError}</p>
   </div>
 )}
 

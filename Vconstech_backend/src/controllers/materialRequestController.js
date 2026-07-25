@@ -1,7 +1,56 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { generateRequestId, generateMaterialId, createNotification } from '../utils/generateId.js';
 
-const prisma = new PrismaClient();
+const resolveBackendUrl = () => process.env.BASE_URL || 'http://localhost:5001';
+
+const formatRequestFiles = (files = []) => {
+  const baseUrl = resolveBackendUrl();
+
+  return (Array.isArray(files) ? files : []).map((file) => {
+    let fileRecord = file;
+
+    if (typeof file === 'string') {
+      try {
+        fileRecord = JSON.parse(file);
+      } catch {
+        fileRecord = { url: file };
+      }
+    }
+
+    const rawUrl = fileRecord?.url || fileRecord?.fileUrl || '';
+    const absoluteUrl = rawUrl.startsWith('http') ? rawUrl : `${baseUrl}${rawUrl}`;
+    const storedName = rawUrl.split('/').pop();
+    const fileName = fileRecord?.originalName || fileRecord?.name || fileRecord?.fileName || storedName;
+
+    return {
+      url: absoluteUrl,
+      fileUrl: absoluteUrl,
+      name: fileName,
+      fileName,
+      storedName,
+      size: fileRecord?.size || null,
+      mimeType: fileRecord?.mimeType || null,
+    };
+  });
+};
+
+const buildRequestFileRecords = (files = []) =>
+  (Array.isArray(files) ? files : []).map((file) =>
+    JSON.stringify({
+      url: `/uploads/material-files/${file.filename}`,
+      originalName: file.originalname,
+      storedName: file.filename,
+      size: file.size,
+      mimeType: file.mimetype,
+    })
+  );
+
+const normalizeQuantity = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return null;
+  return Math.round((numericValue + Number.EPSILON) * 100) / 100;
+};
 
 export const getMyRequests = async (req, res) => {
   try {
@@ -38,29 +87,18 @@ export const getMyRequests = async (req, res) => {
       return [];
     });
 
-    const requestsWithProjectName = requests.map(req => ({
+    const formattedRequests = requests.map(req => ({
       ...req,
-      projectName: req.project?.name || null
+      quantity: normalizeQuantity(req.quantity),
+      projectName: req.project?.name || null,
+      files: formatRequestFiles(req.files),
     }));
 
-   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-const formattedRequests = requestsWithProjectName.map(r => ({
-  ...r,
-  files: (r.files || []).map(fileUrl => {
-    const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
-    return {
-      url: fullUrl,
-      fileUrl: fullUrl,
-      name: fileUrl.split('/').pop(),
-      fileName: fileUrl.split('/').pop(),
-    };
-  })
-}));
-res.json({ 
-  success: true,
-  count: formattedRequests.length,
-  requests: formattedRequests
-});
+    res.json({ 
+      success: true,
+      count: formattedRequests.length,
+      requests: formattedRequests
+    });
   } catch (error) {
     console.error('Get my requests error:', error);
     res.status(500).json({ 
@@ -89,8 +127,7 @@ export const updateMaterialRequest = async (req, res) => {
     }
 
     // Handle new uploaded files
-    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
-    const newFileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
+    const newFileUrls = buildRequestFileRecords(req.files);
     const existingFiles = existing.files || [];
 
     const updated = await prisma.materialRequest.update({
@@ -99,7 +136,7 @@ export const updateMaterialRequest = async (req, res) => {
         name: name || existing.name,
         vendor: vendor !== undefined ? vendor : existing.vendor,
         defaultRate: defaultRate ? parseFloat(defaultRate) : existing.defaultRate,
-        quantity: quantity ? parseFloat(quantity) : existing.quantity,
+        quantity: quantity !== undefined && quantity !== null && quantity !== '' ? normalizeQuantity(quantity) : existing.quantity,
         unit: unit || existing.unit,
         dueDate: dueDate ? new Date(dueDate) : existing.dueDate,
         description: description !== undefined ? description : existing.description,
@@ -108,12 +145,9 @@ export const updateMaterialRequest = async (req, res) => {
     });
 
     // Format files for response
-    const formattedFiles = (updated.files || []).map(fileUrl => {
-      const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${baseUrl}${fileUrl}`;
-      return { url: fullUrl, fileUrl: fullUrl, name: fileUrl.split('/').pop(), fileName: fileUrl.split('/').pop() };
-    });
+    const formattedFiles = formatRequestFiles(updated.files);
 
-    res.json({ success: true, message: 'Request updated successfully', request: { ...updated, files: formattedFiles } });
+    res.json({ success: true, message: 'Request updated successfully', request: { ...updated, quantity: normalizeQuantity(updated.quantity), files: formattedFiles } });
   } catch (error) {
     console.error('Update material request error:', error);
     res.status(500).json({ success: false, error: 'Failed to update request', details: error.message });
@@ -143,7 +177,7 @@ export const getPendingRequests = async (req, res) => {
           select: {
             id: true,
             name: true,
-            email: true
+            empId: true
           }
         },
         project: {
@@ -169,7 +203,9 @@ export const getPendingRequests = async (req, res) => {
 
     const requestsWithProjectName = requests.map(req => ({
       ...req,
-      projectName: req.project?.name || null
+      quantity: normalizeQuantity(req.quantity),
+      projectName: req.project?.name || null,
+      files: formatRequestFiles(req.files),
     }));
 
     res.json({ 
@@ -207,10 +243,18 @@ export const createMaterialRequest = async (req, res) => {
       dueDate // ✅ Added dueDate
     } = req.body;
 
-    if (!name || !category || !unit || !defaultRate || !type) {
+    if (!name || !category || !unit || !defaultRate || !type || !quantity) {
       return res.status(400).json({ 
         success: false,
-        error: 'Name, category, unit, defaultRate, and type are required' 
+        error: 'Name, category, unit, defaultRate, type, and quantity are required' 
+      });
+    }
+
+    const parsedQuantity = normalizeQuantity(quantity);
+    if (Number.isNaN(parsedQuantity) || parsedQuantity <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Quantity must be a number greater than zero'
       });
     }
 
@@ -221,22 +265,22 @@ export const createMaterialRequest = async (req, res) => {
       });
     }
 
-    if (type === 'PROJECT' && (!projectId || !quantity)) {
+    if (type === 'PROJECT' && !projectId) {
       return res.status(400).json({ 
         success: false,
-        error: 'Project ID and quantity are required for project-specific materials' 
+        error: 'Project ID is required for project-specific materials' 
       });
     }
 
-    if (type === 'PROJECT_MATERIAL' && (!projectId || !materialId || !quantity)) {
+    if (type === 'PROJECT_MATERIAL' && (!projectId || !materialId)) {
       return res.status(400).json({ 
         success: false,
-        error: 'Project ID, material ID, and quantity are required' 
+        error: 'Project ID and material ID are required' 
       });
     }
 
     const requestId = await generateRequestId();
-    const fileUrls = req.files?.map(f => `/uploads/material-files/${f.filename}`) ?? [];
+    const fileUrls = buildRequestFileRecords(req.files);
 
     const request = await prisma.materialRequest.create({
       data: {
@@ -251,7 +295,7 @@ export const createMaterialRequest = async (req, res) => {
         type,
         projectId: projectId ? parseInt(projectId) : null,
         materialId: materialId ? parseInt(materialId) : null,
-        quantity: quantity ? parseFloat(quantity) : null,
+        quantity: parsedQuantity,
         status: 'PENDING',
         requestDate: new Date(),
         dueDate: dueDate ? new Date(dueDate) : null, // ✅ Save dueDate
@@ -296,7 +340,9 @@ export const createMaterialRequest = async (req, res) => {
       message: 'Material request submitted successfully',
       request: {
         ...request,
-        projectName: request.project?.name || null
+        quantity: normalizeQuantity(request.quantity),
+        projectName: request.project?.name || null,
+        files: formatRequestFiles(request.files),
       }
     });
   } catch (error) {
@@ -366,7 +412,9 @@ export const getAllRequests = async (req, res) => {
 
     const requestsWithProjectName = requests.map(req => ({
       ...req,
-      projectName: req.project?.name || null
+      quantity: normalizeQuantity(req.quantity),
+      projectName: req.project?.name || null,
+      files: formatRequestFiles(req.files),
     }));
 
     console.log(`Found ${requestsWithProjectName.length} total requests`);
@@ -449,6 +497,8 @@ export const approveMaterialRequest = async (req, res) => {
         }
       });
 
+      const requestQuantity = normalizeQuantity(request.quantity) ?? 0;
+
       if (request.type === 'GLOBAL') {
         const materialId = await generateMaterialId();
         await tx.material.create({
@@ -460,6 +510,7 @@ export const approveMaterialRequest = async (req, res) => {
             defaultRate: request.defaultRate,
             vendor: request.vendor,
             description: request.description,
+            quantity: requestQuantity,
             dueDate: request.dueDate || null, // ✅ Carry dueDate over to Material
             companyId: String(companyId)
           }
@@ -475,6 +526,7 @@ export const approveMaterialRequest = async (req, res) => {
             defaultRate: request.defaultRate,
             vendor: request.vendor,
             description: request.description,
+            quantity: requestQuantity,
             dueDate: request.dueDate || null, // ✅ Carry dueDate over to Material
             companyId: String(companyId)
           }
@@ -484,7 +536,7 @@ export const approveMaterialRequest = async (req, res) => {
           data: {
             projectId: request.projectId,
             materialId: newMaterial.id,
-            assigned: request.quantity,
+            assigned: requestQuantity,
             used: 0,
             status: 'NOT_USED'
           }
@@ -503,7 +555,7 @@ export const approveMaterialRequest = async (req, res) => {
           await tx.projectMaterial.update({
             where: { id: existingProjectMaterial.id },
             data: {
-              assigned: existingProjectMaterial.assigned + request.quantity,
+              assigned: existingProjectMaterial.assigned + requestQuantity,
               status: 'ACTIVE',
               updatedAt: new Date()
             }
@@ -513,7 +565,7 @@ export const approveMaterialRequest = async (req, res) => {
             data: {
               projectId: request.projectId,
               materialId: request.materialId,
-              assigned: request.quantity,
+              assigned: requestQuantity,
               used: 0,
               status: 'ACTIVE'
             }

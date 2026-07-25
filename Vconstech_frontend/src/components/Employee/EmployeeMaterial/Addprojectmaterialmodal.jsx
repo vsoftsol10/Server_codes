@@ -8,6 +8,12 @@ const EMPTY_PROJECT_MATERIAL = {
   status: "Active",
 };
 
+const formatCurrency = (value) => new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 0,
+}).format(Number(value || 0));
+
 const AddProjectMaterialModal = ({ isOpen, onClose, onSubmit, materials, loading }) => {
   const [newProjectMaterial, setNewProjectMaterial] = useState(EMPTY_PROJECT_MATERIAL);
 
@@ -66,7 +72,7 @@ const AddProjectMaterialModal = ({ isOpen, onClose, onSubmit, materials, loading
             <option value="">Choose a material...</option>
             {materials.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.name} ({m.category} - ₹{m.defaultRate}/{m.unit})
+                {m.name} ({m.category} - {formatCurrency(m.defaultRate)}/{m.unit})
               </option>
             ))}
           </select>

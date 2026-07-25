@@ -60,6 +60,8 @@ export const useBillingState = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [clientSuggestions, setClientSuggestions] = useState([]);
   const [showClientSuggestions, setShowClientSuggestions] = useState(false);
+  const [billingErrors, setBillingErrors] = useState({});
+  const [clientErrors, setClientErrors] = useState({});
   
   const [newClient, setNewClient] = useState({
     clientName: "",
@@ -100,6 +102,10 @@ export const useBillingState = () => {
     setClientSuggestions,
     showClientSuggestions,
     setShowClientSuggestions,
+    billingErrors,
+    setBillingErrors,
+    clientErrors,
+    setClientErrors,
     newClient,
     setNewClient,
   };

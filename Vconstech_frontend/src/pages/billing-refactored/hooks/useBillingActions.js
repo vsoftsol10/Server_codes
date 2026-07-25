@@ -1,5 +1,7 @@
 import { printBill } from '../utils/printBill';
-import { getToken } from '../../../utils/tabToken';
+import { getToken } from '../../../utils/tabToken';
+import { showToast } from '../../../components/common/Toast';
+import { focusFirstInvalidField, validateFields } from '../../../utils/formValidation';
 
 export const useBillingActions = ({
   formData,
@@ -17,8 +19,10 @@ export const useBillingActions = ({
   newClient,
   setNewClient,
   activeTab,
+  setBillingErrors,
+  setClientErrors,
 }) => {
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
   // Fetch bills
   const fetchBills = async () => {
@@ -216,17 +220,28 @@ const handleInputChange = (e) => {
   }
 };
 
+  const validateBillForm = () => {
+    const errors = validateFields([
+      { name: 'billNumber', value: formData.billNumber, label: 'Bill number', rules: ['required'] },
+      { name: 'billDate', value: formData.billDate, label: 'Bill date', rules: ['date'] },
+      { name: 'clientName', value: formData.clientName, label: 'Client name', rules: ['name'] },
+      { name: 'projectName', value: formData.projectName, label: 'Project name', rules: ['name'] },
+      { name: 'clientPhone', value: formData.clientPhone, label: 'Client phone', rules: formData.clientPhone ? ['optionalMobile'] : [] },
+      { name: 'clientEmail', value: formData.clientEmail, label: 'Client email', rules: formData.clientEmail ? ['optionalEmail'] : [] },
+      ...formData.items.flatMap((item, index) => [
+        { name: `items.${index}.description`, value: item.description, label: 'Item description', rules: ['textarea'] },
+        { name: `items.${index}.quantity`, value: item.quantity, label: 'Quantity', rules: ['quantity'] },
+        { name: `items.${index}.rate`, value: item.rate, label: 'Rate', rules: ['amount'] },
+      ]),
+    ]);
+    setBillingErrors?.(errors);
+    if (Object.keys(errors).length) focusFirstInvalidField(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Generate bill
   const handleGenerateBill = async (isDraft = false) => {
-    if (!formData.billNumber || !formData.billDate || !formData.clientName || !formData.projectName) {
-      alert("Please fill in all required fields (Bill Number, Bill Date, Client Name, Project Name)");
-      return;
-    }
-
-    if (formData.items.length === 0 || !formData.items[0].description) {
-      alert("Please add at least one bill item");
-      return;
-    }
+    if (!validateBillForm()) return;
 
     try {
       const token = getToken();
@@ -248,22 +263,23 @@ const handleInputChange = (e) => {
 
       if (response.ok && data.success) {
         const actionText = isDraft ? 'saved as draft' : 'created';
-        alert(`✅ ${formData.billType === 'invoice' ? 'Invoice' : 'Quotation'} ${formData.billNumber} ${actionText} successfully!`);
+        showToast(`${formData.billType === 'invoice' ? 'Invoice' : 'Quotation'} ${formData.billNumber} ${actionText} successfully!`, "success");
         
         fetchBills();
         resetForm();
       } else {
-        alert(`❌ Error: ${data.error || 'Failed to create bill'}`);
+        showToast(`Error: ${data.error || 'Failed to create bill'}`, "error");
       }
     } catch (error) {
       console.error('Error creating bill:', error);
-      alert('❌ Failed to create bill. Please try again.');
+      showToast('Failed to create bill. Please try again.', 'error');
     }
   };
 
   // Update bill
   const handleUpdateBill = async (isDraft = false, editingBill) => {
     if (!editingBill) return;
+    if (!validateBillForm()) return;
 
     try {
       const token = getToken();
@@ -284,17 +300,17 @@ const handleInputChange = (e) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert(`✅ Bill updated successfully!`);
+        showToast(`Bill updated successfully!`, "success");
         fetchBills();
         setShowEditModal(false);
         setEditingBill(null);
         resetForm();
       } else {
-        alert(`❌ Error: ${data.error || 'Failed to update bill'}`);
+        showToast(`Error: ${data.error || 'Failed to update bill'}`, "error");
       }
     } catch (error) {
       console.error('Error updating bill:', error);
-      alert('❌ Failed to update bill. Please try again.');
+      showToast('Failed to update bill. Please try again.', 'error');
     }
   };
 
@@ -398,7 +414,7 @@ const handleInputChange = (e) => {
   // Delete bill
   const handleDeleteBill = async (billId) => {
     if (!billId) {
-      alert('Invalid bill ID');
+      showToast('Invalid bill ID', 'warning');
       return;
     }
 
@@ -418,14 +434,14 @@ const handleInputChange = (e) => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert('✅ Bill deleted successfully!');
+        showToast('Bill deleted successfully!', 'success');
         fetchBills();
       } else {
-        alert(`❌ Error: ${data.error || 'Failed to delete bill'}`);
+        showToast(`Error: ${data.error || 'Failed to delete bill'}`, "error");
       }
     } catch (error) {
       console.error('Error deleting bill:', error);
-      alert('❌ Failed to delete bill. Please try again.');
+      showToast('Failed to delete bill. Please try again.', 'error');
     }
   };
 
@@ -447,18 +463,25 @@ const handleInputChange = (e) => {
       if (response.ok && data.success) {
         fetchBills();
       } else {
-        alert(`❌ Error: ${data.error || 'Failed to update status'}`);
+        showToast(`Error: ${data.error || 'Failed to update status'}`, "error");
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('❌ Failed to update status. Please try again.');
+      showToast('Failed to update status. Please try again.', 'error');
     }
   };
 
 // Add client
 const handleAddClient = async () => {
-  if (!newClient.clientName || newClient.clientName.trim() === '') {
-    alert('Please enter client name');
+  const errors = validateFields([
+    { name: 'clientName', value: newClient.clientName, label: 'Client name', rules: ['name'] },
+    { name: 'clientPhone', value: newClient.clientPhone, label: 'Phone number', rules: newClient.clientPhone ? ['optionalMobile'] : [] },
+    { name: 'clientEmail', value: newClient.clientEmail, label: 'Email', rules: newClient.clientEmail ? ['optionalEmail'] : [] },
+    { name: 'clientAddress', value: newClient.clientAddress, label: 'Client address', rules: newClient.clientAddress ? ['textarea'] : [] },
+  ]);
+  setClientErrors?.(errors);
+  if (Object.keys(errors).length) {
+    focusFirstInvalidField(errors);
     return;
   }
 
@@ -497,13 +520,13 @@ const handleAddClient = async () => {
       // Close modal
       setShowClientModal(false);
 
-      alert('✅ Client added successfully! You can now select it from the dropdown.');
+      showToast('Client added successfully! You can now select it from the dropdown.', 'success');
     } else {
-      alert(`❌ Error: ${data.error || 'Failed to add client'}`);
+      showToast(`Error: ${data.error || 'Failed to add client'}`, "error");
     }
   } catch (error) {
     console.error('Error adding client:', error);
-    alert('❌ Failed to add client. Please try again.');
+    showToast('Failed to add client. Please try again.', 'error');
   }
 };
 

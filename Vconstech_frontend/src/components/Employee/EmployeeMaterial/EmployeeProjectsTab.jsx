@@ -11,7 +11,8 @@ const EmployeeProjectsTab = ({
   onAddProjectMaterial, 
   onLogUsage,
   onEditUsage,
-  onDownloadReport
+  onDownloadReport,
+  canExecuteSelectedProject = true
 }) => {
   const [editingLog, setEditingLog] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -64,7 +65,9 @@ const EmployeeProjectsTab = ({
           </div>
           <button
             onClick={onAddProjectMaterial}
-            className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center gap-2"
+            disabled={!canExecuteSelectedProject}
+            title={canExecuteSelectedProject ? undefined : "Available when the selected project is In Progress"}
+            className={`px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 flex items-center gap-2 ${canExecuteSelectedProject ? '' : 'opacity-60 cursor-not-allowed hover:bg-black'}`}
           >
             <Plus className="w-5 h-5" />
             Request Material for Project
@@ -77,7 +80,9 @@ const EmployeeProjectsTab = ({
           <h3 className="text-lg font-semibold text-gray-900">Project Materials</h3>
           <button
             onClick={onLogUsage}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+            disabled={!canExecuteSelectedProject}
+            title={canExecuteSelectedProject ? undefined : "Available when the selected project is In Progress"}
+            className={`px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm ${canExecuteSelectedProject ? '' : 'opacity-60 cursor-not-allowed hover:bg-green-600'}`}
           >
             Log Usage
           </button>
@@ -227,8 +232,9 @@ const EmployeeProjectsTab = ({
                         ) : (
                           <button
                             onClick={() => handleEditClick(log, idx)}
-                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                            title="Edit"
+                            disabled={!canExecuteSelectedProject}
+                            className={`p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded ${canExecuteSelectedProject ? '' : 'opacity-50 cursor-not-allowed hover:bg-transparent'}`}
+                            title={canExecuteSelectedProject ? "Edit" : "Available when the selected project is In Progress"}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>

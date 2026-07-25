@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Bell, LogOut, X, Menu } from 'lucide-react';
+﻿import { useEffect, useState } from 'react'
+import { LogOut, X, Menu } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { logout } from '../../utils/auth'; // ✅ Import auth utility
+import { logout } from '../../utils/auth'; //  Import auth utility
 import { getToken } from '../../utils/tabToken';
 
 const EmployeeNavbar = () => {
@@ -15,7 +15,7 @@ const EmployeeNavbar = () => {
   const fetchProfile = async () => {
     try {
       const token = getToken();
-      const res = await fetch('http://localhost:5000/api/engineers/my-profile', { // ✅ full backend URL
+      const res = await fetch('http://localhost:5001/api/engineers/my-profile', { //  full backend URL
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -43,10 +43,6 @@ const EmployeeNavbar = () => {
 
   const cancelLogout = () => {
     setShowLogoutModal(false);
-  };
-
-  const handleNotification = () => {
-    alert('No new notifications');
   };
 
   const closeMobileMenu = () => {
@@ -113,16 +109,6 @@ const EmployeeNavbar = () => {
 
             {/* Right side - Icons */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {/* Notification Icon */}
-              {/* <button
-                onClick={handleNotification}
-                className="p-2 sm:p-3 text-slate-700 hover:text-slate-900 hover:bg-slate-100 hover:rounded-2xl transition-colors duration-200 relative"
-                aria-label="Notifications"
-              >
-                <Bell size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={2.5} />
-                <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-amber-500 rounded-full"></span>
-              </button> */}
-
               {/* Logout Button (Desktop) */}
               <button
                 onClick={handleLogout}
@@ -217,8 +203,8 @@ const EmployeeNavbar = () => {
 
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/30 bg-opacity-70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 relative animate-fade-in">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative animate-fade-in">
             <button
               onClick={cancelLogout}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"

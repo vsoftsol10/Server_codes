@@ -1,8 +1,6 @@
 // src/controllers/usageLogController.js
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { determineProjectMaterialStatus } from '../utils/generateId.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Get usage logs for a project

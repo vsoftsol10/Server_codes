@@ -1,10 +1,9 @@
 // src/routes/companyRoutes.js
 import express from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/database.js';
 import { authenticateToken } from '../middlewares/authMiddlewares.js';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // GET /api/companies/:id - Get company by ID
 router.get('/:id', authenticateToken, async (req, res) => {

@@ -1,5 +1,18 @@
-import { CheckCircle, XCircle, Clock, Eye, Pencil, Filter, Search, X, FileText, Image, File, Download } from 'lucide-react';
+﻿import { CheckCircle, XCircle, Clock, Eye, Pencil, Filter, Search, X, FileText, Image, File, Download } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { getTodayDateInputValue } from '../../../utils/formValidation';
+
+const BACKEND_BASE_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_URL?.replace(/\/api\/?$/, "") ||
+  window.location.origin;
+
+const resolveFileUrl = (file) => {
+  const rawUrl = typeof file === 'string' ? file : file?.url || file?.fileUrl || '';
+  if (!rawUrl) return '';
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  return `${BACKEND_BASE_URL}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+};
 
 const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   const [activeTab, setActiveTab] = useState('GLOBAL');
@@ -92,7 +105,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   if (onUpdateRequest) {
     const formData = new FormData();
 
-    // ✅ Always include the id
+    //  Always include the id
     formData.append('id', editModal.id);
 
     Object.entries(editForm).forEach(([key, val]) => {
@@ -122,11 +135,11 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
   const DetailRow = ({ label, value }) => (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{label}</span>
-      <span className="text-sm text-gray-800 font-medium">{value || '—'}</span>
+      <span className="text-sm text-gray-800 font-medium">{value || '-'}</span>
     </div>
   );
 
-  const InputField = ({ label, name, type = 'text', value, onChange, disabled }) => (
+  const InputField = ({ label, name, type = 'text', value, onChange, disabled, min }) => (
     <div className="flex flex-col gap-1">
       <label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">{label}</label>
       <input
@@ -135,6 +148,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
         value={value}
         onChange={onChange}
         disabled={disabled}
+        min={min}
         className={`border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-yellow-400 transition-colors ${
           disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-100' : 'bg-white border-gray-200 text-gray-800'
         }`}
@@ -255,23 +269,23 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
               <tbody>
                 {filteredRequests.map((request) => (
                   <tr key={request.id} className="border-b border-gray-50 hover:bg-yellow-50 transition-colors">
-                    <td className="py-3 px-3 font-medium text-gray-900">{request.name || '—'}</td>
-                    <td className="py-3 px-3 text-gray-800">{request.vendor || '—'}</td>
+                    <td className="py-3 px-3 font-medium text-gray-900">{request.name || '-'}</td>
+                    <td className="py-3 px-3 text-gray-800">{request.vendor || '-'}</td>
                     {activeTab === 'PROJECT' && (
-                      <td className="py-3 px-3 text-gray-800">{request.projectName || '—'}</td>
+                      <td className="py-3 px-3 text-gray-800">{request.projectName || '-'}</td>
                     )}
-                    <td className="py-3 px-3 text-gray-800">₹{request.defaultRate}</td>
+                    <td className="py-3 px-3 text-gray-800">Rs.{request.defaultRate}</td>
                     <td className="py-3 px-3 text-gray-800">{request.quantity} {request.unit}</td>
                     <td className="py-3 px-3 text-gray-800">
-                      {request.dueDate ? new Date(request.dueDate).toLocaleDateString('en-IN') : '—'}
+                      {request.dueDate ? new Date(request.dueDate).toLocaleDateString('en-IN') : '-'}
                     </td>
-                    <td className="py-3 px-3 text-gray-800">{request.description || '—'}</td>
+                    <td className="py-3 px-3 text-gray-800">{request.description || '-'}</td>
                     <td className="py-3 px-3">
                       <div className="flex flex-col gap-1">
                         {getStatusBadge(request.status)}
                         {request.adminComment && request.status === 'PENDING' && (
                           <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            💬 Has comment
+                            Comment Has comment
                           </span>
                         )}
                       </div>
@@ -285,7 +299,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                           onClick={() => openEdit(request)}
                           disabled={request.status !== 'PENDING'}
                           className={`transition-colors ${request.status === 'PENDING' ? 'text-gray-400 hover:text-yellow-500' : 'text-gray-200 cursor-not-allowed'}`}
-                          title={request.status === 'PENDING' ? 'Edit Request' : 'Cannot edit — already reviewed'}
+                          title={request.status === 'PENDING' ? 'Edit Request' : 'Cannot edit - already reviewed'}
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -299,11 +313,11 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
         )}
       </div>
 
-      {/* ─────────────────────────────────────────
+      {/* -----------------------------------------
           VIEW MODAL
-      ───────────────────────────────────────── */}
+      ----------------------------------------- */}
       {viewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity duration-300 p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
@@ -327,7 +341,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
               <div className="grid grid-cols-2 gap-4">
                 <DetailRow label="Material Name" value={viewModal.name} />
                 <DetailRow label="Vendor" value={viewModal.vendor} />
-                <DetailRow label="Price" value={viewModal.defaultRate ? `₹${viewModal.defaultRate} / ${viewModal.unit}` : null} />
+                <DetailRow label="Price" value={viewModal.defaultRate ? `Rs.${viewModal.defaultRate} / ${viewModal.unit}` : null} />
                 <DetailRow label="Quantity" value={viewModal.quantity ? `${viewModal.quantity} ${viewModal.unit}` : null} />
                 <DetailRow
                   label="Due Date"
@@ -373,7 +387,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
               {viewModal.adminComment && (
                 <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
                   <p className="text-xs text-amber-600 uppercase tracking-wide font-semibold mb-1">
-                    💬 Admin Comment
+                    Comment Admin Comment
                   </p>
                   <p className="text-sm text-amber-800">{viewModal.adminComment}</p>
                   {viewModal.status === 'PENDING' && (
@@ -397,16 +411,16 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                         .map((file, idx) => (
                           <div key={idx} className="relative group rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
                             <img
-                              src={file.url || file.fileUrl}
+                              src={resolveFileUrl(file)}
                               alt={file.name || file.fileName}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                              <a href={file.url || file.fileUrl} target="_blank" rel="noopener noreferrer"
+                              <a href={resolveFileUrl(file)} target="_blank" rel="noopener noreferrer"
                                 className="p-1.5 bg-white rounded-full text-gray-700 hover:text-blue-500 transition-colors">
                                 <Eye className="w-3.5 h-3.5" />
                               </a>
-                              <a href={file.url || file.fileUrl} download={file.name || file.fileName}
+                              <a href={resolveFileUrl(file)} download={file.name || file.fileName}
                                 className="p-1.5 bg-white rounded-full text-gray-700 hover:text-yellow-500 transition-colors">
                                 <Download className="w-3.5 h-3.5" />
                               </a>
@@ -438,11 +452,11 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0 ml-2">
-                            <a href={file.url || file.fileUrl} target="_blank" rel="noopener noreferrer"
+                            <a href={resolveFileUrl(file)} target="_blank" rel="noopener noreferrer"
                               className="p-1.5 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors">
                               <Eye className="w-4 h-4" />
                             </a>
-                            <a href={file.url || file.fileUrl} download={fileName}
+                            <a href={resolveFileUrl(file)} download={fileName}
                               className="p-1.5 rounded-md text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 transition-colors">
                               <Download className="w-4 h-4" />
                             </a>
@@ -470,17 +484,17 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
         </div>
       )}
 
-      {/* ─────────────────────────────────────────
+      {/* -----------------------------------------
           EDIT MODAL
-          ✅ FIX: file upload is now INSIDE the
+           FIX: file upload is now INSIDE the
           scrollable flex-1 body, not outside it
-      ───────────────────────────────────────── */}
+      ----------------------------------------- */}
       {editModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-          {/* ✅ The modal is a flex column: header (shrink-0) | body (flex-1 scroll) | footer (shrink-0) */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm transition-opacity duration-300 p-4">
+          {/*  The modal is a flex column: header (shrink-0) | body (flex-1 scroll) | footer (shrink-0) */}
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
 
-            {/* Header — fixed, never scrolls */}
+            {/* Header - fixed, never scrolls */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
               <div>
                 <h2 className="text-base font-bold text-gray-900">Edit Request</h2>
@@ -488,7 +502,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                 {/* Show admin comment banner inside header if present */}
                 {editModal.adminComment && (
                   <div className="mt-2 flex items-start gap-1.5 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
-                    <span className="text-amber-500 text-xs mt-0.5">💬</span>
+                    <span className="text-amber-500 text-xs mt-0.5">Comment</span>
                     <p className="text-xs text-amber-700 leading-snug">{editModal.adminComment}</p>
                   </div>
                 )}
@@ -498,17 +512,17 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
               </button>
             </div>
 
-            {/* ✅ Body — scrollable, contains EVERYTHING including file upload */}
+            {/*  Body - scrollable, contains EVERYTHING including file upload */}
             <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
               {/* Form fields */}
               <div className="grid grid-cols-2 gap-4">
                 <InputField label="Material Name" name="name" value={editForm.name} onChange={handleEditChange} />
                 <InputField label="Vendor" name="vendor" value={editForm.vendor} onChange={handleEditChange} />
-                <InputField label="Price (₹)" name="defaultRate" type="number" value={editForm.defaultRate} onChange={handleEditChange} />
+                <InputField label="Price (Rs.)" name="defaultRate" type="number" value={editForm.defaultRate} onChange={handleEditChange} />
                 <InputField label="Quantity" name="quantity" type="number" value={editForm.quantity} onChange={handleEditChange} />
                 <InputField label="Unit" name="unit" value={editForm.unit} onChange={handleEditChange} />
-                <InputField label="Due Date" name="dueDate" type="date" value={editForm.dueDate} onChange={handleEditChange} />
+                <InputField label="Due Date" name="dueDate" type="date" value={editForm.dueDate} onChange={handleEditChange} min={getTodayDateInputValue()} />
                 {editModal.type !== 'GLOBAL' && (
                   <div className="col-span-2">
                     <InputField label="Project" name="projectName" value={editForm.projectName} onChange={handleEditChange} disabled />
@@ -527,7 +541,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
                 />
               </div>
 
-              {/* ✅ File upload — now INSIDE the scrollable body so it renders and works correctly */}
+              {/*  File upload - now INSIDE the scrollable body so it renders and works correctly */}
               <div className="flex flex-col gap-2">
                 <label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
                   Upload Revised Quotation
@@ -575,7 +589,7 @@ const EmployeeRequestTab = ({ requests, onUpdateRequest }) => {
 
             </div>{/* end scrollable body */}
 
-            {/* Footer — fixed at bottom, never scrolls */}
+            {/* Footer - fixed at bottom, never scrolls */}
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
               <button
                 onClick={closeEdit}

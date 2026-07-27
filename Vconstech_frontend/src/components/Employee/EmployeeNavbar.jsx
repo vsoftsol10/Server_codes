@@ -4,6 +4,8 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { logout } from '../../utils/auth'; //  Import auth utility
 import { getToken } from '../../utils/tabToken';
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const EmployeeNavbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -15,7 +17,7 @@ const EmployeeNavbar = () => {
   const fetchProfile = async () => {
     try {
       const token = getToken();
-      const res = await fetch('http://localhost:5001/api/engineers/my-profile', { //  full backend URL
+      const res = await fetch(`${API_URL}/engineers/my-profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

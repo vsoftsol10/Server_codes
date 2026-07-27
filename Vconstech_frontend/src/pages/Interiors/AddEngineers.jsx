@@ -19,18 +19,21 @@ import Toast from "../../components/common/Toast";
 import LoadingScreen from "../../components/common/Loadingscreen";
 import Pagination, { DEFAULT_PAGE_SIZE } from "../../components/common/Pagination";
 import { getToken } from '../../utils/tabToken';
+const API_URL = import.meta.env.VITE_API_URL;
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || API_URL.replace(/\/api\/?$/, "");
+
 
 const getImageUrl = (profileImage) => {
   if (!profileImage) return null;
   if (profileImage.startsWith("http")) return profileImage;
-  const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5001";
-  return `${backendUrl}${profileImage}`;
+  return `${BACKEND_URL}${profileImage}`;
 };
 
 const getAllEngineers = async () => {
   const token = getToken();
   if (!token) throw new Error("No authentication token found");
-  const response = await fetch("/api/engineers", {
+  const response = await fetch(`${API_URL}/engineers`, {
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
   if (!response.ok) {
@@ -54,7 +57,7 @@ const createEngineer = async (engineerData) => {
   formData.append("username", engineerData.username);
   formData.append("password", engineerData.password);
   if (engineerData.profileImage) formData.append("profileImage", engineerData.profileImage);
-  const response = await fetch("/api/engineers", {
+  const response = await fetch(`${API_URL}/engineers`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -77,7 +80,7 @@ const updateEngineer = async (id, engineerData) => {
   formData.append("username", engineerData.username);
   if (engineerData.password) formData.append("password", engineerData.password);
   if (engineerData.profileImage) formData.append("profileImage", engineerData.profileImage);
-  const response = await fetch(`/api/engineers/${id}`, {
+  const response = await fetch(`${API_URL}/engineers/${id}`, {
     method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
     body: formData,
@@ -89,7 +92,7 @@ const updateEngineer = async (id, engineerData) => {
 const deleteEngineer = async (id) => {
   const token = getToken();
   if (!token) throw new Error("No authentication token found");
-  const response = await fetch(`/api/engineers/${id}`, {
+  const response = await fetch(`${API_URL}/engineers/${id}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
   });
@@ -162,7 +165,7 @@ const AddEngineers = () => {
       setPackageInfo({ package: user.package, limit });
     } else {
       try {
-        const response = await fetch("/api/engineers/me", {
+        const response = await fetch(`${API_URL}/engineers/me`, {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
         if (response.ok) {

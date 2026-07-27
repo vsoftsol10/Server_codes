@@ -18,7 +18,7 @@ import LoadingScreen from "../../components/common/Loadingscreen";
 import Pagination, { DEFAULT_PAGE_SIZE } from "../../components/common/Pagination";
 import { getToken } from "../../utils/tabToken";
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 /* ── Kanban column config ── */
 const COLUMNS = [
@@ -29,7 +29,8 @@ const COLUMNS = [
 ];
 
 /* ── Inline card component (kanban style) ── */
-import KanbanProjectCard from "../../components/ProjectManagement/ProjectCard";
+import KanbanProjectCard from "../../components/ProjectManagement/ProjectCard";
+
 import { showToast } from '../../components/common/Toast';
 
 /* ── Format helpers (used by table view) ── */
@@ -104,7 +105,7 @@ const ProjectManagement = () => {
     } else {
       try {
         const token = getAuthToken();
-        const response = await fetch("/api/engineers/me", { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch(`${API_BASE_URL}/engineers/me`, { headers: { Authorization: `Bearer ${token}` } });
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.user) {

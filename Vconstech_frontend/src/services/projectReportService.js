@@ -4,7 +4,7 @@ import autoTable from 'jspdf-autotable';
 import { getToken } from '../utils/tabToken';
 import companyLogoUrl from '../assets/constech-logo.png';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const PDF_THEME = {
   primary: '#FFBE2A',

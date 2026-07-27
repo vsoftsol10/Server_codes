@@ -8,7 +8,7 @@ const DailyProgressViewer = ({ projectId, projectName, onClose }) => {
   const [error, setError] = useState(null);
   const [expandedUpdate, setExpandedUpdate] = useState(null);
   
-  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     fetchDailyUpdates();

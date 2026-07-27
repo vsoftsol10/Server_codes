@@ -3,7 +3,7 @@ import { Edit, Trash2, Download, Loader2, Eye, X, User, Mail, Phone, Building2, 
 import { getToken } from '../../../utils/tabToken';
 import { showToast } from '../../../components/common/Toast';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ROWS_PER_PAGE = 10;
 
@@ -395,7 +395,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
     setDownloadingId(user.id);
     try {
       const token = getToken() || "";
-      const response = await fetch(`/api/superadmin/users/${user.id}/export`, {
+      const response = await fetch(`${API_URL}/superadmin/users/${user.id}/export`, {
         method:  "GET",
         headers: {
           Authorization: `Bearer ${token}`,

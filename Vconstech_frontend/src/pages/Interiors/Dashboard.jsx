@@ -10,7 +10,7 @@ import SidePannel from '../../components/common/SidePannel';
 import LoadingScreen from '../../components/common/Loadingscreen';
 import { getToken } from '../../utils/tabToken';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 /* ── tiny helpers ── */
 const Sparkline = ({ color = '#f59e0b', points = '0,20 10,14 20,18 30,10 40,15 50,8 60,12' }) => (

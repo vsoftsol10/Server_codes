@@ -1,7 +1,8 @@
 // src/services/labourApi.js
 
-const API_URL = '/api/labours';
 import { getAuthToken } from '../utils/auth';
+
+const API_URL = `${import.meta.env.VITE_API_URL}/labours`;
 
 
 // Helper function to get auth token

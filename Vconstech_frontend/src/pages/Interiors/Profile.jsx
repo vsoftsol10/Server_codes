@@ -47,7 +47,8 @@ const Profile = () => {
   const [success, setSuccess] = useState("");
 
   const API_BASE_URL =
-    import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:5001";
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "");
 
   useEffect(() => {
     document.title = "Vconstech - Admin";
@@ -61,8 +62,7 @@ const Profile = () => {
     setError("");
 
     const loadProfile = async () => {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+      const API_URL = import.meta.env.VITE_API_URL;
       const userId = localStorage.getItem("userId");
       const token = getToken();
 
@@ -152,8 +152,7 @@ const Profile = () => {
     setSuccess("");
 
     try {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+      const API_URL = import.meta.env.VITE_API_URL;
       const userId = localStorage.getItem("userId");
       const token = getToken();
       const response = await fetch(`${API_URL}/users/profile/${userId}`, {

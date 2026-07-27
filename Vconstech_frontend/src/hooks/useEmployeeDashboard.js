@@ -25,7 +25,7 @@ const useEmployeeDashboard = () => {
   const [dailyProgressHistory, setDailyProgressHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   
-  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const getTimeAgo = (date) => {
     const now = new Date();
@@ -207,7 +207,7 @@ const token = getToken();
         }
         
 
-        const profileResponse = await fetch(`${API_BASE_URL.replace('/api', '')}/api/profile`, {
+        const profileResponse = await fetch(`${API_BASE_URL}/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

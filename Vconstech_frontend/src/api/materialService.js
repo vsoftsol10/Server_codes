@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { getToken, removeToken } from '../utils/tabToken';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Create axios instance with default config
 const api = axios.create({

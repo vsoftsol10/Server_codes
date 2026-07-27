@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { getToken, setToken, removeToken } from '../utils/tabToken';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const getAuthToken = () => getToken();
 

@@ -33,11 +33,11 @@ export const printBill = (bill) => {
   const documentTitle = billType === "quotation" ? "QUOTATION" : "TAX INVOICE";
   const companyLogo   = bill.company?.logo || bill.companyLogo || bill.user?.company?.logo || null;
 
-  let API_BASE_URL = "http://localhost:5001";
-  if (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL)
-    API_BASE_URL = import.meta.env.VITE_API_URL.replace("/api", "");
-  else if (typeof process !== "undefined" && process.env?.VITE_API_URL)
-    API_BASE_URL = process.env.VITE_API_URL.replace("/api", "");
+  const API_BASE_URL =
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_BACKEND_URL) ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL?.replace(/\/api\/?$/, "")) ||
+    (typeof process !== "undefined" && process.env?.VITE_BACKEND_URL) ||
+    (typeof process !== "undefined" && process.env?.VITE_API_URL?.replace(/\/api\/?$/, ""));
 
   const subtotal     = items.reduce((s, i) => s + Number(i?.amount || 0), 0);
   const grossAmount  = subtotal

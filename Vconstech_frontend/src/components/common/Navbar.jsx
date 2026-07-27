@@ -3,7 +3,7 @@
 // import { useNavigate } from 'react-router-dom';
 // import { getToken, removeToken } from '../../utils/tabToken';
 
-// const API_BASE = 'http://localhost:5000';
+// const API_BASE = import.meta.env.VITE_BACKEND_URL;
 
 // const Navbar = () => {
 //   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -420,8 +420,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, removeToken } from '../../utils/tabToken';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
-const API_BASE = API_URL.replace("/api", "");
+const API_URL = import.meta.env.VITE_API_URL;
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || API_URL.replace(/\/api\/?$/, "");
 
 const Navbar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -470,7 +471,7 @@ const Navbar = () => {
   const fetchCompanyName = async (companyId) => {
     try {
       const { token } = getAuth();
-      const res = await fetch(`${API_BASE}/api/companies/${companyId}`, {
+      const res = await fetch(`${API_URL}/companies/${companyId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -495,7 +496,7 @@ const Navbar = () => {
       console.log(' userId from storage:', userId);
       if (!userId) return;
 
-      const res = await fetch(`${API_BASE}/api/users/profile/${userId}`, {
+      const res = await fetch(`${API_URL}/users/profile/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -512,7 +513,7 @@ const Navbar = () => {
         console.log(' Logo path from API:', logo);
 
         if (logo) {
-          const logoUrl = logo.startsWith('http') ? logo : `${API_BASE}${logo}`;
+          const logoUrl = logo.startsWith('http') ? logo : `${BACKEND_URL}${logo}`;
           console.log(' Resolved logo URL:', logoUrl);
           setProfilePic(logoUrl);
         } else {
@@ -535,7 +536,7 @@ const Navbar = () => {
       const { token } = getAuth();
       if (!token) return;
 
-      const res = await fetch(`${API_BASE}/api/notifications`, {
+      const res = await fetch(`${API_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -556,7 +557,7 @@ const Navbar = () => {
   const markNotificationAsRead = async (id) => {
     try {
       const { token } = getAuth();
-      await fetch(`${API_BASE}/api/notifications/${id}/read`, {
+      await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -567,7 +568,7 @@ const Navbar = () => {
   const markAllAsRead = async () => {
     try {
       const { token } = getAuth();
-      await fetch(`${API_BASE}/api/notifications/read-all`, {
+      await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -578,7 +579,7 @@ const Navbar = () => {
   const deleteNotification = async (id) => {
     try {
       const { token } = getAuth();
-      await fetch(`${API_BASE}/api/notifications/${id}`, {
+      await fetch(`${API_URL}/notifications/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

@@ -1,5 +1,5 @@
 // src/api/materialAPI.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 import { getAuthToken } from '../utils/auth';
 
 // Helper to handle API responses

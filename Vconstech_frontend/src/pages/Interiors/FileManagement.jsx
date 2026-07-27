@@ -251,7 +251,7 @@ const FileManagement = ({ mode = "admin" }) => {
   const [selectedFileIds, setSelectedFileIds]   = useState([]);
   const [isZipDownloading, setIsZipDownloading] = useState(false);
 
-  const API_BASE_URL  = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+  const API_BASE_URL  = import.meta.env.VITE_API_URL;
   const projectsLabel = isEmployeeMode ? "My Projects" : "Projects";
   const emptyProjectsText = isEmployeeMode
     ? "You will see assigned projects here once they are assigned to you"

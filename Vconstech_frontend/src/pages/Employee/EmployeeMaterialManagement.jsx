@@ -15,6 +15,7 @@ import LogUsageModal from "../../components/Employee/EmployeeMaterial/Logusagemo
 import { showToast } from '../../components/common/Toast';
 
 const TABS = ["materials", "projects", "my-requests"];
+const API_URL = import.meta.env.VITE_API_URL;
 
 const TAB_LABELS = {
   materials: "Materials",
@@ -264,7 +265,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
         }, 0),
       };
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "/api"}/reports/usage-pdf`, {
+      const response = await fetch(`${API_URL}/reports/usage-pdf`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reportData),
@@ -302,7 +303,7 @@ const handleSubmitMaterialRequest = async (newMaterial, requestType) => {
     setLoading(true);
 
     // ✅ Always send formData — multer handles both file and non-file cases
-    await fetch(`http://localhost:5001/api/material-requests/${updatedRequest.id}`, {
+    await fetch(`${API_URL}/material-requests/${updatedRequest.id}`, {
       method: 'PUT',
       headers: { 
         Authorization: `Bearer ${getToken()}`,

@@ -35,7 +35,7 @@
 
 //     try {
 //       const API_URL =
-//         import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+//         import.meta.env.VITE_API_URL;
 //       const userId = localStorage.getItem("userId");
 //       const token = getToken();
 
@@ -187,8 +187,7 @@ const CompanyLogoUpload = ({ userInfo, apiBaseUrl, onUploadSuccess, onError }) =
     setUploadingLogo(true);
 
     try {
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+      const API_URL = import.meta.env.VITE_API_URL;
       const userId = localStorage.getItem("userId");
       const token = getToken();
 

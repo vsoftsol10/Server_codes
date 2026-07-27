@@ -6,7 +6,7 @@ import labourApi from './labourAPI.js';
 import { getContractsByProject } from '../api/contractAPI.js';
 import { getToken } from '../utils/tabToken.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 
 const handleResponse = async (response) => {

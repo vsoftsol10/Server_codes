@@ -8,8 +8,7 @@ const router = express.Router();
 
 const normalizeAmount = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
 
-const enrichProject = async (project, companyId) => {
-  const budgetSummary = await BudgetCalculationService.calculateProjectFinancials(project.id, { companyId });
+const formatProject = (project, budgetSummary) => {
   return {
     id: project.id,
     name: project.name,
@@ -32,6 +31,16 @@ const enrichProject = async (project, companyId) => {
   };
 };
 
+const enrichProject = async (project, companyId) => {
+  const budgetSummary = await BudgetCalculationService.calculateProjectFinancials(project.id, { companyId });
+  return formatProject(project, budgetSummary);
+};
+
+const enrichProjects = async (projects, companyId) => {
+  const budgetSummaries = await BudgetCalculationService.calculateProjectsFinancials(projects, { companyId });
+  return projects.map((project) => formatProject(project, budgetSummaries.get(project.id)));
+};
+
 // ============ GET ALL PROJECTS WITH FINANCIAL DATA ============
 router.get('/projects', authenticateToken, async (req, res) => {
   try {
@@ -47,7 +56,7 @@ router.get('/projects', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    const transformedProjects = await Promise.all(projects.map((project) => enrichProject(project, companyId)));
+    const transformedProjects = await enrichProjects(projects, companyId);
 
     res.json({
       success: true,

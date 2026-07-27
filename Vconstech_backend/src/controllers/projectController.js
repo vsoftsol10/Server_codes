@@ -927,6 +927,31 @@ const attachBudgetSummary = async (project) => {
     budgetSummary,
   };
 };
+
+const attachBudgetSummaries = async (projects = [], companyId) => {
+  const budgetSummaries = await BudgetCalculationService.calculateProjectsFinancials(projects, {
+    companyId,
+  });
+
+  return projects.map((project) => {
+    const budgetSummary = budgetSummaries.get(project.id);
+    if (!budgetSummary) return project;
+
+    return {
+      ...project,
+      totalBudget: budgetSummary.totalBudget,
+      materialCost: budgetSummary.materialCost,
+      labourCost: budgetSummary.labourCost,
+      contractCost: budgetSummary.contractCost,
+      expenseCost: budgetSummary.expenseCost,
+      totalSpent: budgetSummary.totalSpent,
+      remainingBudget: budgetSummary.remainingBudget,
+      spent: budgetSummary.totalSpent,
+      spentBreakdown: budgetSummary.breakdown,
+      budgetSummary,
+    };
+  });
+};
  
 export const createProject = async (req, res) => {
   try {
@@ -1111,9 +1136,7 @@ export const getProjectsByCompany = async (req, res) => {
       }
     });
 
-    const projectsWithBudgetSummary = await Promise.all(
-      projects.map((project) => attachBudgetSummary(project))
-    );
+    const projectsWithBudgetSummary = await attachBudgetSummaries(projects, companyId);
 
     console.log('Projects found:', projects.length);
     console.log('Project IDs:', projects.map(p => ({ id: p.id, projectId: p.projectId, name: p.name })));

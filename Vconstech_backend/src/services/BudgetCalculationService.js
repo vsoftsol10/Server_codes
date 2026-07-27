@@ -57,7 +57,172 @@ const toBudgetSummary = ({
   };
 };
 
+const createEmptyTotals = () => ({
+  materialCost: 0,
+  labourCost: 0,
+  contractCost: 0,
+  expenseCost: 0,
+});
+
+const addToProjectTotal = (totalsByProjectId, projectId, key, amount) => {
+  const numericProjectId = Number(projectId);
+  if (!totalsByProjectId.has(numericProjectId)) {
+    totalsByProjectId.set(numericProjectId, createEmptyTotals());
+  }
+
+  const totals = totalsByProjectId.get(numericProjectId);
+  totals[key] = normalizeAmount(totals[key] + Number(amount || 0));
+};
+
+const normalizeProjectInputs = (projectsOrIds = []) => (
+  projectsOrIds
+    .map((projectOrId) => (
+      typeof projectOrId === 'object' && projectOrId !== null
+        ? projectOrId
+        : { id: Number(projectOrId) }
+    ))
+    .filter((project) => Number.isInteger(Number(project.id)))
+);
+
 export const BudgetCalculationService = {
+  calculateProjectsFinancials: async (projectsOrIds = [], options = {}) => {
+    const inputProjects = normalizeProjectInputs(projectsOrIds);
+    if (inputProjects.length === 0) {
+      return new Map();
+    }
+
+    const projectIds = [...new Set(inputProjects.map((project) => Number(project.id)))];
+    const projectsMissingBudget = inputProjects.some(
+      (project) => project.budget === undefined && project.quotationAmount === undefined
+    );
+
+    const projects = projectsMissingBudget
+      ? await prisma.project.findMany({
+          where: {
+            id: { in: projectIds },
+            ...(options.companyId ? { companyId: options.companyId } : {}),
+          },
+          select: {
+            id: true,
+            budget: true,
+            quotationAmount: true,
+          },
+        })
+      : inputProjects;
+
+    const scopedProjectIds = projects.map((project) => Number(project.id));
+    if (scopedProjectIds.length === 0) {
+      return new Map();
+    }
+
+    const totalsByProjectId = new Map(
+      scopedProjectIds.map((projectId) => [projectId, createEmptyTotals()])
+    );
+
+    const [
+      materialUsages,
+      labours,
+      contractAggregates,
+      expenseAggregates,
+    ] = await Promise.all([
+      prisma.materialUsage.findMany({
+        where: {
+          projectId: { in: scopedProjectIds },
+          ...(options.companyId ? { project: { companyId: options.companyId } } : {}),
+        },
+        select: {
+          projectId: true,
+          quantity: true,
+          material: {
+            select: {
+              defaultRate: true,
+            },
+          },
+        },
+      }),
+      prisma.labour.findMany({
+        where: {
+          projectId: { in: scopedProjectIds },
+          ...(options.companyId ? { companyId: options.companyId } : {}),
+        },
+        select: {
+          projectId: true,
+          payments: {
+            select: {
+              amount: true,
+            },
+          },
+        },
+      }),
+      prisma.contract.groupBy({
+        by: ['projectId'],
+        where: {
+          projectId: { in: scopedProjectIds },
+          ...(options.companyId ? { project: { companyId: options.companyId } } : {}),
+        },
+        _sum: {
+          contractAmount: true,
+        },
+      }),
+      prisma.projectExpense.groupBy({
+        by: ['projectId'],
+        where: {
+          projectId: { in: scopedProjectIds },
+          ...(options.companyId ? { project: { companyId: options.companyId } } : {}),
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+    ]);
+
+    materialUsages.forEach((usage) => {
+      const quantity = Number(usage.quantity || 0);
+      const rate = Number(usage.material?.defaultRate || 0);
+      addToProjectTotal(totalsByProjectId, usage.projectId, 'materialCost', quantity * rate);
+    });
+
+    labours.forEach((labour) => {
+      const labourPaymentTotal = (labour.payments || []).reduce(
+        (sum, payment) => sum + Number(payment.amount || 0),
+        0
+      );
+      addToProjectTotal(totalsByProjectId, labour.projectId, 'labourCost', labourPaymentTotal);
+    });
+
+    contractAggregates.forEach((aggregate) => {
+      addToProjectTotal(
+        totalsByProjectId,
+        aggregate.projectId,
+        'contractCost',
+        aggregate._sum.contractAmount
+      );
+    });
+
+    expenseAggregates.forEach((aggregate) => {
+      addToProjectTotal(
+        totalsByProjectId,
+        aggregate.projectId,
+        'expenseCost',
+        aggregate._sum.amount
+      );
+    });
+
+    return new Map(projects.map((project) => {
+      const totals = totalsByProjectId.get(Number(project.id)) || createEmptyTotals();
+      return [
+        Number(project.id),
+        toBudgetSummary({
+          totalBudget: project.budget ?? project.quotationAmount ?? 0,
+          materialCost: totals.materialCost,
+          labourCost: totals.labourCost,
+          contractCost: totals.contractCost,
+          expenseCost: totals.expenseCost,
+        }),
+      ];
+    }));
+  },
+
   calculateProjectFinancials: async (projectId, options = {}) => {
     const numericProjectId = Number(projectId);
     if (!Number.isInteger(numericProjectId)) {

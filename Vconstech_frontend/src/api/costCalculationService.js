@@ -1,6 +1,6 @@
 // src/services/costCalculationService.js
 import { financialAPI } from '../api/financialAPI.js';
-import { materialAPI } from '../api/materialService.js';
+import { usageLogAPI } from '../api/materialService.js';
 import { projectAPI } from '../api/projectAPI.js';
 import labourApi from './labourAPI.js';
 import { getContractsByProject } from '../api/contractAPI.js';
@@ -53,7 +53,7 @@ export const costCalculationService = {
       // 2. Get material costs from usage logs
       let materialSpent = 0;
       try {
-        const usageLogs = await materialAPI.usageLogAPI.getByProject(projectId);
+        const usageLogs = await usageLogAPI.getByProject(projectId);
         if (usageLogs.success && usageLogs.logs) {
           // Sum: quantity * unit_price for each log
           materialSpent = usageLogs.logs.reduce((sum, log) => {

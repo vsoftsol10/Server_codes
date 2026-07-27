@@ -35,6 +35,7 @@ router.use(authenticateToken);
 router.get('/', getAllLabourers);
 router.get('/statistics', getLabourStatistics);
 router.get('/template', downloadLabourTemplate);
+router.get('/project/:projectId', getLabourersByProject);
 router.get('/:id', getLabourerById);
 
 // Create labourer (no immediate spending impact)
@@ -63,8 +64,5 @@ router.delete(
   '/:labourId/payments/:paymentId',
   deletePayment
 );
-
-// ========== PROJECT-SPECIFIC OPERATIONS ==========
-router.get('/project/:projectId', getLabourersByProject);
 
 export default router;

@@ -30,6 +30,12 @@ const getBinaryHeaders = () => {
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    const text = await response.text();
+    throw new Error(`Expected JSON but got ${contentType || 'unknown'} from ${response.url}: ${text.slice(0, 80)}`);
+  }
+
   const data = await response.json();
   
   if (!response.ok) {

@@ -1,9 +1,5 @@
 // src/services/costCalculationService.js
-import { financialAPI } from '../api/financialAPI.js';
-import { usageLogAPI } from '../api/materialService.js';
 import { projectAPI } from '../api/projectAPI.js';
-import labourApi from './labourAPI.js';
-import { getContractsByProject } from '../api/contractAPI.js';
 import { getToken } from '../utils/tabToken.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -21,6 +17,27 @@ const handleResponse = async (response) => {
   return data;
 };
 
+const getBackendSpentData = (project = {}) => {
+  const budgetSummary = project.budgetSummary || {};
+  const breakdown = budgetSummary.breakdown || project.spentBreakdown || {};
+  const totalSpent = Number(
+    budgetSummary.totalSpent
+    ?? project.totalSpent
+    ?? project.spent
+    ?? 0
+  ) || 0;
+
+  return {
+    totalSpent,
+    breakdown: {
+      financial: Number(budgetSummary.expenseCost ?? project.expenseCost ?? breakdown.financialExpenses ?? breakdown.expenseCost ?? 0) || 0,
+      materials: Number(budgetSummary.materialCost ?? project.materialCost ?? breakdown.materialCost ?? 0) || 0,
+      labour: Number(budgetSummary.labourCost ?? project.labourCost ?? breakdown.labourCost ?? 0) || 0,
+      contracts: Number(budgetSummary.contractCost ?? project.contractCost ?? breakdown.contractAmount ?? breakdown.contractorPayments ?? 0) || 0,
+    },
+  };
+};
+
 /**
  * Unified Cost Calculation Service
  * Aggregates costs from ALL sources: Financial expenses + Material usage + Labour payments + Contract costs
@@ -33,93 +50,10 @@ export const costCalculationService = {
    */
   calculateProjectSpent: async (projectId) => {
     try {
-      console.log(`💰 Calculating total spent for project ${projectId}...`);
-      
-      // 1. Get financial expenses
-      let financialSpent = 0;
-      try {
-        const financialData = await financialAPI.getProjectById(projectId);
-        if (financialData.success && financialData.project) {
-          // Sum all expenses
-          financialSpent = financialData.project.expenses?.reduce(
-            (sum, exp) => sum + parseFloat(exp.amount || 0), 
-            0
-          ) || 0;
-        }
-      } catch (err) {
-        console.warn('No financial data found for project:', projectId, err.message);
-      }
-      
-      // 2. Get material costs from usage logs
-      let materialSpent = 0;
-      try {
-        const usageLogs = await usageLogAPI.getByProject(projectId);
-        if (usageLogs.success && usageLogs.logs) {
-          // Sum: quantity * unit_price for each log
-          materialSpent = usageLogs.logs.reduce((sum, log) => {
-            const qty = parseFloat(log.quantity || 0);
-            const price = parseFloat(log.material?.unit_price || log.material?.defaultRate || 0);
-            return sum + (qty * price);
-          }, 0);
-        }
-      } catch (err) {
-        console.warn('No material usage found for project:', projectId, err.message);
-      }
-      
-      // 3. Get labour costs (total payments made)
-      let labourSpent = 0;
-      try {
-        const labourData = await labourApi.getLabourersByProject(projectId);
-        if (labourData.success && labourData.labourers) {
-          // Sum total paid amount for each labourer
-          labourSpent = labourData.labourers.reduce((sum, labourer) => {
-            // Sum all payments for this labourer
-            const labourerTotal = labourer.payments?.reduce(
-              (pSum, payment) => pSum + parseFloat(payment.amount || 0),
-              0
-            ) || parseFloat(labourer.totalPaid || 0) || 0;
-            
-            return sum + labourerTotal;
-          }, 0);
-        }
-      } catch (err) {
-        console.warn('No labour data found for project:', projectId, err.message);
-      }
-      
-      // 4. Get contract costs (committed contract amounts)
-      let contractSpent = 0;
-      try {
-        const contractData = await getContractsByProject(projectId);
-        if (contractData.success && contractData.contracts) {
-          // Sum committed contract amount for each contract.
-          contractSpent = contractData.contracts.reduce((sum, contract) => {
-            return sum + parseFloat(contract.contractAmount || 0);
-          }, 0);
-        }
-      } catch (err) {
-        console.warn('No contract data found for project:', projectId, err.message);
-      }
-      
-      // Calculate total
-      const totalSpent = financialSpent + materialSpent + labourSpent + contractSpent;
-      
-      console.log(`✅ Project ${projectId} total spent: ₹${totalSpent.toFixed(2)}`);
-      console.log(`   - Financial: ₹${financialSpent.toFixed(2)}`);
-      console.log(`   - Materials: ₹${materialSpent.toFixed(2)}`);
-      console.log(`   - Labour: ₹${labourSpent.toFixed(2)}`);
-      console.log(`   - Contracts: ₹${contractSpent.toFixed(2)}`);
-      
-      return {
-        totalSpent,
-        breakdown: {
-          financial: financialSpent,
-          materials: materialSpent,
-          labour: labourSpent,
-          contracts: contractSpent
-        }
-      };
+      const projectData = await projectAPI.getProjectById(projectId);
+      return getBackendSpentData(projectData.project || {});
     } catch (error) {
-      console.error('Error calculating project spent:', error);
+      console.error('Error getting project spent:', error);
       throw error;
     }
   },
@@ -132,22 +66,9 @@ export const costCalculationService = {
     try {
       const projects = await projectAPI.getProjects();
       const spentMap = {};
-      
-      // Calculate spent for each project in parallel
-      const calculations = projects.projects.map(async (project) => {
-        try {
-          const spent = await costCalculationService.calculateProjectSpent(project.id);
-          spentMap[project.id] = spent;
-        } catch (err) {
-          console.warn(`Failed to calculate spent for project ${project.id}:`, err);
-          spentMap[project.id] = {
-            totalSpent: 0,
-            breakdown: { financial: 0, materials: 0, labour: 0, contracts: 0 }
-          };
-        }
+      (projects.projects || []).forEach((project) => {
+        spentMap[project.id] = getBackendSpentData(project);
       });
-      
-      await Promise.all(calculations);
       
       return spentMap;
     } catch (error) {
@@ -197,19 +118,16 @@ export const costCalculationService = {
    */
   getProjectWithSpent: async (projectId) => {
     try {
-      // Get project details
       const projectData = await projectAPI.getProjectById(projectId);
+      const project = projectData.project || {};
+      const spentData = getBackendSpentData(project);
       
-      // Calculate spent
-      const spentData = await costCalculationService.calculateProjectSpent(projectId);
-      
-      // Merge data
       return {
-        ...projectData.project,
+        ...project,
         spent: spentData.totalSpent,
         spentBreakdown: spentData.breakdown,
-        budgetUtilization: projectData.project.budget 
-          ? ((spentData.totalSpent / projectData.project.budget) * 100).toFixed(2)
+        budgetUtilization: project.budget
+          ? ((spentData.totalSpent / project.budget) * 100).toFixed(2)
           : 0
       };
     } catch (error) {
@@ -224,33 +142,18 @@ export const costCalculationService = {
    */
   getAllProjectsWithSpent: async () => {
     try {
-      // Get all projects
       const projectsData = await projectAPI.getProjects();
-      
-      // Calculate spent for all projects in parallel
-      const enrichedProjects = await Promise.all(
-        projectsData.projects.map(async (project) => {
-          try {
-            const spentData = await costCalculationService.calculateProjectSpent(project.id);
-            return {
-              ...project,
-              spent: spentData.totalSpent,
-              spentBreakdown: spentData.breakdown,
-              budgetUtilization: project.budget 
-                ? ((spentData.totalSpent / project.budget) * 100).toFixed(2)
-                : 0
-            };
-          } catch (err) {
-            console.warn(`Failed to calculate spent for project ${project.id}:`, err);
-            // Return project with original spent value if calculation fails
-            return {
-              ...project,
-              spentBreakdown: { financial: 0, materials: 0, labour: 0, contracts: 0 },
-              budgetUtilization: 0
-            };
-          }
-        })
-      );
+      const enrichedProjects = (projectsData.projects || []).map((project) => {
+        const spentData = getBackendSpentData(project);
+        return {
+          ...project,
+          spent: spentData.totalSpent,
+          spentBreakdown: spentData.breakdown,
+          budgetUtilization: project.budget
+            ? ((spentData.totalSpent / project.budget) * 100).toFixed(2)
+            : 0
+        };
+      });
       
       return enrichedProjects;
     } catch (error) {

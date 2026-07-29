@@ -10,41 +10,55 @@ export const getDashboard = async (req, res) => {
   try {
     const { companyId } = req.user;
 
-    // Get total materials count
-    const totalMaterials = await prisma.material.count({
-      where: { companyId }
-    });
-
-    // Get active project material allocations for this company.
-    const activeMaterials = await prisma.projectMaterial.count({
-      where: {
-        status: 'ACTIVE',
-        project: {
-          companyId
-        }
-      }
-    });
-
-    const pendingRequests = await prisma.materialRequest.count({
-      where: {
-        status: 'PENDING',
-        employee: { companyId: String(companyId) }
-      }
-    });
-
-    // Calculate total cost of used materials
-    const materialUsages = await prisma.materialUsage.findMany({
-      where: {
-        project: { companyId }
-      },
-      include: {
-        material: {
-          select: {
-            defaultRate: true
+    const [totalMaterials, activeMaterials, pendingRequests, materialUsages] = await Promise.all([
+      prisma.material.count({
+        where: { companyId }
+      }),
+      prisma.projectMaterial.count({
+        where: {
+          status: 'ACTIVE',
+          project: {
+            companyId
           }
         }
-      }
-    });
+      }),
+      prisma.materialRequest.count({
+        where: {
+          status: 'PENDING',
+          employee: { companyId: String(companyId) }
+        }
+      }),
+      prisma.materialUsage.findMany({
+        where: {
+          project: { companyId }
+        },
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+              defaultRate: true
+            }
+          },
+          project: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          engineer: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          date: 'desc'
+        }
+      })
+    ]);
 
     const totalCost = materialUsages.reduce((sum, usage) => {
       const rate = usage.material.defaultRate || 0;
@@ -53,37 +67,7 @@ export const getDashboard = async (req, res) => {
 
     // ✅ FIXED: Get recent material usage logs (last 10)
     // Changed 'user' to 'engineer'
-    const recentUsageLogs = await prisma.materialUsage.findMany({
-      where: {
-        project: { companyId }
-      },
-      include: {
-        material: {
-          select: {
-            id: true,
-            name: true,
-            unit: true,
-            defaultRate: true
-          }
-        },
-        project: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        engineer: {  // ✅ Changed from 'user' to 'engineer'
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      },
-      orderBy: {
-        date: 'desc'
-      },
-      take: 10
-    });
+    const recentUsageLogs = materialUsages.slice(0, 10);
 
     // ✅ FIXED: Format usage logs
     // Changed 'log.user' to 'log.engineer' and 'userId' to 'engineerId'
@@ -167,25 +151,28 @@ export const getUsageStats = async (req, res) => {
       }
     });
 
+    const materials = await prisma.material.findMany({
+      where: {
+        id: { in: usageStats.map((stat) => stat.materialId) },
+        companyId
+      }
+    });
+    const materialsById = new Map(materials.map((material) => [material.id, material]));
+
     // Enrich with material details
-    const enrichedStats = await Promise.all(
-      usageStats.map(async (stat) => {
-        const material = await prisma.material.findUnique({
-          where: { id: stat.materialId }
-        });
+    const enrichedStats = usageStats.map((stat) => {
+      const material = materialsById.get(stat.materialId);
+      const totalCost = (stat._sum.quantity || 0) * (material?.defaultRate || 0);
 
-        const totalCost = (stat._sum.quantity || 0) * (material?.defaultRate || 0);
-
-        return {
-          materialId: stat.materialId,
-          materialName: material?.name,
-          unit: material?.unit,
-          totalQuantityUsed: stat._sum.quantity || 0,
-          usageCount: stat._count.id,
-          totalCost: Math.round(totalCost * 100) / 100
-        };
-      })
-    );
+      return {
+        materialId: stat.materialId,
+        materialName: material?.name,
+        unit: material?.unit,
+        totalQuantityUsed: stat._sum.quantity || 0,
+        usageCount: stat._count.id,
+        totalCost: Math.round(totalCost * 100) / 100
+      };
+    });
 
     res.json({
       success: true,
@@ -368,10 +355,10 @@ export const getMaterialById = async (req, res) => {
                 projectId: true
               }
             },
-            engineer: {  // ✅ Changed from 'user' to 'engineer'
+            engineer: {
               select: {
                 name: true,
-                empId: true  // ✅ Changed from 'email' to 'empId' (Engineer doesn't have email)
+                empId: true
               }
             }
           }
@@ -606,6 +593,118 @@ export const getCategories = async (req, res) => {
       success: false,
       error: 'Failed to fetch categories',
       details: error.message 
+    });
+  }
+};
+
+/**
+ * Get lightweight dashboard data without recalculating material totals.
+ * Dashboard reuses project financial summaries for material cost.
+ * GET /api/materials/dashboard-summary
+ */
+export const getDashboardSummary = async (req, res) => {
+  try {
+    let companyId = req.user?.companyId;
+
+    if (!companyId && req.user?.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: String(req.user.userId) },
+        select: { companyId: true }
+      });
+      companyId = user?.companyId;
+    }
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company ID not found'
+      });
+    }
+
+    const [totalMaterials, activeMaterials, pendingRequests, recentUsageLogs] = await Promise.all([
+      prisma.material.count({
+        where: { companyId }
+      }),
+      prisma.projectMaterial.count({
+        where: {
+          status: 'ACTIVE',
+          project: {
+            companyId
+          }
+        }
+      }),
+      prisma.materialRequest.count({
+        where: {
+          status: 'PENDING',
+          employee: { companyId: String(companyId) }
+        }
+      }),
+      prisma.materialUsage.findMany({
+        where: {
+          project: { companyId }
+        },
+        include: {
+          material: {
+            select: {
+              id: true,
+              name: true,
+              unit: true,
+              defaultRate: true
+            }
+          },
+          project: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          engineer: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          date: 'desc'
+        },
+        take: 10
+      })
+    ]);
+
+    const formattedUsageLogs = recentUsageLogs.map(log => ({
+      id: log.id,
+      date: log.date.toISOString().split('T')[0],
+      projectId: log.projectId,
+      projectName: log.project.name,
+      materialId: log.materialId,
+      materialName: log.material.name,
+      quantity: log.quantity,
+      unit: log.material.unit,
+      defaultRate: log.material.defaultRate || 0,
+      totalCost: Math.round((log.quantity * (log.material.defaultRate || 0)) * 100) / 100,
+      remarks: log.remarks,
+      engineerId: log.engineerId,
+      userName: log.engineer.name
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        metrics: {
+          totalMaterials,
+          activeMaterials,
+          pendingRequests
+        },
+        usageLogs: formattedUsageLogs
+      }
+    });
+  } catch (error) {
+    console.error('Get dashboard summary error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch dashboard data',
+      details: error.message
     });
   }
 };

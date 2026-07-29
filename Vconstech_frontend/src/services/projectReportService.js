@@ -1,10 +1,30 @@
 // src/services/projectReportService.js
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { getToken } from '../utils/tabToken';
 import companyLogoUrl from '../assets/constech-logo.png';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+let jsPDFConstructor = null;
+let autoTable = null;
+let pdfLibrariesPromise = null;
+
+const loadPdfLibraries = async () => {
+  if (!pdfLibrariesPromise) {
+    pdfLibrariesPromise = Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ]).then(([jspdfModule, autoTableModule]) => {
+      jsPDFConstructor = jspdfModule.jsPDF || jspdfModule.default;
+      autoTable = autoTableModule.default || autoTableModule.autoTable;
+
+      if (!jsPDFConstructor || !autoTable) {
+        throw new Error('PDF libraries failed to load');
+      }
+    });
+  }
+
+  await pdfLibrariesPromise;
+};
 
 const PDF_THEME = {
   primary: '#FFBE2A',
@@ -20,13 +40,6 @@ const PDF_THEME = {
   blue: '#3B82F6',
   amber: '#F59E0B',
 };
-
-const MATERIAL_CATEGORIES = [
-  'material', 'paint', 'cement', 'steel', 'wood', 'tiles', 'hardware',
-  'glass', 'window', 'door', 'aluminium', 'aluminum', 'iron', 'brick',
-  'sand', 'aggregate', 'marble', 'granite', 'plywood', 'pipe', 'wire',
-  'cable', 'fixture', 'sanitary', 'plumbing', 'electrical',
-];
 
 const toArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -216,7 +229,7 @@ const addFooter = (doc, generatedAtText) => {
 };
 
 const createPdfContext = (orientation = 'portrait') => {
-  const doc = new jsPDF({ orientation, unit: 'pt', format: 'a4' });
+  const doc = new jsPDFConstructor({ orientation, unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 36;
@@ -479,9 +492,12 @@ const drawSingleProjectReport = (report, logoDataUrl = null) => {
   const budget = getBudget(project) || normalized.totalBudget;
   const spent = getSpent(project, expenses) || normalized.totalSpent;
   const remaining = budget - spent;
-  const materialCost = expenses
-    .filter((expense) => MATERIAL_CATEGORIES.some((item) => String(expense.category || '').toLowerCase().includes(item)))
-    .reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const materialCost = Number(
+    project.materialCost
+    ?? project.budgetSummary?.materialCost
+    ?? project.budgetSummary?.breakdown?.materialCost
+    ?? 0
+  ) || 0;
   const progress = clampPercent(project.progress);
   const ctx = createPdfContext('portrait');
 
@@ -714,6 +730,7 @@ const projectReportService = {
 
   downloadAllProjectsReport: async (projects) => {
     try {
+      await loadPdfLibraries();
       const authToken = getToken();
       if (!authToken) throw new Error('No authentication token found');
       if (!Array.isArray(projects) || projects.length === 0) {
@@ -760,6 +777,7 @@ const projectReportService = {
 
   downloadReport: async (report, projectName) => {
     try {
+      await loadPdfLibraries();
       const normalizedReport = typeof report === 'string' ? null : normalizeReportData(report);
       if (!normalizedReport) throw new Error('Project report data is required to generate the PDF');
 

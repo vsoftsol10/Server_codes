@@ -394,8 +394,8 @@ const DashboardTab = () => {
   const fetchProjects = async () => {
     try {
       setLoadingProjects(true);
-      const result = await projectAPI.getProjects();
-      const mappedProjects = result.projects?.map(p => ({ id: p.id, name: p.name })) || [];
+      const result = await projectAPI.getProjectSelectorOptions();
+      const mappedProjects = result.projects?.map(p => ({ id: p.id, name: p.projectName || p.name })) || [];
       setProjects(mappedProjects);
     } catch (err) {
       console.error(' Error fetching projects:', err);

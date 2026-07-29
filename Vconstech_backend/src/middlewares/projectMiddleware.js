@@ -67,9 +67,9 @@ export const validateProjectUpdate = (req, res, next) => {
   }
 
   // Validate status if provided
-  const validStatuses = ['PENDING', 'ONGOING', 'COMPLETED'];
+  const validStatuses = ['PENDING', 'ONGOING', 'ON_HOLD', 'COMPLETED'];
   if (req.body.status && !validStatuses.includes(req.body.status)) {
-    errors.push('Invalid status. Must be one of: PENDING, ONGOING, COMPLETED');
+    errors.push('Invalid status. Must be one of: PENDING, ONGOING, ON_HOLD, COMPLETED');
   }
 
   if (errors.length > 0) {

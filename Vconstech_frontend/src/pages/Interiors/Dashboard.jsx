@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, Package, DollarSign, FileText, TrendingUp,
@@ -63,7 +63,7 @@ const Dashboard = () => {
     materials: { metrics: {}, usageLogs: [] },
     financial: { projects: [], count: 0 },
     engineers: [],
-    contracts: []
+    contractSummary: { total: 0, active: 0, completed: 0, pending: 0, totalContractValue: 0 }
   });
 
   useEffect(() => { document.title = "Vconstech - Admin"; }, []);
@@ -93,17 +93,30 @@ const Dashboard = () => {
         if (!token) throw new Error('No authentication token found. Please login.');
         const results = await Promise.allSettled([
           fetchData('/projects'),
-          fetchData('/materials/dashboard'),
-          fetchData('/financial/projects'),
+          fetchData('/materials/dashboard-summary'),
           fetchData('/employees'),
-          fetchData('/contracts')
+          fetchData('/contracts/dashboard-summary')
         ]);
+        const projects = results[0].status === 'fulfilled' ? results[0].value.projects || [] : [];
+        const materials = results[1].status === 'fulfilled' ? results[1].value.data || { metrics: {}, usageLogs: [] } : { metrics: {}, usageLogs: [] };
+        const materialCost = projects.reduce(
+          (sum, project) => sum + (parseFloat(project.materialCost ?? project.budgetSummary?.materialCost ?? 0) || 0),
+          0
+        );
         setDashboardData({
-          projects: results[0].status === 'fulfilled' ? results[0].value.projects || [] : [],
-          materials: results[1].status === 'fulfilled' ? results[1].value.data || { metrics: {}, usageLogs: [] } : { metrics: {}, usageLogs: [] },
-          financial: results[2].status === 'fulfilled' ? { projects: results[2].value.projects || [], count: results[2].value.count || 0 } : { projects: [], count: 0 },
-          engineers: results[3].status === 'fulfilled' ? results[3].value.employees || [] : [],
-          contracts: results[4].status === 'fulfilled' ? results[4].value.contracts || [] : []
+          projects,
+          materials: {
+            ...materials,
+            metrics: {
+              ...materials.metrics,
+              totalCost: Math.round(materialCost * 100) / 100
+            }
+          },
+          financial: { projects, count: projects.length },
+          engineers: results[2].status === 'fulfilled' ? results[2].value.employees || [] : [],
+          contractSummary: results[3].status === 'fulfilled'
+            ? results[3].value.summary || { total: 0, active: 0, completed: 0, pending: 0, totalContractValue: 0 }
+            : { total: 0, active: 0, completed: 0, pending: 0, totalContractValue: 0 }
         });
         results.forEach((res, idx) => {
           if (res.status === 'rejected') console.warn(`Failed to fetch data [${idx}]:`, res.reason);
@@ -118,18 +131,13 @@ const Dashboard = () => {
     fetchAllData();
   }, []);
 
-  const isActiveStatus = (status) => {
-    const s = (status || '').toLowerCase().trim();
-    return ['in progress', 'inprogress', 'active', 'ongoing'].includes(s);
-  };
-
-  const calculateSummaryCards = () => {
+  const calculateSummaryCards = useCallback(() => {
     const ongoingProjects = dashboardData.projects.filter(p => ['ONGOING', 'In Progress'].includes(p.status));
     const totalProjectBudget = dashboardData.financial.projects.reduce(
       (sum, p) => sum + (parseFloat(p.totalBudget ?? p.budget ?? p.quotationAmount ?? 0) || 0),
       0
     );
-    const activeContracts = dashboardData.contracts.filter(c => isActiveStatus(c.status || c.workStatus)).length;
+    const activeContracts = dashboardData.contractSummary.active || 0;
     return [
       {
         title: 'Projects',
@@ -166,7 +174,7 @@ const Dashboard = () => {
       },
       {
         title: 'Contracts',
-        value: dashboardData.contracts.length,
+        value: dashboardData.contractSummary.total || 0,
         subtitle: `${activeContracts} Active`,
         iconBg: 'bg-red-100',
         iconColor: 'text-red-500',
@@ -176,9 +184,9 @@ const Dashboard = () => {
         Icon: FileText,
       },
     ];
-  };
+  }, [dashboardData]);
 
-  const getOngoingProjects = () => {
+  const getOngoingProjects = useCallback(() => {
     return dashboardData.projects
       .filter(p => ['ONGOING', 'In Progress'].includes(p.status))
       .slice(0, 4)
@@ -197,29 +205,28 @@ const Dashboard = () => {
           projectType: project.projectType || 'General'
         };
       });
-  };
+  }, [dashboardData.projects]);
 
-  const getContractStats = () => {
-    const active = dashboardData.contracts.filter(c => isActiveStatus(c.status || c.workStatus)).length;
-    const completed = dashboardData.contracts.filter(c => {
-      const s = (c.status || c.workStatus || '').toLowerCase().trim();
-      return ['completed', 'finished', 'closed', 'done'].includes(s);
-    }).length;
-    const pending = dashboardData.contracts.filter(c => {
-      const s = (c.status || c.workStatus || '').toLowerCase().trim();
-      return ['pending', 'draft', 'awaiting', 'not started'].includes(s);
-    }).length;
-    return { active, completed, pending, total: dashboardData.contracts.length };
-  };
+  const getContractStats = useCallback(() => {
+    return {
+      active: dashboardData.contractSummary.active || 0,
+      completed: dashboardData.contractSummary.completed || 0,
+      pending: dashboardData.contractSummary.pending || 0,
+      total: dashboardData.contractSummary.total || 0
+    };
+  }, [dashboardData.contractSummary]);
+
+  const summaryCards = useMemo(() => calculateSummaryCards(), [calculateSummaryCards]);
+  const ongoingProjects = useMemo(() => getOngoingProjects(), [getOngoingProjects]);
+  const contractStats = useMemo(() => getContractStats(), [getContractStats]);
 
   useEffect(() => {
-    const projects = getOngoingProjects();
-    if (projects.length === 0) return;
+    if (ongoingProjects.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % projects.length);
+      setCurrentSlide(prev => (prev + 1) % ongoingProjects.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [dashboardData.projects]);
+  }, [ongoingProjects]);
 
   if (loading) return <LoadingScreen message="Loading dashboard..." />;
 
@@ -239,9 +246,6 @@ const Dashboard = () => {
     );
   }
 
-  const summaryCards = calculateSummaryCards();
-  const ongoingProjects = getOngoingProjects();
-  const contractStats = getContractStats();
   const navSlide = (dir) => setCurrentSlide(prev => (prev + dir + ongoingProjects.length) % ongoingProjects.length);
 
   return (
@@ -470,7 +474,7 @@ const Dashboard = () => {
                   },
                   {
                     label: 'Total Contract Value',
-                    value: `₹${(dashboardData.contracts.reduce((s, c) => s + (parseFloat(c.contractValue || c.contractAmount || 0)), 0) / 100000).toFixed(1)}L`,
+                    value: `₹${((dashboardData.contractSummary.totalContractValue || 0) / 100000).toFixed(1)}L`,
                     cardBg: 'bg-[#FFFBEB]',
                     iconBg: 'bg-[#FFFBEB]',
                     Icon: Database,

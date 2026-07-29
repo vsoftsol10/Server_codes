@@ -1088,6 +1088,56 @@ if (existingProject) {
     });
   }
 };
+
+export const getProjectSelectorOptions = async (req, res) => {
+  try {
+    let companyId = req.user?.companyId;
+
+    if (!companyId && req.user?.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: String(req.user.userId) },
+        select: { companyId: true }
+      });
+      companyId = user?.companyId;
+    }
+
+    if (!companyId) {
+      return res.status(400).json({
+        error: 'Company ID not found'
+      });
+    }
+
+    const projects = await prisma.project.findMany({
+      where: { companyId },
+      select: {
+        id: true,
+        name: true,
+        projectId: true,
+        status: true,
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    res.json({
+      count: projects.length,
+      projects: projects.map((project) => ({
+        id: project.id,
+        name: project.name,
+        projectName: project.name,
+        projectId: project.projectId,
+        status: project.status
+      }))
+    });
+  } catch (error) {
+    console.error('Get project selector options error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch project selector options',
+      details: error.message
+    });
+  }
+};
  
 export const getProjectsByCompany = async (req, res) => {
   try {

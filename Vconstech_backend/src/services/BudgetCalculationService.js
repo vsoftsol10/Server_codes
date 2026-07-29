@@ -28,6 +28,71 @@ const sumLabourPayments = (labours = []) => normalizeAmount(
   ), 0)
 );
 
+const MODULE_EXPENSE_CATEGORY_TERMS = [
+  'material',
+  'materials',
+  'material cost',
+  'material costs',
+  'cement',
+  'steel',
+  'sand',
+  'm sand',
+  'paint',
+  'paints',
+  'tile',
+  'tiles',
+  'wood',
+  'hardware',
+  'glass',
+  'window',
+  'door',
+  'aluminium',
+  'aluminum',
+  'iron',
+  'brick',
+  'aggregate',
+  'marble',
+  'granite',
+  'plywood',
+  'pipe',
+  'wire',
+  'cable',
+  'fixture',
+  'sanitary',
+  'plumbing',
+  'electrical',
+  'labour',
+  'labor',
+  'labour cost',
+  'labor cost',
+  'labour payment',
+  'labor payment',
+  'contract',
+  'contracts',
+  'contract cost',
+  'contract costs',
+  'contractor',
+  'contractor payment',
+  'contractor payments',
+];
+
+const normalizeCategory = (category = '') => String(category).toLowerCase().trim();
+
+const isModuleExpenseCategory = (category) => {
+  const normalized = normalizeCategory(category);
+  if (!normalized) return false;
+
+  return MODULE_EXPENSE_CATEGORY_TERMS.some((term) => normalized.includes(term));
+};
+
+const sumFinancialExpenses = (expenses = []) => normalizeAmount(
+  expenses.reduce((sum, expense) => (
+    isModuleExpenseCategory(expense.category)
+      ? sum
+      : sum + Number(expense.amount || 0)
+  ), 0)
+);
+
 const toBudgetSummary = ({
   totalBudget,
   materialCost,
@@ -123,7 +188,7 @@ export const BudgetCalculationService = {
       materialUsages,
       labours,
       contractAggregates,
-      expenseAggregates,
+      expenses,
     ] = await Promise.all([
       prisma.materialUsage.findMany({
         where: {
@@ -164,13 +229,14 @@ export const BudgetCalculationService = {
           contractAmount: true,
         },
       }),
-      prisma.projectExpense.groupBy({
-        by: ['projectId'],
+      prisma.projectExpense.findMany({
         where: {
           projectId: { in: scopedProjectIds },
           ...(options.companyId ? { project: { companyId: options.companyId } } : {}),
         },
-        _sum: {
+        select: {
+          projectId: true,
+          category: true,
           amount: true,
         },
       }),
@@ -199,12 +265,16 @@ export const BudgetCalculationService = {
       );
     });
 
-    expenseAggregates.forEach((aggregate) => {
+    expenses.forEach((expense) => {
+      if (isModuleExpenseCategory(expense.category)) {
+        return;
+      }
+
       addToProjectTotal(
         totalsByProjectId,
-        aggregate.projectId,
+        expense.projectId,
         'expenseCost',
-        aggregate._sum.amount
+        expense.amount
       );
     });
 
@@ -246,7 +316,7 @@ export const BudgetCalculationService = {
       materialUsages,
       labours,
       contractAggregate,
-      expenseAggregate,
+      expenses,
     ] = await Promise.all([
       prisma.materialUsage.findMany({
         where: buildProjectScopedWhere(numericProjectId, options.companyId),
@@ -278,9 +348,10 @@ export const BudgetCalculationService = {
           contractAmount: true,
         },
       }),
-      prisma.projectExpense.aggregate({
+      prisma.projectExpense.findMany({
         where: buildProjectScopedWhere(numericProjectId, options.companyId),
-        _sum: {
+        select: {
+          category: true,
           amount: true,
         },
       }),
@@ -291,7 +362,7 @@ export const BudgetCalculationService = {
       materialCost: sumMaterialUsages(materialUsages),
       labourCost: sumLabourPayments(labours),
       contractCost: contractAggregate._sum.contractAmount || 0,
-      expenseCost: expenseAggregate._sum.amount || 0,
+      expenseCost: sumFinancialExpenses(expenses),
     });
   },
 

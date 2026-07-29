@@ -4,17 +4,19 @@ let transporter = null;
 let transporterKey = '';
 
 const getSmtpConfig = () => ({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: Number(process.env.SMTP_PORT || 587),
-  secure: String(process.env.SMTP_SECURE || '').toLowerCase() === 'true',
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === 'true',
   user: process.env.SMTP_USER,
   pass: process.env.SMTP_PASS,
+  fromName: process.env.SMTP_FROM_NAME,
+  fromEmail: process.env.SMTP_FROM_EMAIL,
 });
 
 const getTransporter = () => {
   const config = getSmtpConfig();
-  if (!config.user || !config.pass) {
-    const error = new Error('SMTP_USER and SMTP_PASS are required to send email');
+  if (!config.host || !config.port || !config.user || !config.pass || !config.fromName || !config.fromEmail) {
+    const error = new Error('SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, and SMTP_FROM_EMAIL are required to send email');
     error.code = 'SMTP_CONFIG_MISSING';
     throw error;
   }
@@ -35,7 +37,7 @@ const getTransporter = () => {
 
   return {
     transporter,
-    from: process.env.SMTP_FROM || `"Vconstech ERP" <${config.user}>`,
+    from: `"${config.fromName}" <${config.fromEmail}>`,
   };
 };
 

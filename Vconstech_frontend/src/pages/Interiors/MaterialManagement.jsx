@@ -1,13 +1,14 @@
-import { useState, useMemo } from 'react';
+import { lazy, Suspense, useState, useMemo } from 'react';
 import DashboardTab from '../../components/MaterialManagement/DashboardTab';
-import ProjectsTab from '../../components/MaterialManagement/ProjectsTab';
 import MaterialForm from '../../components/MaterialManagement/MaterialForm';
 import ModalMaterial from '../../components/MaterialManagement/ModalMaterial';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
-import RequestTab from '../../components/MaterialManagement/RequestTab';
 import { materialAPI } from '../../api/materialService';
 import { focusFirstInvalidField, validateFields } from '../../utils/formValidation';
+
+const ProjectsTab = lazy(() => import('../../components/MaterialManagement/ProjectsTab'));
+const RequestTab = lazy(() => import('../../components/MaterialManagement/RequestTab'));
 
 const MaterialManagement = () => {
   
@@ -273,26 +274,30 @@ const handleAddMaterial = async () => {
             />
           )}
           {activeTab === 'projects' && (
-            <ProjectsTab
-              projects={projects}
-              selectedProject={selectedProject}
-              setSelectedProject={setSelectedProject}
-              projectMaterials={getProjectMaterialsWithDetails(selectedProject)}
-              usageLogs={getProjectUsageLogs(selectedProject)}
-              onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
-              onLogUsage={() => setShowUsageLog(true)}
-            />
+            <Suspense fallback={null}>
+              <ProjectsTab
+                projects={projects}
+                selectedProject={selectedProject}
+                setSelectedProject={setSelectedProject}
+                projectMaterials={getProjectMaterialsWithDetails(selectedProject)}
+                usageLogs={getProjectUsageLogs(selectedProject)}
+                onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
+                onLogUsage={() => setShowUsageLog(true)}
+              />
+            </Suspense>
           )}
           {activeTab === 'Requests' && (
-            <RequestTab
-              projects={projects}
-              selectedProject={selectedProject}
-              setSelectedProject={setSelectedProject}
-              projectMaterials={getProjectMaterialsWithDetails(selectedProject)}
-              usageLogs={getProjectUsageLogs(selectedProject)}
-              onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
-              onLogUsage={() => setShowUsageLog(true)}
-            />
+            <Suspense fallback={null}>
+              <RequestTab
+                projects={projects}
+                selectedProject={selectedProject}
+                setSelectedProject={setSelectedProject}
+                projectMaterials={getProjectMaterialsWithDetails(selectedProject)}
+                usageLogs={getProjectUsageLogs(selectedProject)}
+                onAddProjectMaterial={() => setShowAddProjectMaterial(true)}
+                onLogUsage={() => setShowUsageLog(true)}
+              />
+            </Suspense>
           )}
         </div>
 

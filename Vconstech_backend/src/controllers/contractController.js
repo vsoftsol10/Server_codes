@@ -1,6 +1,85 @@
 // src/controllers/contractController.js
 import { prisma } from '../config/database.js';
 
+const isActiveContractStatus = (status) => {
+  const value = (status || '').toLowerCase().trim();
+  return ['in progress', 'inprogress', 'active', 'ongoing'].includes(value);
+};
+
+const isCompletedContractStatus = (status) => {
+  const value = (status || '').toLowerCase().trim();
+  return ['completed', 'finished', 'closed', 'done'].includes(value);
+};
+
+const isPendingContractStatus = (status) => {
+  const value = (status || '').toLowerCase().trim();
+  return ['pending', 'draft', 'awaiting', 'not started'].includes(value);
+};
+
+// GET dashboard contract summary for the company
+export const getContractDashboardSummary = async (req, res) => {
+  try {
+    let companyId = req.user?.companyId;
+
+    if (!companyId && req.user?.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: String(req.user.userId) },
+        select: { companyId: true }
+      });
+      companyId = user?.companyId;
+    }
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company ID not found'
+      });
+    }
+
+    const contracts = await prisma.contract.findMany({
+      where: {
+        project: {
+          companyId
+        }
+      },
+      select: {
+        contractAmount: true,
+        workStatus: true
+      }
+    });
+
+    const summary = contracts.reduce((totals, contract) => {
+      const status = contract.workStatus;
+      totals.total += 1;
+      totals.totalContractValue += Number(contract.contractAmount || 0);
+
+      if (isActiveContractStatus(status)) totals.active += 1;
+      if (isCompletedContractStatus(status)) totals.completed += 1;
+      if (isPendingContractStatus(status)) totals.pending += 1;
+
+      return totals;
+    }, {
+      total: 0,
+      active: 0,
+      completed: 0,
+      pending: 0,
+      totalContractValue: 0
+    });
+
+    res.json({
+      success: true,
+      summary
+    });
+  } catch (error) {
+    console.error('Get contract dashboard summary error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch contract summary',
+      details: error.message
+    });
+  }
+};
+
 // GET all contracts for the company
 export const getAllContracts = async (req, res) => {
   try {

@@ -71,6 +71,19 @@ export const projectAPI = {
   
   return result;
 },
+  getProjectSelectorOptions: async () => {
+    const token = getAuthToken();
+
+    const response = await fetch(`${API_BASE_URL}/projects/selector`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return handleResponse(response);
+  },
   // Get single project
   getProjectById: async (id) => {
   const token = getAuthToken();

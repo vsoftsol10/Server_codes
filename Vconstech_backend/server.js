@@ -214,13 +214,13 @@ process.on('SIGINT', async () => {
   await prisma.$disconnect();
   console.log('✅ Database disconnected');
   
-  process.exit(0);
+  //process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
   console.log('\n🛑 SIGTERM received, shutting down...');
   await prisma.$disconnect();
-  process.exit(0);
+  //process.exit(0);
 });
 
 // ========== START SERVER ==========

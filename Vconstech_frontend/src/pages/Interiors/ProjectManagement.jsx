@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   Plus, Search, Filter, IndianRupee, FileText,
@@ -11,14 +11,23 @@ import SidePannel from "../../components/common/SidePannel";
 import ProjectFormModal from "../../components/ProjectManagement/ProjectFormModal";
 import ProjectDetailsModal from "../../components/ProjectManagement/ProjectDetailsModal";
 import { projectAPI } from "../../api/projectAPI";
-import costCalculationService from "../../api/costCalculationService";
-import projectReportService from "../../services/projectReportService";
 import { Download } from "lucide-react";
 import LoadingScreen from "../../components/common/Loadingscreen";
 import Pagination, { DEFAULT_PAGE_SIZE } from "../../components/common/Pagination";
 import { getToken } from "../../utils/tabToken";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+const loadProjectReportService = async () => {
+  const { default: service } = await import("../../services/projectReportService");
+  return service;
+};
+
+const projectReportService = {
+  generateReport: async (...args) => (await loadProjectReportService()).generateReport(...args),
+  downloadReport: async (...args) => (await loadProjectReportService()).downloadReport(...args),
+  downloadAllProjectsReport: async (...args) => (await loadProjectReportService()).downloadAllProjectsReport(...args),
+};
 
 /* ── Kanban column config ── */
 const COLUMNS = [
@@ -169,7 +178,8 @@ const ProjectManagement = () => {
     try {
       setLoading(true);
       setError(null);
-      const enrichedProjects = await costCalculationService.getAllProjectsWithSpent();
+      const projectsData = await projectAPI.getProjects();
+      const enrichedProjects = projectsData.projects || [];
       const transformedProjects = enrichedProjects.map((project) => ({
         id: project.projectId,
         dbId: project.id,
@@ -236,40 +246,34 @@ const ProjectManagement = () => {
     return col ? col.dotColor : "#9ca3af";
   };
 
-  const stats = {
-    total: projects.length,
-    inProgress: projects.filter((p) => p.status === "In Progress").length,
-    completed: projects.filter((p) => p.status === "Completed").length,
-    planning: projects.filter((p) => p.status === "Planning").length,
-    totalBudget: projects.reduce((sum, p) => sum + p.budget, 0),
-    totalSpent: projects.reduce((sum, p) => sum + p.spent, 0),
-  };
-
-  const filteredProjects = projects.filter((project) => {
+  const filteredProjects = useMemo(() => projects.filter((project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.client || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterType === "all" || project.type === filterType;
     const matchesStatus = filterStatus === "all" || project.status === filterStatus;
     return matchesSearch && matchesFilter && matchesStatus;
-  });
+  }), [projects, searchQuery, filterType, filterStatus]);
 
-  const sortedProjects = [...filteredProjects].sort((a, b) => {
+  const sortedProjects = useMemo(() => [...filteredProjects].sort((a, b) => {
     if (sortOrder === "latest") return new Date(b.startDate) - new Date(a.startDate);
     if (sortOrder === "oldest") return new Date(a.startDate) - new Date(b.startDate);
     if (sortOrder === "name") return a.name.localeCompare(b.name);
     return 0;
-  });
+  }), [filteredProjects, sortOrder]);
 
   const getColumnProjects = (status) => sortedProjects.filter((p) => p.status === status);
 
   /* ── NEW: pagination derived data (table view only) ── */
   const totalPages = Math.max(1, Math.ceil(sortedProjects.length / rowsPerPage));
-  const paginatedProjects = sortedProjects.slice(
+  const paginatedProjects = useMemo(() => sortedProjects.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
+  ), [sortedProjects, currentPage, rowsPerPage]);
+  const activeActionProject = useMemo(
+    () => sortedProjects.find((project) => project.id === openActionMenuId),
+    [sortedProjects, openActionMenuId]
   );
-  const activeActionProject = sortedProjects.find((project) => project.id === openActionMenuId);
 
   useEffect(() => {
     setCurrentPage(1);

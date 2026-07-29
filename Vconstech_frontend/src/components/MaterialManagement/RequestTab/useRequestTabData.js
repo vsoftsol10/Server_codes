@@ -33,9 +33,12 @@ export const useRequestTabData = () => {
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const data = await projectAPI.getProjects();
+      const data = await projectAPI.getProjectSelectorOptions();
       if (data.projects && Array.isArray(data.projects)) {
-        setProjects(data.projects);
+        setProjects(data.projects.map(project => ({
+          ...project,
+          name: project.projectName || project.name
+        })));
         if (data.projects.length > 0) setSelectedProject(data.projects[0].id);
       }
     } catch (err) {

@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { sendEmail } from '../utils/mailer.js';
 
 const router = express.Router();
 
@@ -46,6 +47,54 @@ const upload = multer({
 const normalizeEngineerStatus = (status) => {
   const value = typeof status === 'string' ? status.trim().toLowerCase() : '';
   return value === 'inactive' ? 'Inactive' : 'Active';
+};
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getEmployeeLoginUrl = () => {
+  if (process.env.ERP_EMPLOYEE_LOGIN_URL) return process.env.ERP_EMPLOYEE_LOGIN_URL;
+
+  const baseUrl =
+    process.env.ERP_FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    'http://localhost:5173';
+
+  return `${baseUrl.replace(/\/$/, '')}/employee-login`;
+};
+
+const sendEngineerWelcomeEmail = async ({ engineer, email, password }) => {
+  if (!email || !EMAIL_PATTERN.test(email)) {
+    console.log('[Engineer Email] Skipped welcome email because engineer email is missing or invalid');
+    return null;
+  }
+
+  const employeeLoginUrl = getEmployeeLoginUrl();
+  const result = await sendEmail({
+    to: email,
+    subject: 'Welcome to Vconstech ERP - Your engineer account is ready',
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px;margin:auto">
+        <h2 style="margin-bottom:12px">Welcome to Vconstech ERP</h2>
+        <p>Hi <strong>${engineer.name}</strong>,</p>
+        <p>Your engineer account has been created successfully.</p>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
+          <p style="margin:0 0 8px"><strong>Engineer Name:</strong> ${engineer.name}</p>
+          <p style="margin:0 0 8px"><strong>Username / Email:</strong> ${engineer.username} / ${engineer.email}</p>
+          <p style="margin:0 0 8px"><strong>Password:</strong> ${password}</p>
+          <p style="margin:0 0 14px"><strong>Employee Login URL:</strong> <a href="${employeeLoginUrl}">${employeeLoginUrl}</a></p>
+          <a href="${employeeLoginUrl}" style="background:#111827;color:#ffffff;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block">Login to Employee Portal</a>
+        </div>
+        <p>Please log in with these credentials and keep them secure.</p>
+        <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>
+      </div>
+    `
+  });
+
+  if (!result.success) {
+    console.error('[Engineer Email] Failed to send welcome email:', result.error);
+  }
+
+  return result;
 };
 
 // ============================================
@@ -133,6 +182,7 @@ router.post('/login', async (req, res) => {
       engineer: {
         id: engineer.id,
         name: engineer.name,
+        email: engineer.email,
         username: engineer.username,
         empId: engineer.empId,
         phone: engineer.phone,
@@ -239,7 +289,7 @@ router.get('/my-profile', authenticateToken, async (req, res) => {
     const engineer = await prisma.engineer.findUnique({
       where: { id: req.user.id },
       select: {
-  id: true, name: true, empId: true, phone: true,
+  id: true, name: true, empId: true, email: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
   status: true,
   profileImage: true, username: true, createdAt: true,
@@ -312,7 +362,7 @@ router.get('/', authenticateToken, async (req, res) => {
       where: { companyId: req.user.companyId },
       orderBy: { createdAt: 'desc' },
       select: {
-        id: true, name: true, empId: true, phone: true,
+        id: true, name: true, empId: true, email: true, phone: true,
         alternatePhone: true, designation: true, address: true,  // <-- add designation
         status: true,
         profileImage: true, username: true, plainPassword: true,
@@ -345,7 +395,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
         companyId: req.user.companyId
       },
       select: {
-        id: true, name: true, empId: true, phone: true,
+        id: true, name: true, empId: true, email: true, phone: true,
         alternatePhone: true, designation: true, address: true,  // <-- add designation
         status: true,
         profileImage: true, username: true, plainPassword: true,
@@ -381,7 +431,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create new engineer
 router.post('/', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
-    const { name, phone, alternatePhone, empId, address, username, password, designation, status } = req.body;
+    const { name, phone, alternatePhone, empId, address, username, password, designation, status, email } = req.body;
     const adminUserId = req.user?.userId || req.user?.id || req.user?.engineerId;
     const fallbackCompanyId = req.user?.companyId;
     const missingFields = [];
@@ -389,6 +439,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
     if (!phone?.trim()) missingFields.push('phone');
     if (!empId?.trim()) missingFields.push('empId');
     if (!address?.trim()) missingFields.push('address');
+    if (!email?.trim()) missingFields.push('email');
     if (!username?.trim()) missingFields.push('username');
     if (!password) missingFields.push('password');
 
@@ -407,6 +458,11 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
 
     if (alternatePhone && !phoneRegex.test(alternatePhone)) {
       return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
+    }
+
+    const normalizedEmail = email.trim();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, error: 'Enter a valid engineer email' });
     }
 
     const normalizedStatus = (status || 'Active').trim();
@@ -442,6 +498,14 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
 
     if (existingEngineer) {
       return res.status(400).json({ success: false, error: 'Employee ID already exists' });
+    }
+
+    const existingEmail = await prisma.engineer.findFirst({
+      where: { email: normalizedEmail, companyId }
+    });
+
+    if (existingEmail) {
+      return res.status(400).json({ success: false, error: 'Engineer email already exists' });
     }
 
     if (username) {
@@ -493,6 +557,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
       data: {
         name: name.trim(),
         empId: normalizedEmpId,
+        email: normalizedEmail,
         phone: phone.trim(),
         alternatePhone: alternatePhone || null,
         designation: designation || null,
@@ -505,11 +570,17 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
         companyId
       },
       select: {
-  id: true, name: true, empId: true, phone: true,
+  id: true, name: true, empId: true, email: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
   status: true,
   profileImage: true, username: true, createdAt: true, updatedAt: true
 }
+    });
+
+    await sendEngineerWelcomeEmail({
+      engineer,
+      email: engineer.email,
+      password
     });
 
     res.status(201).json({
@@ -533,7 +604,7 @@ router.post('/', authenticateToken, upload.single('profileImage'), async (req, r
 router.put('/:id', authenticateToken, upload.single('profileImage'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, phone, alternatePhone, empId, address, username, password, designation, status } = req.body;
+    const { name, phone, alternatePhone, empId, address, username, password, designation, status, email } = req.body;
     const companyId = req.user?.companyId;
     if (!companyId) {
       return res.status(400).json({
@@ -549,8 +620,8 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
       return res.status(404).json({ success: false, error: 'Engineer not found' });
     }
 
-    if (!name || !phone || !empId || !address) {
-      return res.status(400).json({ success: false, error: 'Name, phone, employee ID, and address are required' });
+    if (!name || !phone || !empId || !address || !email) {
+      return res.status(400).json({ success: false, error: 'Name, phone, employee ID, email, and address are required' });
     }
 
     const phoneRegex = /^\d{10}$/;
@@ -560,6 +631,11 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
 
     if (alternatePhone && !phoneRegex.test(alternatePhone)) {
       return res.status(400).json({ success: false, error: 'Alternate phone number must be 10 digits' });
+    }
+
+    const normalizedEmail = email.trim();
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({ success: false, error: 'Enter a valid engineer email' });
     }
 
     const normalizedStatus = status ? status.trim() : existingEngineer.status || 'Active';
@@ -573,6 +649,14 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
 
     if (duplicateEngineer) {
       return res.status(400).json({ success: false, error: 'Employee ID already exists' });
+    }
+
+    const duplicateEmail = await prisma.engineer.findFirst({
+      where: { email: normalizedEmail, companyId, NOT: { id: parseInt(id) } }
+    });
+
+    if (duplicateEmail) {
+      return res.status(400).json({ success: false, error: 'Engineer email already exists' });
     }
 
     if (username) {
@@ -616,6 +700,7 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
       data: {
         name: name.trim(),
         empId: empId.trim(),
+        email: normalizedEmail,
         phone: phone.trim(),
         alternatePhone: alternatePhone || null,
         designation: designation || null,
@@ -627,7 +712,7 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
         plainPassword: plainPasswordToStore
       },
       select: {
-  id: true, name: true, empId: true, phone: true,
+  id: true, name: true, empId: true, email: true, phone: true,
   alternatePhone: true, designation: true, address: true,  // <-- add designation
   status: true,
   profileImage: true, username: true, plainPassword: true, createdAt: true, updatedAt: true

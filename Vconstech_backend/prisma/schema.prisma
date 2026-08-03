@@ -309,6 +309,7 @@ model Engineer {
   id                     Int                      @id @default(autoincrement())
   name                   String
   empId                  String
+  email                  String?
   phone                  String
   alternatePhone         String?
   address                String
@@ -331,8 +332,10 @@ model Engineer {
   company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([empId, companyId])
+  @@unique([email, companyId])
   @@unique([username, companyId])
   @@index([companyId])
+  @@index([email])
   @@index([username])
   @@map("engineers")
 }

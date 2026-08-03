@@ -12,10 +12,22 @@ const getLoginUrl = () =>
   process.env.CLIENT_URL ||
   'http://localhost:5173';
 
+const getEmployeeLoginUrl = () => {
+  if (process.env.ERP_EMPLOYEE_LOGIN_URL) return process.env.ERP_EMPLOYEE_LOGIN_URL;
+
+  const baseUrl =
+    process.env.ERP_FRONTEND_URL ||
+    process.env.CLIENT_URL ||
+    'http://localhost:5173';
+
+  return `${baseUrl.replace(/\/$/, '')}/employee-login`;
+};
+
 const sendInvitationWelcomeEmail = async ({ registration }) => {
   if (registration.idempotent || !registration.user?.email) return null;
 
   const loginUrl = getLoginUrl();
+  const employeeLoginUrl = getEmployeeLoginUrl();
 
   const emailResult = await sendEmail({
     to: registration.user.email,
@@ -28,6 +40,10 @@ const sendInvitationWelcomeEmail = async ({ registration }) => {
         <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
           <p style="margin:0 0 8px"><strong>Login Link:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
           <p style="margin:0"><strong>Registered Email:</strong> ${registration.user.email}</p>
+        </div>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
+          <h3 style="margin:0 0 12px;font-size:16px;color:#111827">Employee Login</h3>
+          <p style="margin:0"><strong>Employee Portal:</strong> <a href="${employeeLoginUrl}">${employeeLoginUrl}</a></p>
         </div>
         <p>Please use the password you created during registration to log in.</p>
         <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>

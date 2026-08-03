@@ -11,6 +11,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
     status: 'Active',
     empId: '',
     address: '',
+    email: '',
     username: '',
     password: '',
     profileImage: null
@@ -43,6 +44,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
         status: engineer.status || 'Active',
         empId: engineer.empId || '',
         address: engineer.address || '',
+        email: engineer.email || '',
         username: engineer.username || '',
         password: passwordValue, //  Use the password we found
         profileImage: null
@@ -76,6 +78,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
       { name: 'status', value: formData.status, label: 'Status', rules: ['dropdown'] },
       { name: 'empId', value: formData.empId, label: 'Employee ID', rules: ['required'] },
       { name: 'address', value: formData.address, label: 'Address', rules: ['textarea'] },
+      { name: 'email', value: formData.email, label: 'Email', rules: ['email'] },
       { name: 'username', value: formData.username, label: 'Username', rules: ['required'] },
       { name: 'password', value: formData.password, label: 'Password', rules: ['password'] },
     ]);
@@ -113,6 +116,7 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
       status: 'Active',
       empId: '',
       address: '',
+      email: '',
       username: '',
       password: '',
       profileImage: null
@@ -265,6 +269,26 @@ const EditEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting, engineer }
                     <p className="text-red-500 text-sm mt-1">{errors.alternatePhone}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Address */}
+              <div className="mb-4">
+                <label htmlFor="email" className="block text-sm font-extrabold text-gray-700 mb-1">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={`w-full px-4 py-2 border text-gray-600 font-medium ${
+                    errors.email ? 'border-red-500' : 'border-gray-300'
+                  } rounded-lg focus:border-transparent`}
+                  placeholder="Enter engineer email"
+                  disabled={isSubmitting}
+                />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
               </div>
 
               {/* Address */}

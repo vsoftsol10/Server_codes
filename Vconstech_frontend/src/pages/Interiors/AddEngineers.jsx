@@ -53,6 +53,7 @@ const createEngineer = async (engineerData) => {
   formData.append("designation", engineerData.designation || "");
   formData.append("status", engineerData.status || "Active");
   formData.append("empId", engineerData.empId);
+  formData.append("email", engineerData.email);
   formData.append("address", engineerData.address);
   formData.append("username", engineerData.username);
   formData.append("password", engineerData.password);
@@ -76,6 +77,7 @@ const updateEngineer = async (id, engineerData) => {
   formData.append("designation", engineerData.designation || "");
   formData.append("status", engineerData.status || "Active");
   formData.append("empId", engineerData.empId);
+  formData.append("email", engineerData.email);
   formData.append("address", engineerData.address);
   formData.append("username", engineerData.username);
   if (engineerData.password) formData.append("password", engineerData.password);
@@ -206,6 +208,7 @@ const AddEngineers = () => {
     (eng) =>
       (eng.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         eng.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (eng.email || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         eng.phone.includes(searchTerm)) &&
       (filterDesignation === "all" || (eng.designation || "Unassigned") === filterDesignation) &&
       (filterStatus === "all" || (eng.status || "Active") === filterStatus)
@@ -348,7 +351,7 @@ const AddEngineers = () => {
               <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search by name, employee ID, or phone..."
+                placeholder="Search by name, employee ID, email, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 pr-3 py-2.5 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent shadow-sm"
@@ -478,7 +481,7 @@ const AddEngineers = () => {
                             </div>
                             <div>
                               <p className="text-sm font-semibold text-gray-900">{engineer.name}</p>
-                              <p className="text-xs text-gray-500">Engineer</p>
+                              <p className="text-xs text-gray-500">{engineer.email || "Engineer"}</p>
                               <span className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-[10px] font-semibold rounded-full ${getStatusBadgeClasses(engineer.status)}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${((engineer.status || "Active") === "Inactive") ? "bg-red-500" : "bg-green-500"}`} />
                                 {engineer.status || "Active"}
@@ -495,6 +498,7 @@ const AddEngineers = () => {
                             </span>
                             <div>
                               <p className="text-sm text-gray-800">{engineer.phone}</p>
+                              {engineer.email && <p className="text-xs text-gray-500">{engineer.email}</p>}
                               {engineer.alternatePhone && <p className="text-xs text-gray-400">{engineer.alternatePhone}</p>}
                             </div>
                           </div>
@@ -561,6 +565,9 @@ const AddEngineers = () => {
                       <div>
                         <h3 className="text-sm font-semibold text-gray-900">{engineer.name}</h3>
                         <p className="text-xs text-gray-500">{engineer.empId}</p>
+                        {engineer.email && (
+                          <p className="text-xs text-gray-500 mt-0.5">{engineer.email}</p>
+                        )}
                         {engineer.designation && (
                           <p className="text-xs text-yellow-700 font-medium mt-0.5">{engineer.designation}</p>
                         )}

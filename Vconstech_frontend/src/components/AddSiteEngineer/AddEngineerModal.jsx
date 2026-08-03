@@ -7,6 +7,7 @@ import {
   MapPin,
   Briefcase,
   Lock,
+  Mail,
   UserCircle,
 } from "lucide-react";
 import { focusFirstInvalidField, validateFields } from "../../utils/formValidation";
@@ -20,6 +21,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     status: "Active",
     empId: "",
     address: "",
+    email: "",
     username: "",
     password: "",
     confirmPassword: "",
@@ -50,6 +52,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
       { name: "status", value: formData.status, label: "Status", rules: ["dropdown"] },
       { name: "empId", value: formData.empId, label: "Employee ID", rules: ["required"] },
       { name: "address", value: formData.address, label: "Address", rules: ["textarea"] },
+      { name: "email", value: formData.email, label: "Email", rules: ["email"] },
       { name: "username", value: formData.username, label: "Username", rules: ["required"] },
       { name: "password", value: formData.password, label: "Password", rules: ["password"] },
       { name: "confirmPassword", value: formData.confirmPassword, label: "Confirm password", rules: ["required"] },
@@ -78,6 +81,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     status: formData.status,
     empId: formData.empId.trim(),
     address: formData.address.trim(),
+    email: formData.email.trim(),
     username: formData.username.trim(),
     password: formData.password,
     profileImage: profileImage,
@@ -101,6 +105,7 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
       status: "Active",
       empId: "",
       address: "",
+      email: "",
       username: "",
       
       password: "",
@@ -305,6 +310,31 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
                   {errors.address && (
                     <p className="text-red-500 text-sm mt-1">
                       {errors.address}
+                    </p>
+                  )}
+                </div>
+
+                {/* Email */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-extrabold text-gray-700 mb-2">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className={`block w-full pl-10 pr-3 py-2 border ${errors.email ? "border-red-500" : "border-gray-300"} rounded-lg focus:ring-2 `}
+                      placeholder="Enter engineer email"
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.email}
                     </p>
                   )}
                 </div>

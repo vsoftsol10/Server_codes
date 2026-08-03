@@ -140,15 +140,16 @@ export const createEngineer = async (engineerData) => {
       designation: engineerData.designation,
       empId: engineerData.empId,
       address: engineerData.address,
+      email: engineerData.email,
       username: engineerData.username,
       password: engineerData.password ? '***PROVIDED***' : '***MISSING***',
       hasProfileImage: !!engineerData.profileImage
     });
     
     // ✅ VALIDATE BEFORE CREATING FORMDATA
-    if (!engineerData.username || !engineerData.password) {
+    if (!engineerData.email || !engineerData.username || !engineerData.password) {
       console.error('❌ VALIDATION FAILED: Missing credentials in service');
-      throw { error: 'Username and password are required' };
+      throw { error: 'Email, username, and password are required' };
     }
     
     const formData = new FormData();
@@ -159,6 +160,7 @@ export const createEngineer = async (engineerData) => {
     formData.append('alternatePhone', engineerData.alternatePhone || '');
     formData.append('empId', engineerData.empId || '');
     formData.append('address', engineerData.address || '');
+    formData.append('email', engineerData.email || '');
     formData.append('username', engineerData.username || '');
     formData.append('password', engineerData.password || '');
     
@@ -221,6 +223,7 @@ export const updateEngineer = async (id, engineerData) => {
     formData.append('name', engineerData.name);
     formData.append('phone', engineerData.phone);
     formData.append('empId', engineerData.empId);
+    formData.append('email', engineerData.email);
     formData.append('address', engineerData.address);
     
     if (engineerData.alternatePhone) {

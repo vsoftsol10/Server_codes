@@ -5,7 +5,8 @@ import {
   materialAPI,
 } from "../../../api/materialService";
 import { projectAPI } from "../../../api/projectAPI";
-import { getToken } from "../../../utils/tabToken";
+import { getToken } from "../../../utils/tabToken";
+
 import { showToast } from '../../common/Toast';
 
 export const useRequestTabData = () => {
@@ -23,8 +24,8 @@ export const useRequestTabData = () => {
 
   const fetchMaterials = async () => {
     try {
-      const data = await materialAPI.getAll();
-      if (data.projects || data.success) setMaterials(data.materials || []);
+      const materials = await materialAPI.getAll();
+      setMaterials(materials || []);
     } catch (err) {
       console.error("Error fetching materials:", err);
     }

@@ -57,7 +57,7 @@ export const materialAPI = {
   // Get all materials
   getAll: async (params = {}) => {
     const response = await api.get('/materials', { params });
-    return response.data;
+    return response.data?.materials || [];
   },
 
   getApprovedByProject: async (projectId) => {

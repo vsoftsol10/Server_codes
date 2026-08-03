@@ -13,6 +13,7 @@ import Navbar from '../../components/common/Navbar'
 import SidePannel from '../../components/common/SidePannel'
 import LoadingScreen from '../../components/common/Loadingscreen'
 import Pagination, { DEFAULT_PAGE_SIZE } from '../../components/common/Pagination'
+import { focusFirstInvalidField, validateFields } from '../../utils/formValidation'
 
 
 /* ── Avatar colours by initial ── */
@@ -208,6 +209,8 @@ const AdminLabourManagement = () => {
 
   const [newLabour, setNewLabour] = useState({ name: '', phone: '', address: '', designation: '', project: '', projectId: null })
   const [editLabour, setEditLabour] = useState({ id: null, name: '', phone: '', address: '', designation: '', project: '', projectId: null })
+  const [labourErrors, setLabourErrors] = useState({})
+  const [editLabourErrors, setEditLabourErrors] = useState({})
   const [payment, setPayment] = useState({ amount: '', date: new Date().toISOString().split('T')[0] })
 
   /* ── Data fetchers (unchanged) ── */
@@ -234,12 +237,25 @@ const AdminLabourManagement = () => {
 
   /* ── Handlers (unchanged) ── */
   const handleAddLabour = async () => {
-    if (!newLabour.name || !newLabour.phone) { showToast('Please fill in all required fields', 'warning'); return }
+    const errors = validateFields([
+      { name: 'labourName', value: newLabour.name, label: 'Name', rules: ['lettersSpacesName'] },
+      { name: 'labourPhone', value: newLabour.phone, label: 'Phone number', rules: ['mobile'] },
+      { name: 'labourDesignation', value: newLabour.designation, label: 'Designation', rules: ['designation'] },
+      { name: 'labourProject', value: newLabour.projectId || newLabour.project, label: 'Assigned project', rules: ['dropdown'] },
+      { name: 'labourAddress', value: newLabour.address, label: 'Address', rules: ['textareaMin5'] },
+    ])
+    setLabourErrors(errors)
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors)
+      return
+    }
+
     try {
       const data = await labourApi.createLabourer(newLabour)
       if (data.success) {
         await fetchLabourers()
         setNewLabour({ name: '', phone: '', address: '', designation: '', project: '', projectId: null })
+        setLabourErrors({})
         setShowAddForm(false)
         showToast('Labourer added successfully!', 'success')
       }
@@ -306,16 +322,30 @@ const AdminLabourManagement = () => {
 
   const openEditForm = (labour) => {
     setEditLabour({ id: labour.id, name: labour.name, phone: labour.phone, address: labour.address || '', designation: labour.designation || '', project: labour.projectName || labour.project || '', projectId: labour.projectId || null })
+    setEditLabourErrors({})
     setShowEditForm(true)
   }
 
   const handleUpdateLabour = async () => {
-    if (!editLabour.name || !editLabour.phone) { showToast('Please fill in all required fields', 'warning'); return }
+    const errors = validateFields([
+      { name: 'editLabourName', value: editLabour.name, label: 'Name', rules: ['lettersSpacesName'] },
+      { name: 'editLabourPhone', value: editLabour.phone, label: 'Phone number', rules: ['mobile'] },
+      { name: 'editLabourDesignation', value: editLabour.designation, label: 'Designation', rules: ['designation'] },
+      { name: 'editLabourProject', value: editLabour.projectId || editLabour.project, label: 'Assigned project', rules: ['dropdown'] },
+      { name: 'editLabourAddress', value: editLabour.address, label: 'Address', rules: ['textareaMin5'] },
+    ])
+    setEditLabourErrors(errors)
+    if (Object.keys(errors).length) {
+      focusFirstInvalidField(errors)
+      return
+    }
+
     try {
       const data = await labourApi.updateLabourer(editLabour.id, { name: editLabour.name, phone: editLabour.phone, address: editLabour.address, designation: editLabour.designation, project: editLabour.project, projectId: editLabour.projectId })
       if (data.success) {
         await fetchLabourers()
         setEditLabour({ id: null, name: '', phone: '', address: '', designation: '', project: '', projectId: null })
+        setEditLabourErrors({})
         setShowEditForm(false)
         showToast('Labourer updated successfully!', 'success')
       }
@@ -372,54 +402,100 @@ const AdminLabourManagement = () => {
   const endEntry = Math.min(currentPage * rowsPerPage, filteredLabourers.length)
 
   /* ── Form fields (unchanged logic, refreshed UI) ── */
-  const renderLabourFields = (formState, setFormState) => (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-        <div className="relative">
-          <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input type="text" value={formState.name} onChange={(e) => setFormState({ ...formState, name: e.target.value })}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="Enter name" />
+  const renderLabourFields = (formState, setFormState, errors = {}, fieldPrefix = 'labour') => {
+    const clearError = (fieldName) => {
+      if (fieldPrefix === 'editLabour') {
+        setEditLabourErrors((prev) => ({ ...prev, [fieldName]: '' }))
+      } else {
+        setLabourErrors((prev) => ({ ...prev, [fieldName]: '' }))
+      }
+    }
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+          <div className="relative">
+            <User className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input
+              name={`${fieldPrefix}Name`}
+              type="text"
+              value={formState.name}
+              onChange={(e) => { setFormState({ ...formState, name: e.target.value }); clearError(`${fieldPrefix}Name`) }}
+              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${errors[`${fieldPrefix}Name`] ? 'border-red-500' : 'border-gray-200'}`}
+              placeholder="Enter name"
+            />
+          </div>
+          {errors[`${fieldPrefix}Name`] && <p className="text-red-500 text-xs mt-1">{errors[`${fieldPrefix}Name`]}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input
+              name={`${fieldPrefix}Phone`}
+              type="tel"
+              value={formState.phone}
+              onChange={(e) => { setFormState({ ...formState, phone: e.target.value }); clearError(`${fieldPrefix}Phone`) }}
+              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${errors[`${fieldPrefix}Phone`] ? 'border-red-500' : 'border-gray-200'}`}
+              placeholder="Enter phone number"
+            />
+          </div>
+          {errors[`${fieldPrefix}Phone`] && <p className="text-red-500 text-xs mt-1">{errors[`${fieldPrefix}Phone`]}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Designation *</label>
+          <div className="relative">
+            <Briefcase className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <input
+              name={`${fieldPrefix}Designation`}
+              type="text"
+              value={formState.designation}
+              onChange={(e) => { setFormState({ ...formState, designation: e.target.value }); clearError(`${fieldPrefix}Designation`) }}
+              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${errors[`${fieldPrefix}Designation`] ? 'border-red-500' : 'border-gray-200'}`}
+              placeholder="e.g. Mason, Electrician, Helper"
+            />
+          </div>
+          {errors[`${fieldPrefix}Designation`] && <p className="text-red-500 text-xs mt-1">{errors[`${fieldPrefix}Designation`]}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Project *</label>
+          <div className="relative">
+            <FolderOpen className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" size={18} />
+            <select
+              name={`${fieldPrefix}Project`}
+              value={formState.project}
+              onChange={(e) => {
+                const p = projects.find(p => p.name === e.target.value)
+                setFormState({ ...formState, project: e.target.value, projectId: p ? p.id : null })
+                clearError(`${fieldPrefix}Project`)
+              }}
+              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 appearance-none ${errors[`${fieldPrefix}Project`] ? 'border-red-500' : 'border-gray-200'}`}
+            >
+              <option value="">Select a project</option>
+              {projects.map(proj => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
+            </select>
+          </div>
+          {errors[`${fieldPrefix}Project`] && <p className="text-red-500 text-xs mt-1">{errors[`${fieldPrefix}Project`]}</p>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Address *</label>
+          <div className="relative">
+            <MapPin className="absolute left-3 top-2.5 text-gray-400" size={18} />
+            <textarea
+              name={`${fieldPrefix}Address`}
+              value={formState.address}
+              onChange={(e) => { setFormState({ ...formState, address: e.target.value }); clearError(`${fieldPrefix}Address`) }}
+              className={`w-full pl-9 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 ${errors[`${fieldPrefix}Address`] ? 'border-red-500' : 'border-gray-200'}`}
+              placeholder="Enter address"
+              rows="3"
+            />
+          </div>
+          {errors[`${fieldPrefix}Address`] && <p className="text-red-500 text-xs mt-1">{errors[`${fieldPrefix}Address`]}</p>}
         </div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
-        <div className="relative">
-          <Phone className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input type="tel" value={formState.phone} onChange={(e) => setFormState({ ...formState, phone: e.target.value })}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="Enter phone number" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-        <div className="relative">
-          <Briefcase className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input type="text" value={formState.designation} onChange={(e) => setFormState({ ...formState, designation: e.target.value })}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="e.g. Mason, Electrician, Helper" />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Project</label>
-        <div className="relative">
-          <FolderOpen className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" size={18} />
-          <select value={formState.project}
-            onChange={(e) => { const p = projects.find(p => p.name === e.target.value); setFormState({ ...formState, project: e.target.value, projectId: p ? p.id : null }) }}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-400 appearance-none">
-            <option value="">Select a project</option>
-            {projects.map(proj => <option key={proj.id} value={proj.name}>{proj.name}</option>)}
-          </select>
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <textarea value={formState.address} onChange={(e) => setFormState({ ...formState, address: e.target.value })}
-            className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400" placeholder="Enter address" rows="3" />
-        </div>
-      </div>
-    </div>
-  )
+    )
+  }
 
   if (loading) return <LoadingScreen message="Loading labour data..." />
 
@@ -707,12 +783,12 @@ const AdminLabourManagement = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">Add New Labour</h2>
-              <button onClick={() => setShowAddForm(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><X size={20} /></button>
+              <button onClick={() => { setShowAddForm(false); setLabourErrors({}) }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><X size={20} /></button>
             </div>
             <div className="p-6">
-              {renderLabourFields(newLabour, setNewLabour)}
+              {renderLabourFields(newLabour, setNewLabour, labourErrors, 'labour')}
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowAddForm(false)}
+                <button onClick={() => { setShowAddForm(false); setLabourErrors({}) }}
                   className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
                 <button onClick={handleAddLabour}
                   className="flex-1 px-4 py-2.5 bg-yellow-400 text-black rounded-xl text-sm font-semibold hover:bg-yellow-500 transition">Add Labour</button>
@@ -728,12 +804,12 @@ const AdminLabourManagement = () => {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h2 className="text-xl font-bold text-gray-900">Edit Labour Details</h2>
-              <button onClick={() => setShowEditForm(false)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><X size={20} /></button>
+              <button onClick={() => { setShowEditForm(false); setEditLabourErrors({}) }} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500"><X size={20} /></button>
             </div>
             <div className="p-6">
-              {renderLabourFields(editLabour, setEditLabour)}
+              {renderLabourFields(editLabour, setEditLabour, editLabourErrors, 'editLabour')}
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setShowEditForm(false)}
+                <button onClick={() => { setShowEditForm(false); setEditLabourErrors({}) }}
                   className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition">Cancel</button>
                 <button onClick={handleUpdateLabour}
                   className="flex-1 px-4 py-2.5 bg-yellow-400 text-black rounded-xl text-sm font-semibold hover:bg-yellow-500 transition">Update Labour</button>

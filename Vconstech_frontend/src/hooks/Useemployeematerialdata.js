@@ -25,8 +25,8 @@ const useEmployeeMaterialData = () => {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const response = await materialAPI.getAll();
-      setMaterials(response.materials || []);
+      const materials = await materialAPI.getAll();
+      setMaterials(materials || []);
     } catch (err) {
       console.error("Failed to fetch materials:", err);
       setError("Failed to load materials");

@@ -150,8 +150,8 @@ export default function ContractManagement() {
 
   const handleSave = async (id) => {
     const errors = validateFields([
-      { name: 'editContractorName', value: editForm.contractorName, label: 'Contractor name', rules: ['name'] },
-      { name: 'editContactNumber', value: editForm.contactNumber, label: 'Mobile number', rules: ['mobile'] },
+      { name: 'editContractorName', value: editForm.contractorName, label: 'Contractor name', rules: ['lettersSpacesName'] },
+      { name: 'editContactNumber', value: editForm.contactNumber, label: 'Contact number', rules: ['mobile'] },
       { name: 'editContractAmount', value: editForm.contractAmount, label: 'Contract amount', rules: ['amount'] },
       { name: 'editWorkStatus', value: editForm.workStatus, label: 'Work status', rules: ['dropdown'] },
     ]);
@@ -208,13 +208,13 @@ export default function ContractManagement() {
   const handleAddNew = async () => {
     const errors = validateFields([
       { name: 'projectId', value: newContract.projectId, label: 'Project', rules: ['dropdown'] },
-      { name: 'contractorName', value: newContract.contractorName, label: 'Contractor name', rules: ['name'] },
-      { name: 'contactNumber', value: newContract.contactNumber, label: 'Mobile number', rules: ['mobile'] },
+      { name: 'contractorName', value: newContract.contractorName, label: 'Contractor name', rules: ['lettersSpacesName'] },
+      { name: 'contactNumber', value: newContract.contactNumber, label: 'Contact number', rules: ['mobile'] },
       { name: 'contractAmount', value: newContract.contractAmount, label: 'Contract amount', rules: ['amount'] },
       { name: 'workStatus', value: newContract.workStatus, label: 'Work status', rules: ['dropdown'] },
       { name: 'startDate', value: newContract.startDate, label: 'Start date', rules: ['todayOrFutureDate'] },
       { name: 'endDate', value: newContract.endDate, label: 'End date', rules: ['date'] },
-      { name: 'details', value: newContract.details, label: 'Details', rules: newContract.details ? ['textarea'] : [] },
+      { name: 'details', value: newContract.details, label: 'Details', rules: ['textareaMin5'] },
     ]);
     if (isDateBefore(newContract.endDate, newContract.startDate)) {
       errors.endDate = 'End date cannot be earlier than start date';
@@ -249,6 +249,7 @@ export default function ContractManagement() {
           endDate: new Date().toISOString().split('T')[0],
           details: ''
         });
+        setContractErrors({});
         setShowAddForm(false);
         showToast('Contract added successfully!', 'success');
       }
@@ -373,7 +374,7 @@ export default function ContractManagement() {
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">New Contract Details</h2>
                     <button 
-                      onClick={() => setShowAddForm(false)} 
+                      onClick={() => { setShowAddForm(false); setContractErrors({}); }} 
                       className="text-gray-400 hover:text-gray-600 p-1"
                     >
                       <X size={24} />
@@ -490,15 +491,18 @@ export default function ContractManagement() {
                       {contractErrors.endDate && <p className="text-red-500 text-xs mt-1">{contractErrors.endDate}</p>}
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Details</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Details <span className="text-red-500">*</span>
+                      </label>
                       <textarea
                         name="details"
                         placeholder="Contract details..."
                         value={newContract.details}
-                        onChange={(e) => setNewContract({ ...newContract, details: e.target.value })}
+                        onChange={(e) => { setNewContract({ ...newContract, details: e.target.value }); setContractErrors((prev) => ({ ...prev, details: '' })); }}
                         rows="3"
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                        className={`w-full px-4 py-2 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent ${contractErrors.details ? 'border-red-500' : 'border-gray-300'}`}
                       />
+                      {contractErrors.details && <p className="text-red-500 text-xs mt-1">{contractErrors.details}</p>}
                     </div>
                   </div>
                   <div className="flex gap-2 sm:gap-3 mt-6">

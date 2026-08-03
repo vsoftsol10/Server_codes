@@ -157,11 +157,9 @@ const ProjectsTab = () => {
 
   const fetchMaterials = async () => {
     try {
-      const data = await materialAPI.getAll();
-      if (data.projects || data.success) {
-        setMaterials(data.materials || []);
-        console.log('Materials fetched:', data.materials);
-      }
+      const materials = await materialAPI.getAll();
+      setMaterials(materials || []);
+      console.log('Materials fetched:', materials);
     } catch (err) {
       console.error('Error fetching materials:', err);
     }

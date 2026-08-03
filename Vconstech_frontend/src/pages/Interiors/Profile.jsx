@@ -24,6 +24,20 @@ import { getToken } from '../../utils/tabToken';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getAuthenticatedUserId = (token) => {
+  if (!token) return localStorage.getItem("userId");
+
+  try {
+    const payloadPart = token.split(".")[1];
+    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(normalizedPayload));
+    return payload.userId || payload.id || localStorage.getItem("userId");
+  } catch (error) {
+    console.error("Error reading auth token:", error);
+    return localStorage.getItem("userId");
+  }
+};
+
 const formatPlanExpiryDate = (dateValue) => {
   if (!dateValue) return 'No Expiry';
 
@@ -63,8 +77,8 @@ const Profile = () => {
 
     const loadProfile = async () => {
       const API_URL = import.meta.env.VITE_API_URL;
-      const userId = localStorage.getItem("userId");
       const token = getToken();
+      const userId = getAuthenticatedUserId(token);
 
       if (!userId || !token) {
         return {
@@ -114,6 +128,7 @@ const Profile = () => {
       if (result.success) {
         setUserInfo(result.user);
         setEditedUser(result.user);
+        localStorage.setItem("userId", result.user.id);
         localStorage.setItem("userName", result.user.name);
         localStorage.setItem("userEmail", result.user.email);
         if (result.user.phoneNumber)
@@ -153,8 +168,8 @@ const Profile = () => {
 
     try {
       const API_URL = import.meta.env.VITE_API_URL;
-      const userId = localStorage.getItem("userId");
       const token = getToken();
+      const userId = getAuthenticatedUserId(token);
       const response = await fetch(`${API_URL}/users/profile/${userId}`, {
         method: "PUT",
         headers: {

@@ -28,68 +28,9 @@ const sumLabourPayments = (labours = []) => normalizeAmount(
   ), 0)
 );
 
-const MODULE_EXPENSE_CATEGORY_TERMS = [
-  'material',
-  'materials',
-  'material cost',
-  'material costs',
-  'cement',
-  'steel',
-  'sand',
-  'm sand',
-  'paint',
-  'paints',
-  'tile',
-  'tiles',
-  'wood',
-  'hardware',
-  'glass',
-  'window',
-  'door',
-  'aluminium',
-  'aluminum',
-  'iron',
-  'brick',
-  'aggregate',
-  'marble',
-  'granite',
-  'plywood',
-  'pipe',
-  'wire',
-  'cable',
-  'fixture',
-  'sanitary',
-  'plumbing',
-  'electrical',
-  'labour',
-  'labor',
-  'labour cost',
-  'labor cost',
-  'labour payment',
-  'labor payment',
-  'contract',
-  'contracts',
-  'contract cost',
-  'contract costs',
-  'contractor',
-  'contractor payment',
-  'contractor payments',
-];
-
-const normalizeCategory = (category = '') => String(category).toLowerCase().trim();
-
-const isModuleExpenseCategory = (category) => {
-  const normalized = normalizeCategory(category);
-  if (!normalized) return false;
-
-  return MODULE_EXPENSE_CATEGORY_TERMS.some((term) => normalized.includes(term));
-};
-
 const sumFinancialExpenses = (expenses = []) => normalizeAmount(
   expenses.reduce((sum, expense) => (
-    isModuleExpenseCategory(expense.category)
-      ? sum
-      : sum + Number(expense.amount || 0)
+    sum + Number(expense.amount || 0)
   ), 0)
 );
 
@@ -266,10 +207,6 @@ export const BudgetCalculationService = {
     });
 
     expenses.forEach((expense) => {
-      if (isModuleExpenseCategory(expense.category)) {
-        return;
-      }
-
       addToProjectTotal(
         totalsByProjectId,
         expense.projectId,

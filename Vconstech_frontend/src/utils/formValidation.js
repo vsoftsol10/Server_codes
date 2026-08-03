@@ -2,6 +2,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MOBILE_PATTERN = /^\d{10}$/;
 const PINCODE_PATTERN = /^\d{6}$/;
 const PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const LETTERS_SPACES_PATTERN = /^[A-Za-z\s]+$/;
 
 export const trimValue = (value) => (typeof value === 'string' ? value.trim() : value);
 
@@ -32,6 +33,23 @@ export const validators = {
     if (nextValue.length < 2) return `${label} must be at least 2 characters`;
     if (nextValue.length > 100) return `${label} must be 100 characters or less`;
     return '';
+  },
+
+  lettersSpacesName: (value, label = 'Name') => {
+    const requiredError = validators.required(value, label);
+    if (requiredError) return requiredError;
+    const nextValue = trimValue(value);
+    if (nextValue.length < 3) return `${label} must be at least 3 characters`;
+    if (nextValue.length > 100) return `${label} must be 100 characters or less`;
+    return LETTERS_SPACES_PATTERN.test(nextValue)
+      ? ''
+      : `${label} can contain letters and spaces only`;
+  },
+
+  designation: (value, label = 'Designation') => {
+    const requiredError = validators.required(value, label);
+    if (requiredError) return requiredError;
+    return trimValue(value).length >= 2 ? '' : `${label} must be at least 2 characters`;
   },
 
   email: (value, label = 'Email') => {
@@ -114,6 +132,12 @@ export const validators = {
   },
 
   textarea: (value, label = 'Comment') => validators.required(value, label),
+
+  textareaMin5: (value, label = 'Details') => {
+    const requiredError = validators.required(value, label);
+    if (requiredError) return requiredError;
+    return trimValue(value).length >= 5 ? '' : `${label} must be at least 5 characters`;
+  },
 
   file: (value, label = 'File') => {
     if (Array.isArray(value)) return value.length > 0 ? '' : `${label} is required`;

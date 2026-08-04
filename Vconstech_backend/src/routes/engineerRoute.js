@@ -51,16 +51,9 @@ const normalizeEngineerStatus = (status) => {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const getEmployeeLoginUrl = () => {
-  if (process.env.ERP_EMPLOYEE_LOGIN_URL) return process.env.ERP_EMPLOYEE_LOGIN_URL;
+const EMPLOYEE_LOGIN_URL = 'https://erp.thevsoft.com/employee-login';
 
-  const baseUrl =
-    process.env.ERP_FRONTEND_URL ||
-    process.env.CLIENT_URL ||
-    'http://localhost:5173';
-
-  return `${baseUrl.replace(/\/$/, '')}/employee-login`;
-};
+const getEmployeeLoginUrl = () => EMPLOYEE_LOGIN_URL;
 
 const sendEngineerWelcomeEmail = async ({ engineer, email, password }) => {
   if (!email || !EMAIL_PATTERN.test(email)) {
@@ -73,19 +66,27 @@ const sendEngineerWelcomeEmail = async ({ engineer, email, password }) => {
     to: email,
     subject: 'Welcome to Vconstech ERP - Your engineer account is ready',
     html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px;margin:auto">
-        <h2 style="margin-bottom:12px">Welcome to Vconstech ERP</h2>
-        <p>Hi <strong>${engineer.name}</strong>,</p>
-        <p>Your engineer account has been created successfully.</p>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
-          <p style="margin:0 0 8px"><strong>Engineer Name:</strong> ${engineer.name}</p>
-          <p style="margin:0 0 8px"><strong>Username / Email:</strong> ${engineer.username} / ${engineer.email}</p>
-          <p style="margin:0 0 8px"><strong>Password:</strong> ${password}</p>
-          <p style="margin:0 0 14px"><strong>Employee Login URL:</strong> <a href="${employeeLoginUrl}">${employeeLoginUrl}</a></p>
-          <a href="${employeeLoginUrl}" style="background:#111827;color:#ffffff;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block">Login to Employee Portal</a>
+      <div style="margin:0;padding:24px;background:#f3f6fb">
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:620px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
+          <div style="background:#0f4fa8;padding:24px 28px;color:#ffffff">
+            <h2 style="margin:0;font-size:24px;line-height:1.3">Welcome to Vconstech ERP</h2>
+          </div>
+          <div style="padding:28px">
+            <p style="margin:0 0 10px;font-size:16px">Hi <strong>${engineer.name}</strong>,</p>
+            <p style="margin:0 0 22px;color:#374151">Your engineer account has been created successfully.</p>
+            <div style="background:#f8fafc;border:1px solid #dbeafe;border-radius:12px;padding:18px;margin:0 0 22px">
+              <h3 style="margin:0 0 14px;font-size:17px;color:#0f4fa8">Employee Portal Credentials</h3>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Engineer Name:</strong><br/>${engineer.name}</p>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Username:</strong><br/>${engineer.username}</p>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Email:</strong><br/>${engineer.email}</p>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Password:</strong><br/>${password}</p>
+              <p style="margin:0 0 16px;color:#4b5563"><strong style="color:#111827">Employee Login URL:</strong><br/><a href="${employeeLoginUrl}" style="color:#0f6fdc;text-decoration:none">${employeeLoginUrl}</a></p>
+              <a href="${employeeLoginUrl}" style="background:#0f6fdc;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">Login to Employee Portal</a>
+            </div>
+            <p style="margin:0 0 18px;color:#374151">Please log in with these credentials and keep them secure.</p>
+            <p style="margin:0;color:#374151">Best Regards,<br/><strong>Vconstech ERP</strong></p>
+          </div>
         </div>
-        <p>Please log in with these credentials and keep them secure.</p>
-        <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>
       </div>
     `
   });

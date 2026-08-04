@@ -6,22 +6,12 @@ import { activatePricingInvitationRegistration } from '../services/subscriptionS
 import { sendEmail } from '../utils/mailer.js';
 import { validateRegistrationPayload } from '../utils/invitationValidation.js';
 
-const getLoginUrl = () =>
-  process.env.ERP_LOGIN_URL ||
-  process.env.ERP_FRONTEND_URL ||
-  process.env.CLIENT_URL ||
-  'http://localhost:5173';
+const ERP_PORTAL_URL = 'https://erp.thevsoft.com';
+const EMPLOYEE_LOGIN_URL = 'https://erp.thevsoft.com/employee-login';
 
-const getEmployeeLoginUrl = () => {
-  if (process.env.ERP_EMPLOYEE_LOGIN_URL) return process.env.ERP_EMPLOYEE_LOGIN_URL;
+const getLoginUrl = () => ERP_PORTAL_URL;
 
-  const baseUrl =
-    process.env.ERP_FRONTEND_URL ||
-    process.env.CLIENT_URL ||
-    'http://localhost:5173';
-
-  return `${baseUrl.replace(/\/$/, '')}/employee-login`;
-};
+const getEmployeeLoginUrl = () => EMPLOYEE_LOGIN_URL;
 
 const sendInvitationWelcomeEmail = async ({ registration }) => {
   if (registration.idempotent || !registration.user?.email) return null;
@@ -33,20 +23,30 @@ const sendInvitationWelcomeEmail = async ({ registration }) => {
     to: registration.user.email,
     subject: 'Welcome to Vconstech ERP - Your account is ready',
     html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px;margin:auto">
-        <h2 style="margin-bottom:12px">Welcome to Vconstech ERP</h2>
-        <p>Hi <strong>${registration.user.name || 'Customer'}</strong>,</p>
-        <p>Your ERP account has been created successfully from your registration invitation.</p>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
-          <p style="margin:0 0 8px"><strong>Login Link:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
-          <p style="margin:0"><strong>Registered Email:</strong> ${registration.user.email}</p>
+      <div style="margin:0;padding:24px;background:#f3f6fb">
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:620px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
+          <div style="background:#0f4fa8;padding:24px 28px;color:#ffffff">
+            <h2 style="margin:0;font-size:24px;line-height:1.3">Welcome to Vconstech ERP</h2>
+          </div>
+          <div style="padding:28px">
+            <p style="margin:0 0 10px;font-size:16px">Hi <strong>${registration.user.name || 'Customer'}</strong>,</p>
+            <p style="margin:0 0 22px;color:#374151">Your ERP account has been created successfully from your registration invitation.</p>
+            <div style="background:#f8fafc;border:1px solid #dbeafe;border-radius:12px;padding:18px;margin:0 0 20px">
+              <h3 style="margin:0 0 14px;font-size:17px;color:#0f4fa8">ERP Login</h3>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Registered Email:</strong><br/>${registration.user.email}</p>
+              <p style="margin:0 0 16px;color:#4b5563"><strong style="color:#111827">ERP Login URL:</strong></p>
+              <a href="${loginUrl}" style="background:#0f6fdc;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">Login to ERP Portal</a>
+            </div>
+            <p style="margin:0 0 20px;color:#374151">Please use the password you created during registration to log in.</p>
+            <div style="background:#f8fafc;border:1px solid #dbeafe;border-radius:12px;padding:18px;margin:0 0 22px">
+              <h3 style="margin:0 0 14px;font-size:17px;color:#0f4fa8">Employee Portal</h3>
+              <p style="margin:0 0 16px;color:#4b5563"><strong style="color:#111827">Employee Login URL</strong></p>
+              <a href="${employeeLoginUrl}" style="background:#0f6fdc;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">Login to Employee Portal</a>
+              <p style="margin:16px 0 0;font-size:13px;color:#6b7280">Use this Employee Portal only if you are logging in as an Employee / Engineer.</p>
+            </div>
+            <p style="margin:0;color:#374151">Best Regards,<br/><strong>Vconstech ERP</strong></p>
+          </div>
         </div>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
-          <h3 style="margin:0 0 12px;font-size:16px;color:#111827">Employee Login</h3>
-          <p style="margin:0"><strong>Employee Portal:</strong> <a href="${employeeLoginUrl}">${employeeLoginUrl}</a></p>
-        </div>
-        <p>Please use the password you created during registration to log in.</p>
-        <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>
       </div>
     `
   });

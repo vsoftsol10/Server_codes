@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   X,
   Camera,
@@ -107,7 +107,6 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
       address: "",
       email: "",
       username: "",
-      
       password: "",
       confirmPassword: "",
     });
@@ -115,7 +114,13 @@ const AddEngineerModal = ({ isOpen, onClose, onSubmit, isSubmitting }) => {
     setImagePreview(null);
     setServerError('');
     setErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
+
+  useEffect(() => {
+    if (isOpen) resetForm();
+  }, [isOpen]);
 
   const handleClose = () => {
     resetForm();

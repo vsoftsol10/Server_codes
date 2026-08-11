@@ -6,12 +6,54 @@ import { prisma } from '../config/database.js';
 // So for engineers: req.user.id is the Engineer.id Int we need for Notification.engineerId
 const isAdmin = (role) => ['ADMIN', 'SUPERVISOR'].includes(role?.toUpperCase()?.trim());
 const isEngineer = (role) => ['ENGINEER', 'SITE_ENGINEER'].includes(role?.toUpperCase()?.trim());
+const notificationPanelLimit = 50;
+const notificationFetchLimit = notificationPanelLimit * 2;
+const projectAssignmentMessagePattern = /^You have been assigned to Project: (.+)\.$/;
+
+const getProjectNameFromNotification = (notification) => {
+  const match = notification.message?.match(projectAssignmentMessagePattern);
+  return match?.[1]?.trim() || null;
+};
+
+const filterDeletedProjectNotifications = async (notifications, companyId) => {
+  if (!companyId || notifications.length === 0) {
+    return notifications;
+  }
+
+  const referencedProjectNames = [
+    ...new Set(
+      notifications
+        .map(getProjectNameFromNotification)
+        .filter(Boolean)
+    )
+  ];
+
+  if (referencedProjectNames.length === 0) {
+    return notifications;
+  }
+
+  const existingProjects = await prisma.project.findMany({
+    where: {
+      companyId,
+      name: { in: referencedProjectNames }
+    },
+    select: { name: true }
+  });
+
+  const existingProjectNames = new Set(existingProjects.map((project) => project.name));
+
+  return notifications.filter((notification) => {
+    const projectName = getProjectNameFromNotification(notification);
+    return !projectName || existingProjectNames.has(projectName);
+  });
+};
 
 export const getNotifications = async (req, res) => {
   try {
     // ✅ FIX: engineerId (Int) takes priority for engineers; userId is fallback
     const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
     const userRole = req.user?.role;
+    const companyId = req.user?.companyId;
     
     console.log('🔔 getNotifications called');
     console.log('   Raw user from token:', req.user);
@@ -55,7 +97,7 @@ export const getNotifications = async (req, res) => {
     const notifications = await prisma.notification.findMany({
       where,
       orderBy: { date: 'desc' },
-      take: 50,
+      take: notificationFetchLimit,
       include: {
         engineer: {
           select: {
@@ -70,6 +112,10 @@ export const getNotifications = async (req, res) => {
     });
 
     // ✅ FIX: Unread count uses same normalized role check
+    const visibleNotifications = (
+      await filterDeletedProjectNotifications(notifications, companyId)
+    ).slice(0, notificationPanelLimit);
+
     let unreadWhere = { read: false };
     if (isAdmin(userRole)) {
       unreadWhere.recipientRole = 'ADMIN';
@@ -78,20 +124,21 @@ export const getNotifications = async (req, res) => {
       unreadWhere.recipientRole = 'ENGINEER';
     }
 
-    const unreadCount = await prisma.notification.count({
+    const unreadNotifications = await prisma.notification.findMany({
       where: unreadWhere
     }).catch(err => {
       console.error('Prisma notification count error:', err);
-      return 0;
+      return [];
     });
+    const unreadCount = (await filterDeletedProjectNotifications(unreadNotifications, companyId)).length;
 
-    console.log(`   Found ${notifications.length} notifications, ${unreadCount} unread`);
+    console.log(`   Found ${visibleNotifications.length} notifications, ${unreadCount} unread`);
 
     res.json({ 
       success: true,
-      count: notifications.length,
+      count: visibleNotifications.length,
       unreadCount,
-      notifications 
+      notifications: visibleNotifications 
     });
   } catch (error) {
     console.error('Get notifications error:', error);

@@ -31,9 +31,23 @@ const textValue = (value, fallback = '-') => {
 
 const safeFileName = (value) => (
   textValue(value, 'Project')
-    .replace(/[^a-z0-9]+/gi, '_')
-    .replace(/^_+|_+$/g, '')
+    .replace(/[<>:"/\\|?*;\x00-\x1F\x7F]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || 'Project'
 );
+
+const buildReportFileName = (projectName, extension) => (
+  `${safeFileName(projectName)} - Project Expense Report.${extension}`
+);
+
+const setAttachmentHeaders = (res, contentType, fileName) => {
+  res.setHeader('Content-Type', contentType);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${fileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
+  );
+};
 
 const getProjectExpenseCategory = (category) => (
   String(category || '').toLowerCase().includes('office')
@@ -247,6 +261,46 @@ const drawPdfTable = (doc, title, headers, rows, columnWidths) => {
   });
 };
 
+const styleExcelSectionTitle = (sheet, rowNumber, columnCount) => {
+  sheet.mergeCells(rowNumber, 1, rowNumber, columnCount);
+  const cell = sheet.getCell(rowNumber, 1);
+  cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
+  cell.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF111827' },
+  };
+  cell.alignment = { vertical: 'middle' };
+  sheet.getRow(rowNumber).height = 22;
+};
+
+const styleExcelHeaderRow = (row) => {
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  row.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF374151' },
+  };
+  row.alignment = { vertical: 'middle' };
+};
+
+const applyExcelBorders = (sheet) => {
+  sheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+        right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+      };
+      cell.alignment = {
+        vertical: 'top',
+        wrapText: true,
+      };
+    });
+  });
+};
+
 const formatProject = (project, budgetSummary) => {
   return {
     id: project.id,
@@ -359,10 +413,9 @@ router.get('/projects/:id/report/pdf', authenticateToken, async (req, res) => {
     const report = await buildProjectExpenseReport(req.params.id, req.user.companyId);
     const { project, expenses, categoryTotals, totalBudget, totalSpent, remainingAmount } = report;
     const generatedDate = fmtDate(report.generatedAt);
-    const fileName = `${safeFileName(project.name)}_Project_Expense_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+    const fileName = buildReportFileName(project.name, 'pdf');
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    setAttachmentHeaders(res, 'application/pdf', fileName);
 
     const doc = new PDFDocument({
       size: 'A4',
@@ -441,91 +494,148 @@ router.get('/projects/:id/report/excel', authenticateToken, async (req, res) => 
   try {
     const report = await buildProjectExpenseReport(req.params.id, req.user.companyId);
     const { project, expenses, categoryTotals, totalBudget, totalSpent, remainingAmount } = report;
+    const generatedDate = fmtDate(report.generatedAt);
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'Vconstech ERP';
     workbook.created = new Date();
 
-    const summarySheet = workbook.addWorksheet('Summary');
-    summarySheet.columns = [
-      { header: 'Field', key: 'field', width: 28 },
-      { header: 'Value', key: 'value', width: 45 },
+    const reportSheet = workbook.addWorksheet('Project Expense Report', {
+      views: [{ state: 'frozen', ySplit: 3 }],
+    });
+    reportSheet.columns = [
+      { key: 'label', width: 28 },
+      { key: 'value', width: 30 },
+      { key: 'date', width: 16 },
+      { key: 'category', width: 24 },
+      { key: 'description', width: 52 },
+      { key: 'amount', width: 18 },
     ];
-    summarySheet.addRows([
-      { field: 'Project Name', value: project.name },
-      { field: 'Project Code', value: project.projectId },
-      { field: 'Client', value: project.clientName },
-      { field: 'Type', value: project.projectType },
-      { field: 'Location', value: project.location },
-      { field: 'Status', value: project.status },
-      { field: 'Start Date', value: fmtDate(project.startDate) },
-      { field: 'Due Date', value: fmtDate(project.dueDate || project.endDate) },
-      { field: 'Description', value: project.description },
-      { field: 'Project Budget', value: totalBudget },
-      { field: 'Total Amount Spent', value: totalSpent },
-      { field: 'Remaining Amount', value: remainingAmount },
-    ]);
 
-    const totalsSheet = workbook.addWorksheet('Category Totals');
-    totalsSheet.columns = [
-      { header: 'Category', key: 'category', width: 30 },
-      { header: 'Total Amount', key: 'amount', width: 18 },
+    reportSheet.mergeCells('A1:F1');
+    reportSheet.getCell('A1').value = 'Project Expense Report';
+    reportSheet.getCell('A1').font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
+    reportSheet.getCell('A1').fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF111827' },
+    };
+    reportSheet.getCell('A1').alignment = { vertical: 'middle' };
+    reportSheet.getRow(1).height = 28;
+    reportSheet.mergeCells('A2:F2');
+    reportSheet.getCell('A2').value = `Generated: ${generatedDate}`;
+    reportSheet.getCell('A2').font = { italic: true, color: { argb: 'FF4B5563' } };
+
+    let rowNumber = 4;
+    styleExcelSectionTitle(reportSheet, rowNumber, 6);
+    reportSheet.getCell(rowNumber, 1).value = 'Project Details';
+    rowNumber += 1;
+    const projectDetailRows = [
+      ['Project Name', project.name],
+      ['Project Code', project.projectId],
+      ['Client', project.clientName],
+      ['Type', project.projectType],
+      ['Location', project.location],
+      ['Status', project.status],
+      ['Start Date', fmtDate(project.startDate)],
+      ['Due Date', fmtDate(project.dueDate || project.endDate)],
+      ['Description', project.description],
     ];
-    totalsSheet.addRows(reportCategories.map((category) => ({
-      category,
-      amount: categoryTotals[category],
-    })));
+    projectDetailRows.forEach(([label, value]) => {
+      reportSheet.getCell(rowNumber, 1).value = label;
+      reportSheet.getCell(rowNumber, 2).value = textValue(value);
+      reportSheet.getCell(rowNumber, 1).font = { bold: true };
+      rowNumber += 1;
+    });
 
-    const detailsSheet = workbook.addWorksheet('Expense Details');
-    detailsSheet.columns = [
+    rowNumber += 1;
+    styleExcelSectionTitle(reportSheet, rowNumber, 6);
+    reportSheet.getCell(rowNumber, 1).value = 'Financial Summary';
+    rowNumber += 1;
+    [
+      ['Project Budget', totalBudget],
+      ['Total Amount Spent', totalSpent],
+      ['Remaining Amount', remainingAmount],
+    ].forEach(([label, value]) => {
+      reportSheet.getCell(rowNumber, 1).value = label;
+      reportSheet.getCell(rowNumber, 2).value = value;
+      reportSheet.getCell(rowNumber, 1).font = { bold: true };
+      reportSheet.getCell(rowNumber, 2).numFmt = '"Rs."#,##0.00';
+      rowNumber += 1;
+    });
+
+    rowNumber += 1;
+    styleExcelSectionTitle(reportSheet, rowNumber, 6);
+    reportSheet.getCell(rowNumber, 1).value = 'Category-wise Expense Totals';
+    rowNumber += 1;
+    reportSheet.getRow(rowNumber).values = ['Category', 'Total Amount'];
+    styleExcelHeaderRow(reportSheet.getRow(rowNumber));
+    rowNumber += 1;
+    reportCategories.forEach((category) => {
+      reportSheet.getCell(rowNumber, 1).value = category;
+      reportSheet.getCell(rowNumber, 2).value = categoryTotals[category];
+      reportSheet.getCell(rowNumber, 2).numFmt = '"Rs."#,##0.00';
+      rowNumber += 1;
+    });
+
+    rowNumber += 1;
+    styleExcelSectionTitle(reportSheet, rowNumber, 6);
+    reportSheet.getCell(rowNumber, 1).value = 'Complete Expense Details / Transactions';
+    rowNumber += 1;
+    reportSheet.getRow(rowNumber).values = [
+      'Date',
+      'Category',
+      'Description / Details',
+      'Source',
+      'Amount',
+      'Project ID',
+    ];
+    styleExcelHeaderRow(reportSheet.getRow(rowNumber));
+    rowNumber += 1;
+
+    const transactionRows = expenses.length
+      ? expenses.map((expense) => [
+          fmtDate(expense.date),
+          expense.category,
+          expense.description,
+          expense.source,
+          expense.amount,
+          expense.projectId,
+        ])
+      : [['-', '-', 'No expenses recorded for this project.', '-', 0, project.id]];
+
+    transactionRows.forEach((row) => {
+      reportSheet.getRow(rowNumber).values = row;
+      reportSheet.getCell(rowNumber, 5).numFmt = '"Rs."#,##0.00';
+      rowNumber += 1;
+    });
+
+    const transactionsSheet = workbook.addWorksheet('Transactions', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    transactionsSheet.columns = [
       { header: 'Date', key: 'date', width: 16 },
-      { header: 'Category', key: 'category', width: 24 },
-      { header: 'Description / Details', key: 'description', width: 52 },
+      { header: 'Category', key: 'category', width: 26 },
+      { header: 'Description / Details', key: 'description', width: 58 },
       { header: 'Source', key: 'source', width: 22 },
-      { header: 'Amount', key: 'amount', width: 16 },
+      { header: 'Amount', key: 'amount', width: 18 },
       { header: 'Project ID', key: 'projectId', width: 12 },
     ];
-    detailsSheet.addRows(expenses.map((expense) => ({
-      date: fmtDate(expense.date),
-      category: expense.category,
-      description: expense.description,
-      source: expense.source,
-      amount: expense.amount,
-      projectId: expense.projectId,
+    styleExcelHeaderRow(transactionsSheet.getRow(1));
+    transactionsSheet.addRows(transactionRows.map(([date, category, description, source, amount, projectId]) => ({
+      date,
+      category,
+      description,
+      source,
+      amount,
+      projectId,
     })));
+    transactionsSheet.getColumn('amount').numFmt = '"Rs."#,##0.00';
 
-    [summarySheet, totalsSheet, detailsSheet].forEach((sheet) => {
-      sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      sheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF111827' },
-      };
-      sheet.views = [{ state: 'frozen', ySplit: 1 }];
-      sheet.eachRow((row) => {
-        row.eachCell((cell) => {
-          cell.border = {
-            top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-            left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-            bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-            right: { style: 'thin', color: { argb: 'FFE5E7EB' } },
-          };
-        });
-      });
-    });
-
-    const amountColumns = [
-      summarySheet.getColumn('value'),
-      totalsSheet.getColumn('amount'),
-      detailsSheet.getColumn('amount'),
-    ];
-    amountColumns.forEach((column) => {
-      column.numFmt = '"Rs."#,##0.00';
-    });
+    [reportSheet, transactionsSheet].forEach(applyExcelBorders);
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const fileName = `${safeFileName(project.name)}_Project_Expense_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    const fileName = buildReportFileName(project.name, 'xlsx');
+    setAttachmentHeaders(res, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileName);
     res.send(Buffer.from(buffer));
   } catch (error) {
     console.error('Download project expense Excel error:', error);

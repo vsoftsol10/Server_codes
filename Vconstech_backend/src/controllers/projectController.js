@@ -1067,7 +1067,9 @@ if (existingProject) {
         project.assignedEngineerId,
         `You have been assigned to Project: ${project.name}.`,
         'INFO',
-        'ENGINEER'
+        'ENGINEER',
+        null,
+        project.id
       );
     }
 
@@ -1360,7 +1362,9 @@ export const updateProject = async (req, res) => {
         updatedProject.assignedEngineerId,
         `You have been assigned to Project: ${updatedProject.name}.`,
         'INFO',
-        'ENGINEER'
+        'ENGINEER',
+        null,
+        updatedProject.id
       );
     }
  

@@ -69,7 +69,7 @@ export const determineProjectMaterialStatus = (assigned, used) => {
  * Create notification for user
  * ✅ FIXED: Uses engineerId (Int) instead of userId
  */
-export const createNotification = async (engineerId, message, type, recipientRole = 'ENGINEER', requestId = null) => {
+export const createNotification = async (engineerId, message, type, recipientRole = 'ENGINEER', requestId = null, projectId = null) => {
   try {
     const notification = await prisma.notification.create({
       data: {
@@ -78,6 +78,7 @@ export const createNotification = async (engineerId, message, type, recipientRol
         type,
         recipientRole, // ✅ NEW
         requestId: requestId ? parseInt(requestId) : null, // ✅ NEW
+        projectId: projectId ? parseInt(projectId) : null,
         read: false,
         date: new Date()
       }

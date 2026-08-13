@@ -2,6 +2,23 @@
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 
+const INACTIVE_ACCOUNT_ERROR = 'Your account has been deactivated. Please contact your administrator.';
+
+const isCustomerAccountInactive = (user) => {
+  if (!user) return true;
+  if (!user.isActive) return true;
+
+  const accountStatus = String(user.accountStatus || '').trim().toUpperCase();
+  if (accountStatus && accountStatus !== 'ACTIVE') return true;
+
+  const subscriptionStatus = String(user.subscriptionStatus || '').trim().toUpperCase();
+  if (subscriptionStatus && ['TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED', 'INACTIVE', 'CANCELLED'].includes(subscriptionStatus)) {
+    return true;
+  }
+
+  return false;
+};
+
 export const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -15,13 +32,30 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(403).json({ error: 'Invalid or expired token' });
     }
 
-    // Engineers are stored in a separate table — skip user isActive check
     if (decoded.type === 'engineer') {
+      const owner = await prisma.user.findFirst({
+        where: {
+          companyId: String(decoded.companyId),
+          role: { in: ['Admin', 'ADMIN'] }
+        },
+        select: {
+          isActive: true,
+          accountStatus: true,
+          subscriptionStatus: true
+        }
+      });
+
+      if (isCustomerAccountInactive(owner)) {
+        console.log('❌ Engineer attempted access for inactive customer account:', decoded.username);
+        return res.status(403).json({
+          error: INACTIVE_ACCOUNT_ERROR
+        });
+      }
+
       req.user = decoded;
       return next();
     }
-
-    // Admin/user — re-check isActive on every request
+    // Admin/user - keep the existing isActive re-check on every request.
     const user = await prisma.user.findUnique({
       where: { id: String(decoded.userId) },
       select: { isActive: true }
@@ -30,10 +64,9 @@ export const authenticateToken = async (req, res, next) => {
     if (!user || !user.isActive) {
       console.log('❌ Deactivated user attempted access:', decoded.email);
       return res.status(403).json({
-        error: 'Your account has been deactivated. Please contact your administrator.'
+        error: INACTIVE_ACCOUNT_ERROR
       });
     }
-
     req.user = decoded;
     next();
   });
@@ -79,3 +112,4 @@ export const authorizeRole = (...roles) => {
     next();
   };
 };
+

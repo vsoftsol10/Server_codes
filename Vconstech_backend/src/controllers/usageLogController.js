@@ -18,23 +18,27 @@ export const getUsageLogs = async (req, res) => {
       });
     }
 
-    // Verify project belongs to company
+    const parsedProjectId = parseInt(projectId);
+    const isEngineer = req.user?.type === 'engineer' || String(req.user?.role || '').toUpperCase() === 'SITE_ENGINEER';
+
+    // Verify project belongs to company, and engineers can only access assigned projects.
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(projectId),
-        companyId
+        id: parsedProjectId,
+        companyId,
+        ...(isEngineer ? { assignedEngineerId: req.user.id } : {})
       }
     });
 
     if (!project) {
-      return res.status(404).json({ 
+      return res.status(isEngineer ? 403 : 404).json({ 
         success: false,
-        error: 'Project not found' 
+        error: isEngineer ? 'Access denied. You are not assigned to this project.' : 'Project not found' 
       });
     }
 
     const usageLogs = await prisma.materialUsage.findMany({
-      where: { projectId: parseInt(projectId) },
+      where: { projectId: parsedProjectId },
       include: {
         material: true,
         engineer: {
@@ -80,25 +84,29 @@ export const createUsageLog = async (req, res) => {
       });
     }
 
-    // Verify project belongs to company
+    const parsedProjectId = parseInt(projectId);
+    const isEngineer = req.user?.type === 'engineer' || String(req.user?.role || '').toUpperCase() === 'SITE_ENGINEER';
+
+    // Verify project belongs to company, and engineers can only create usage for assigned projects.
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(projectId),
-        companyId
+        id: parsedProjectId,
+        companyId,
+        ...(isEngineer ? { assignedEngineerId: engineerId } : {})
       }
     });
 
     if (!project) {
-      return res.status(404).json({ 
+      return res.status(isEngineer ? 403 : 404).json({ 
         success: false,
-        error: 'Project not found' 
+        error: isEngineer ? 'Access denied. You are not assigned to this project.' : 'Project not found' 
       });
     }
 
     // Check if material is assigned to project
     const projectMaterial = await prisma.projectMaterial.findFirst({
       where: {
-        projectId: parseInt(projectId),
+        projectId: parsedProjectId,
         materialId: parseInt(materialId)
       }
     });
@@ -124,9 +132,9 @@ export const createUsageLog = async (req, res) => {
       // Create usage log
       const usageLog = await tx.materialUsage.create({
         data: {
-          projectId: parseInt(projectId),
+          projectId: parsedProjectId,
           materialId: parseInt(materialId),
-          engineerId: engineerId, // ✅ FIXED: Now uses engineerId directly (Int)
+          engineerId: engineerId,
           quantity: usageQuantity,
           remarks: remarks || null,
           date: date ? new Date(date) : new Date()
@@ -342,3 +350,4 @@ export const deleteUsageLog = async (req, res) => {
     });
   }
 };
+

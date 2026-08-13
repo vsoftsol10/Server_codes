@@ -2,7 +2,7 @@
 import {
   Edit2, Printer, Plus, Save, X, Trash2,
   Eye, Search, Filter,
-  FileText, Building2
+  FileText, Building2, Download, FileSpreadsheet
 } from 'lucide-react';
 import Navbar from '../../components/common/Navbar';
 import SidePannel from '../../components/common/SidePannel';
@@ -53,6 +53,7 @@ const FinancialManagement = () => {
   const [newExpense, setNewExpense]           = useState({ amount: '', category: '' });
   const [expenseErrors, setExpenseErrors]     = useState({});
   const [editExpenseErrors, setEditExpenseErrors] = useState({});
+  const [downloadingReport, setDownloadingReport] = useState(null);
 
   useEffect(() => {
     document.title = 'Vconstech - Admin';
@@ -342,6 +343,24 @@ const FinancialManagement = () => {
       </body></html>
     `);
     printWindow.document.close();
+  };
+
+  const handleDownloadProjectExpenseReport = async (project, format) => {
+    if (!project?.id) {
+      showToast('Please select a valid project before downloading the report.', 'warning');
+      return;
+    }
+
+    const downloadKey = `${project.id}-${format}`;
+    try {
+      setDownloadingReport(downloadKey);
+      await financialAPI.downloadProjectExpenseReport(project.id, format);
+      showToast(`Project expense report downloaded as ${format === 'excel' ? 'Excel' : 'PDF'}.`, 'success');
+    } catch (error) {
+      showToast(`Failed to download report: ${error.error || error.message}`, 'error');
+    } finally {
+      setDownloadingReport(null);
+    }
   };
 
   if (loading) return <LoadingScreen message="Loading Financial Data..." />;
@@ -712,9 +731,23 @@ const FinancialManagement = () => {
             </div>
 
             {/* Drawer footer */}
-            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
+            <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0 flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => handleDownloadProjectExpenseReport(drawerProject, 'pdf')}
+                disabled={downloadingReport === `${drawerProject.id}-pdf`}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-yellow-400 rounded-xl text-sm font-semibold text-black hover:bg-yellow-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                <Download size={16} />
+                {downloadingReport === `${drawerProject.id}-pdf` ? 'Downloading PDF...' : 'Download PDF'}
+              </button>
+              <button
+                onClick={() => handleDownloadProjectExpenseReport(drawerProject, 'excel')}
+                disabled={downloadingReport === `${drawerProject.id}-excel`}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-green-600 rounded-xl text-sm font-semibold text-white hover:bg-green-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                <FileSpreadsheet size={16} />
+                {downloadingReport === `${drawerProject.id}-excel` ? 'Downloading Excel...' : 'Download Excel'}
+              </button>
               <button onClick={() => handlePrint(drawerProject)}
-                className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                 <Printer size={16} /> Print Report
               </button>
             </div>

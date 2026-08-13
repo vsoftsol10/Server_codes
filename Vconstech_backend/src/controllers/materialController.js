@@ -247,7 +247,15 @@ export const getAllMaterials = async (req, res) => {
     const { companyId } = req.user;
     const { category, search } = req.query;
 
-    const where = { companyId };
+    const isEngineer = req.user?.type === 'engineer' || String(req.user?.role || '').toUpperCase() === 'SITE_ENGINEER';
+    const assignedProjectFilter = isEngineer
+      ? { project: { companyId, assignedEngineerId: req.user.id } }
+      : {};
+
+    const where = {
+      companyId,
+      ...(isEngineer ? { projectMaterials: { some: assignedProjectFilter } } : {})
+    };
 
     // Filter by category
     if (category && category !== 'All') {
@@ -266,6 +274,7 @@ export const getAllMaterials = async (req, res) => {
       where,
       include: {
         projectMaterials: {
+          ...(isEngineer ? { where: assignedProjectFilter } : {}),
           include: {
             project: {
               select: {
@@ -708,3 +717,4 @@ export const getDashboardSummary = async (req, res) => {
     });
   }
 };
+

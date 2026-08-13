@@ -10,24 +10,27 @@ export const getProjectMaterials = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { companyId } = req.user;
+    const parsedProjectId = parseInt(projectId);
+    const isEngineer = req.user?.type === 'engineer' || String(req.user?.role || '').toUpperCase() === 'SITE_ENGINEER';
 
-    // Verify project belongs to company
+    // Verify project belongs to company, and engineers can only access assigned projects.
     const project = await prisma.project.findFirst({
       where: {
-        id: parseInt(projectId),
-        companyId
+        id: parsedProjectId,
+        companyId,
+        ...(isEngineer ? { assignedEngineerId: req.user.id } : {})
       }
     });
 
     if (!project) {
-      return res.status(404).json({ 
+      return res.status(isEngineer ? 403 : 404).json({ 
         success: false,
-        error: 'Project not found' 
+        error: isEngineer ? 'Access denied. You are not assigned to this project.' : 'Project not found' 
       });
     }
 
     const projectMaterials = await prisma.projectMaterial.findMany({
-      where: { projectId: parseInt(projectId) },
+      where: { projectId: parsedProjectId },
       include: {
         material: true,
         project: {
@@ -42,7 +45,6 @@ export const getProjectMaterials = async (req, res) => {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Add remaining calculation
     const materialsWithRemaining = projectMaterials.map(pm => ({
       ...pm,
       remaining: pm.assigned - pm.used
@@ -288,3 +290,4 @@ export const removeProjectMaterial = async (req, res) => {
     });
   }
 };
+

@@ -8,38 +8,38 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(uuid())
-  name               String
-  email              String              @unique
-  password           String
-  companyId          String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  role               String
-  phoneNumber        String              @default("")
-  city               String              @default("")
-  address            String              @default("")
-  package            String?
-  customMembers      Int?
-  gstNumber          String              @default("")
-  isActive           Boolean             @default(false)
-  clientId           Int?
-  crmLeadId          String?
-  crmCustomerId      String?
-  erpCustomerId      String?
-  accountStatus      String              @default("ACTIVE")
-  subscriptionStatus String?
-  trialStartDate     DateTime?
-  trialEndDate       DateTime?
+  id                    String                 @id @default(uuid())
+  name                  String
+  email                 String                 @unique
+  password              String
+  companyId             String?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  role                  String
+  phoneNumber           String                 @default("")
+  city                  String                 @default("")
+  address               String                 @default("")
+  package               String?
+  customMembers         Int?
+  gstNumber             String                 @default("")
+  isActive              Boolean                @default(false)
+  accountStatus         String                 @default("ACTIVE")
+  clientId              Int?
+  crmCustomerId         String?
+  crmLeadId             String?
+  erpCustomerId         String?
+  subscriptionPlan      String?
   subscriptionStartedAt DateTime?
-  subscriptionPlan   String?
-  Bill               Bill[]
-  client             Client?             @relation(fields: [clientId], references: [id])
-  crmInvitations     CrmInvitation[]
+  subscriptionStatus    String?
+  trialEndDate          DateTime?
+  trialStartDate        DateTime?
+  Bill                  Bill[]
+  uploadedFiles         File[]
+  projectAssignments    ProjectAssignment[]
+  client                Client?                @relation(fields: [clientId], references: [id])
+  company               Company?               @relation(fields: [companyId], references: [id])
+  crmInvitations        CrmInvitation[]
   customerSubscriptions CustomerSubscription[]
-  uploadedFiles      File[]
-  projectAssignments ProjectAssignment[]
-  company            Company?            @relation(fields: [companyId], references: [id])
 
   @@index([clientId])
   @@index([crmLeadId])
@@ -69,8 +69,8 @@ model Project {
   Bill                   Bill[]
   contracts              Contract[]
   files                  File[]
-  folders                Folder[] 
   finances               FinancialTransaction[]
+  folders                Folder[]
   labours                Labour[]
   materialRequests       MaterialRequest[]
   materialUsages         MaterialUsage[]
@@ -273,6 +273,8 @@ model File {
   documentType         String?
   fileSize             Int?
   uploadedByEngineerId Int?
+  folderId             Int?
+  folder               Folder?   @relation(fields: [folderId], references: [id])
   project              Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   engineer             Engineer? @relation(fields: [uploadedByEngineerId], references: [id], onDelete: Cascade)
   user                 User?     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
@@ -280,27 +282,23 @@ model File {
   @@index([projectId])
   @@index([uploadedBy])
   @@index([uploadedByEngineerId])
-  folderId  Int?
-  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
-
   @@index([folderId])
-
 }
 
 model Company {
-  id        String     @id @default(uuid())
-  name      String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  logo      String?
-  Bill      Bill[]
-  clients   Client[]
+  id             String          @id @default(uuid())
+  name           String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  logo           String?
+  Bill           Bill[]
+  clients        Client[]
+  labours        Labour[]
+  materials      Material[]
+  projects       Project[]
+  users          User[]
   crmInvitations CrmInvitation[]
-  labours   Labour[]
-  materials Material[]
-  projects  Project[]
-  users     User[]
-  engineers Engineer[]
+  engineers      Engineer[]
 
   @@map("companies")
 }
@@ -309,7 +307,6 @@ model Engineer {
   id                     Int                      @id @default(autoincrement())
   name                   String
   empId                  String
-  email                  String?
   phone                  String
   alternatePhone         String?
   address                String
@@ -317,11 +314,12 @@ model Engineer {
   companyId              String
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
-  status                 String                   @default("Active")
   password               String?
   username               String?
   plainPassword          String?
   designation            String?
+  status                 String                   @default("Active")
+  email                  String?
   uploadedFiles          File[]
   materialRequests       MaterialRequest[]        @relation("EmployeeRequests")
   reviewedRequests       MaterialRequest[]        @relation("ReviewedRequests")
@@ -498,8 +496,8 @@ model Client {
   updatedAt      DateTime        @default(now()) @updatedAt
   companyName    String?         @db.VarChar(255)
   company        Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  crmInvitations CrmInvitation[]
   users          User[]
+  crmInvitations CrmInvitation[]
 
   @@index([companyId])
   @@index([clientName])
@@ -536,18 +534,18 @@ model Folder {
   name      String
   projectId Int
   createdAt DateTime @default(now())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   files     File[]
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId])
 }
 
 model CustomerSubscription {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   userId         String
   crmCustomerId  String
   erpCustomerId  String
-  eventId        String   @unique
+  eventId        String    @unique
   action         String
   status         String
   plan           String?
@@ -556,10 +554,10 @@ model CustomerSubscription {
   purchaseDate   DateTime?
   crmSyncedAt    DateTime?
   crmSyncStatus  String?
-  crmSyncPayload Json     @default("{}")
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  crmSyncPayload Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([crmCustomerId])
@@ -601,8 +599,8 @@ enum Role {
 enum ProjectStatus {
   PENDING
   ONGOING
-  ON_HOLD
   COMPLETED
+  ON_HOLD
 }
 
 enum TransactionType {

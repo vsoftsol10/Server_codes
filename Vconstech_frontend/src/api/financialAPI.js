@@ -18,6 +18,39 @@ const handleResponse = async (response) => {
   return data;
 };
 
+const getFileNameFromDisposition = (disposition, fallback) => {
+  if (!disposition) return fallback;
+  const match = disposition.match(/filename="?([^"]+)"?/i);
+  return match?.[1] || fallback;
+};
+
+const downloadBlob = async (response, fallbackFileName) => {
+  if (!response.ok) {
+    let errorData = {};
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = {};
+    }
+    throw {
+      status: response.status,
+      error: errorData.error || 'Failed to download file',
+      details: errorData.details,
+    };
+  }
+
+  const blob = await response.blob();
+  const fileName = getFileNameFromDisposition(response.headers.get('Content-Disposition'), fallbackFileName);
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+};
+
 export const financialAPI = {
   /**
    * Get all projects with financial data
@@ -173,5 +206,27 @@ export const financialAPI = {
     });
     
     return handleResponse(response);
+  },
+
+  /**
+   * Download project-wise expense report
+   * @param {number} projectId - Project ID
+   * @param {'pdf'|'excel'} format - Download format
+   */
+  downloadProjectExpenseReport: async (projectId, format = 'pdf') => {
+    const token = getAuthToken();
+    const safeFormat = format === 'excel' ? 'excel' : 'pdf';
+
+    const response = await fetch(`${API_BASE_URL}/financial/projects/${projectId}/report/${safeFormat}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      }
+    });
+
+    return downloadBlob(
+      response,
+      `project-expense-report.${safeFormat === 'excel' ? 'xlsx' : 'pdf'}`
+    );
   }
 };

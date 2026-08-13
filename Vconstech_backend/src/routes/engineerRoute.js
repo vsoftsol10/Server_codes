@@ -49,6 +49,23 @@ const normalizeEngineerStatus = (status) => {
   return value === 'inactive' ? 'Inactive' : 'Active';
 };
 
+const INACTIVE_ACCOUNT_ERROR = 'Your account has been deactivated. Please contact your administrator.';
+
+const isCustomerAccountInactive = (user) => {
+  if (!user) return true;
+  if (!user.isActive) return true;
+
+  const accountStatus = String(user.accountStatus || '').trim().toUpperCase();
+  if (accountStatus && accountStatus !== 'ACTIVE') return true;
+
+  const subscriptionStatus = String(user.subscriptionStatus || '').trim().toUpperCase();
+  if (subscriptionStatus && ['TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED', 'INACTIVE', 'CANCELLED'].includes(subscriptionStatus)) {
+    return true;
+  }
+
+  return false;
+};
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const EMPLOYEE_LOGIN_URL = 'https://erp.thevsoft.com/employee-login';
@@ -137,6 +154,26 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    const owner = await prisma.user.findFirst({
+      where: {
+        companyId: engineer.companyId,
+        role: { in: ['Admin', 'ADMIN'] }
+      },
+      select: {
+        isActive: true,
+        accountStatus: true,
+        subscriptionStatus: true
+      }
+    });
+
+    if (isCustomerAccountInactive(owner)) {
+      console.log('❌ Engineer login blocked for inactive customer account:', { username, companyId: engineer.companyId });
+      return res.status(403).json({
+        success: false,
+        error: INACTIVE_ACCOUNT_ERROR
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, engineer.password);
 
     if (!isPasswordValid) {
@@ -218,47 +255,13 @@ router.get('/my-projects', authenticateToken, async (req, res) => {
     const engineerId = req.user.id;
     const companyId = req.user.companyId;
 
-    let projects = [];
-    
-    try {
-      projects = await prisma.project.findMany({
-        where: {
-          companyId: companyId,
-          engineers: {
-            some: { id: engineerId }
-          }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-    } catch (error1) {
-      try {
-        projects = await prisma.project.findMany({
-          where: {
-            companyId: companyId,
-            OR: [
-              { engineerId: engineerId },
-              { assignedEngineerId: engineerId },
-              { assignedToId: engineerId }
-            ]
-          },
-          orderBy: { createdAt: 'desc' }
-        });
-      } catch (error2) {
-        const engineerWithProjects = await prisma.engineer.findUnique({
-          where: { id: engineerId },
-          include: {
-            projects: {
-              where: { companyId: companyId },
-              orderBy: { createdAt: 'desc' }
-            }
-          }
-        });
-        
-        if (engineerWithProjects) {
-          projects = engineerWithProjects.projects || [];
-        }
-      }
-    }
+    const projects = await prisma.project.findMany({
+      where: {
+        companyId,
+        assignedEngineerId: engineerId
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
     res.json({ 
       success: true,
@@ -765,3 +768,4 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 });
 
 export default router;
+

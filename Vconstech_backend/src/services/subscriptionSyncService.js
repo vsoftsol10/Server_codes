@@ -2506,7 +2506,9 @@ export const runTrialExpiryJob = async () => {
 export const scheduleTrialExpiryJob = () => {
   if (trialExpiryJob) return trialExpiryJob;
 
-  runTrialExpiryJob().catch(() => {});
+  if (process.env.ERP_TRIAL_EXPIRY_RUN_ON_STARTUP === 'true') {
+    runTrialExpiryJob().catch(() => {});
+  }
 
   trialExpiryJob = setInterval(() => {
     runTrialExpiryJob().catch(() => {});

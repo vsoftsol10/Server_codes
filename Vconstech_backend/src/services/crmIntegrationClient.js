@@ -7,6 +7,20 @@ const normalizeBaseUrl = (url) => {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
+const summarizeResponseBody = (body) => {
+  if (!body) return body;
+  if (typeof body !== 'string') return body;
+
+  const trimmed = body.trim();
+  const preview = trimmed.replace(/\s+/g, ' ').slice(0, 300);
+
+  return {
+    type: trimmed.startsWith('<!DOCTYPE html') || trimmed.startsWith('<html') ? 'html' : 'text',
+    preview,
+    truncated: trimmed.length > preview.length
+  };
+};
+
 const isRetryable = (error) => {
   if (!error.response) return true;
   return [408, 429, 500, 502, 503, 504].includes(error.response.status);
@@ -69,7 +83,7 @@ const createClient = () => {
       console.error('[ERP->CRM] Error', {
         message: error.message,
         status: error.response?.status,
-        body: error.response?.data
+        body: summarizeResponseBody(error.response?.data)
       });
       return Promise.reject(error);
     }
@@ -90,7 +104,7 @@ export const sendCustomerStatusEvent = async (payload) => {
       error.response?.data?.error || error.response?.data?.message || error.message
     );
     normalized.statusCode = error.response?.status || error.statusCode || 502;
-    normalized.details = error.response?.data || error.details;
+    normalized.details = summarizeResponseBody(error.response?.data) || error.details;
     throw normalized;
   }
 };
@@ -107,7 +121,7 @@ export const ensureDirectPricingCustomer = async (payload) => {
       error.response?.data?.error || error.response?.data?.message || error.message
     );
     normalized.statusCode = error.response?.status || error.statusCode || 502;
-    normalized.details = error.response?.data || error.details;
+    normalized.details = summarizeResponseBody(error.response?.data) || error.details;
     throw normalized;
   }
 };

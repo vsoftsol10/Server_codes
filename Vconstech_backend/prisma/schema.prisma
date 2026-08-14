@@ -74,6 +74,7 @@ model Project {
   labours                Labour[]
   materialRequests       MaterialRequest[]
   materialUsages         MaterialUsage[]
+  notifications          Notification[]
   assignedEngineer       Engineer?                @relation(fields: [assignedEngineerId], references: [id])
   company                Company                  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   assignments            ProjectAssignment[]
@@ -221,9 +222,12 @@ model Notification {
   engineerId    Int
   recipientRole String?
   requestId     Int?
+  projectId     Int?
   engineer      Engineer         @relation(fields: [engineerId], references: [id], onDelete: Cascade)
+  project       Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([engineerId])
+  @@index([projectId])
   @@index([read])
   @@index([date])
   @@index([recipientRole, read])

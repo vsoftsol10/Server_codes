@@ -1,54 +1,86 @@
 import { prisma } from '../config/database.js';
 
-// ✅ Helper: normalize role checks (handles 'Admin', 'ADMIN', 'Site_Engineer', 'SITE_ENGINEER', 'ENGINEER')
-// Engineer JWT payload: { id: engineer.id (Int), role: 'Site_Engineer', type: 'engineer', companyId }
-// Admin JWT payload:    { userId: user.id (UUID), role: 'Admin', companyId }
-// So for engineers: req.user.id is the Engineer.id Int we need for Notification.engineerId
+const notificationPanelLimit = 50;
+
 const isAdmin = (role) => ['ADMIN', 'SUPERVISOR'].includes(role?.toUpperCase()?.trim());
 const isEngineer = (role) => ['ENGINEER', 'SITE_ENGINEER'].includes(role?.toUpperCase()?.trim());
-const notificationPanelLimit = 50;
+
+const getRequestUser = (req) => ({
+  userId: req.user?.engineerId || req.user?.id || req.user?.userId,
+  userRole: req.user?.role,
+  companyId: req.user?.companyId ? String(req.user.companyId) : null
+});
+
+const buildCompanyScope = (companyId) => ({
+  engineer: {
+    companyId
+  },
+  OR: [
+    { projectId: null },
+    { project: { is: { companyId } } }
+  ]
+});
+
+const buildNotificationWhere = ({ userId, userRole, companyId, read }) => {
+  if (!companyId) return null;
+
+  const where = {
+    ...buildCompanyScope(companyId)
+  };
+
+  if (isAdmin(userRole)) {
+    where.recipientRole = 'ADMIN';
+  } else if (isEngineer(userRole)) {
+    const engineerId = Number.parseInt(userId, 10);
+    if (!Number.isInteger(engineerId)) return null;
+    where.engineerId = engineerId;
+    where.recipientRole = 'ENGINEER';
+  } else {
+    return null;
+  }
+
+  if (read !== undefined) {
+    where.read = read;
+  }
+
+  return where;
+};
+
+const emptyNotificationResponse = () => ({
+  success: true,
+  count: 0,
+  unreadCount: 0,
+  notifications: []
+});
 
 export const getNotifications = async (req, res) => {
   try {
-    // ✅ FIX: engineerId (Int) takes priority for engineers; userId is fallback
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
-    
-    console.log('🔔 getNotifications called');
+    const { userId, userRole, companyId } = getRequestUser(req);
+
+    console.log('getNotifications called');
     console.log('   Raw user from token:', req.user);
     console.log('   Resolved userId:', userId);
     console.log('   Role:', userRole);
+    console.log('   Company:', companyId);
 
     if (!userId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found in request' 
+        error: 'User ID not found in request'
       });
     }
 
     const { unreadOnly } = req.query;
+    const where = buildNotificationWhere({
+      userId,
+      userRole,
+      companyId,
+      read: unreadOnly === 'true' ? false : undefined
+    });
 
-    // ✅ FIX: Case-insensitive role check
-    let where = {};
-    
-    if (isAdmin(userRole)) {
-      where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
-      where.engineerId = parseInt(userId);
-      where.recipientRole = 'ENGINEER';
-    } else {
-      // Unknown role — return empty to avoid leaking data
-      console.warn('⚠️ Unknown role in getNotifications:', userRole);
-      return res.json({ 
-        success: true,
-        count: 0,
-        unreadCount: 0,
-        notifications: []
-      });
-    }
-
-    if (unreadOnly === 'true') {
-      where.read = false;
+    if (!where) {
+      console.warn('Unable to scope notifications:', { userRole, companyId });
+      return res.json(emptyNotificationResponse());
     }
 
     console.log('   Prisma where clause:', where);
@@ -61,7 +93,7 @@ export const getNotifications = async (req, res) => {
         engineer: {
           select: {
             id: true,
-            name: true,
+            name: true
           }
         },
         project: {
@@ -72,37 +104,36 @@ export const getNotifications = async (req, res) => {
           }
         }
       }
-    }).catch(err => {
+    }).catch((err) => {
       console.error('Prisma notification query error:', err);
       return [];
     });
-    const visibleNotifications = notifications;
 
-    let unreadWhere = { read: false };
-    if (isAdmin(userRole)) {
-      unreadWhere.recipientRole = 'ADMIN';
-    } else {
-      unreadWhere.engineerId = parseInt(userId);
-      unreadWhere.recipientRole = 'ENGINEER';
-    }
+    const unreadWhere = buildNotificationWhere({
+      userId,
+      userRole,
+      companyId,
+      read: false
+    });
+
     const unreadCount = await prisma.notification.count({
       where: unreadWhere
-    }).catch(err => {
+    }).catch((err) => {
       console.error('Prisma notification count error:', err);
       return 0;
     });
 
-    console.log(`   Found ${visibleNotifications.length} notifications, ${unreadCount} unread`);
+    console.log(`   Found ${notifications.length} notifications, ${unreadCount} unread`);
 
-    res.json({ 
+    res.json({
       success: true,
-      count: visibleNotifications.length,
+      count: notifications.length,
       unreadCount,
-      notifications: visibleNotifications 
+      notifications
     });
   } catch (error) {
     console.error('Get notifications error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to fetch notifications',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -113,36 +144,35 @@ export const getNotifications = async (req, res) => {
 export const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
+    const { userId, userRole, companyId } = getRequestUser(req);
 
     if (!userId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found' 
+        error: 'User ID not found'
       });
     }
 
-    const notification = await prisma.notification.findUnique({
-      where: { id: parseInt(id) }
+    const notificationWhere = buildNotificationWhere({ userId, userRole, companyId });
+
+    if (!notificationWhere) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+
+    const notification = await prisma.notification.findFirst({
+      where: {
+        id: parseInt(id),
+        ...notificationWhere
+      }
     });
 
     if (!notification) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Notification not found' 
-      });
-    }
-
-    // ✅ FIX: Case-insensitive permission check
-    const hasPermission = 
-      (isAdmin(userRole) && notification.recipientRole === 'ADMIN') ||
-      (isEngineer(userRole) && notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
-
-    if (!hasPermission) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Unauthorized' 
+        error: 'Notification not found'
       });
     }
 
@@ -151,14 +181,14 @@ export const markAsRead = async (req, res) => {
       data: { read: true }
     });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Notification marked as read',
-      notification: updated 
+      notification: updated
     });
   } catch (error) {
     console.error('Mark as read error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to mark notification as read',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -168,24 +198,27 @@ export const markAsRead = async (req, res) => {
 
 export const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
+    const { userId, userRole, companyId } = getRequestUser(req);
 
     if (!userId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found' 
+        error: 'User ID not found'
       });
     }
 
-    // ✅ FIX: Case-insensitive role check
-    let where = { read: false };
-    
-    if (isAdmin(userRole)) {
-      where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
-      where.engineerId = parseInt(userId);
-      where.recipientRole = 'ENGINEER';
+    const where = buildNotificationWhere({
+      userId,
+      userRole,
+      companyId,
+      read: false
+    });
+
+    if (!where) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized'
+      });
     }
 
     const result = await prisma.notification.updateMany({
@@ -193,14 +226,14 @@ export const markAllAsRead = async (req, res) => {
       data: { read: true }
     });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'All notifications marked as read',
-      count: result.count 
+      count: result.count
     });
   } catch (error) {
     console.error('Mark all as read error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to mark all notifications as read',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -211,36 +244,35 @@ export const markAllAsRead = async (req, res) => {
 export const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
+    const { userId, userRole, companyId } = getRequestUser(req);
 
     if (!userId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found' 
+        error: 'User ID not found'
       });
     }
 
-    const notification = await prisma.notification.findUnique({
-      where: { id: parseInt(id) }
+    const notificationWhere = buildNotificationWhere({ userId, userRole, companyId });
+
+    if (!notificationWhere) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized'
+      });
+    }
+
+    const notification = await prisma.notification.findFirst({
+      where: {
+        id: parseInt(id),
+        ...notificationWhere
+      }
     });
 
     if (!notification) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Notification not found' 
-      });
-    }
-
-    // ✅ FIX: Case-insensitive permission check
-    const hasPermission = 
-      (isAdmin(userRole) && notification.recipientRole === 'ADMIN') ||
-      (isEngineer(userRole) && notification.engineerId === parseInt(userId) && notification.recipientRole === 'ENGINEER');
-
-    if (!hasPermission) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Unauthorized' 
+        error: 'Notification not found'
       });
     }
 
@@ -248,13 +280,13 @@ export const deleteNotification = async (req, res) => {
       where: { id: parseInt(id) }
     });
 
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Notification deleted successfully' 
+      message: 'Notification deleted successfully'
     });
   } catch (error) {
     console.error('Delete notification error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to delete notification',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -264,38 +296,41 @@ export const deleteNotification = async (req, res) => {
 
 export const clearReadNotifications = async (req, res) => {
   try {
-    const userId = req.user?.engineerId || req.user?.id || req.user?.userId;
-    const userRole = req.user?.role;
+    const { userId, userRole, companyId } = getRequestUser(req);
 
     if (!userId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        error: 'User ID not found' 
+        error: 'User ID not found'
       });
     }
 
-    // ✅ FIX: Case-insensitive role check
-    let where = { read: true };
-    
-    if (isAdmin(userRole)) {
-      where.recipientRole = 'ADMIN';
-    } else if (isEngineer(userRole)) {
-      where.engineerId = parseInt(userId);
-      where.recipientRole = 'ENGINEER';
+    const where = buildNotificationWhere({
+      userId,
+      userRole,
+      companyId,
+      read: true
+    });
+
+    if (!where) {
+      return res.status(403).json({
+        success: false,
+        error: 'Unauthorized'
+      });
     }
 
     const result = await prisma.notification.deleteMany({
       where
     });
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Read notifications cleared',
-      count: result.count 
+      count: result.count
     });
   } catch (error) {
     console.error('Clear read notifications error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to clear notifications',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined

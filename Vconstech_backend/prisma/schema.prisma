@@ -22,7 +22,7 @@ model User {
   package               String?
   customMembers         Int?
   gstNumber             String                 @default("")
-  isActive              Boolean                @default(false)
+  isActive              Boolean                @default(true)
   accountStatus         String                 @default("ACTIVE")
   clientId              Int?
   crmCustomerId         String?

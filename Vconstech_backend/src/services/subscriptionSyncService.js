@@ -470,7 +470,7 @@
 //         <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
 //           <p style="margin:0 0 8px"><strong>Subscription Plan:</strong> ${plan}</p>
 //           <p style="margin:0 0 12px"><strong>Invitation ID:</strong> ${invitationId}</p>
-//           <a href="${invitationUrl}" style="background:#111827;color:#ffffff;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block">Complete registration</a>
+//           <a href="${invitationUrl}" style="background:#ffbe01;color:#1a1a1a;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:700">Complete registration</a>
 //         </div>
 //         <p style="font-size:13px;color:#6b7280">If the button does not work, open this link: <a href="${invitationUrl}">${invitationUrl}</a></p>
 //         <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>
@@ -1646,7 +1646,7 @@ const sendPaymentSuccessfulAccountEmail = async ({
         <h2 style="margin-bottom:12px">Your ERP Account is Ready</h2>
         <p>Hi <strong>${user.name || 'Customer'}</strong>,</p>
         <p>Your payment was successful and your ERP subscription is active.</p>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
+        <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:12px;padding:16px;margin:20px 0">
           <p style="margin:0 0 8px"><strong>Customer Name:</strong> ${user.name || 'Customer'}</p>
           <p style="margin:0 0 8px"><strong>Purchased Plan:</strong> ${plan}</p>
           <p style="margin:0 0 8px"><strong>ERP Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
@@ -1684,7 +1684,7 @@ const sendSubscriptionActivatedEmail = async ({ user, plan }) => {
         <h2 style="margin-bottom:12px">Subscription Activated Successfully</h2>
         <p>Hi <strong>${user.name || 'Customer'}</strong>,</p>
         <p>Your ERP subscription has been activated successfully.</p>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
+        <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:12px;padding:16px;margin:20px 0">
           <p style="margin:0 0 8px"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
           <p style="margin:0 0 8px"><strong>Registered Email:</strong> ${user.email}</p>
           <p style="margin:0"><strong>Subscription Plan:</strong> ${plan}</p>
@@ -1713,10 +1713,10 @@ const sendPricingInvitationEmail = async ({ name, email, invitationId, plan }) =
         <h2 style="margin-bottom:12px">Complete your Vconstech ERP registration</h2>
         <p>Hi <strong>${name || 'Customer'}</strong>,</p>
         <p>Your payment was successful. Please complete your ERP registration and create your password.</p>
-        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:20px 0">
+        <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:12px;padding:16px;margin:20px 0">
           <p style="margin:0 0 8px"><strong>Subscription Plan:</strong> ${plan}</p>
           <p style="margin:0 0 12px"><strong>Invitation ID:</strong> ${invitationId}</p>
-          <a href="${invitationUrl}" style="background:#111827;color:#ffffff;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block">Complete registration</a>
+          <a href="${invitationUrl}" style="background:#ffbe01;color:#1a1a1a;padding:10px 14px;border-radius:6px;text-decoration:none;display:inline-block;font-weight:700">Complete registration</a>
         </div>
         <p style="font-size:13px;color:#6b7280">If the button does not work, open this link: <a href="${invitationUrl}">${invitationUrl}</a></p>
         <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>

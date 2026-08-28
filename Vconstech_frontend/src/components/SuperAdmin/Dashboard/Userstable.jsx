@@ -7,6 +7,15 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const ROWS_PER_PAGE = 10;
 
+const getExportToken = () => {
+  const existingToken = getToken() || localStorage.getItem("token") || "";
+  if (existingToken) return existingToken;
+
+  const nextToken = `super_admin_token_${Date.now()}`;
+  localStorage.setItem("token", nextToken);
+  return nextToken;
+};
+
 // ─── View User Modal ──────────────────────────────────────────────────────────
 const ViewUserModal = ({ user, onClose }) => {
   if (!user) return null;
@@ -394,7 +403,7 @@ const UsersTable = ({ users, loading, onEdit, onDelete }) => {
   const handleDownload = async (user) => {
     setDownloadingId(user.id);
     try {
-      const token = getToken() || "";
+      const token = getExportToken();
       const response = await fetch(`${API_URL}/superadmin/users/${user.id}/export`, {
         method:  "GET",
         headers: {

@@ -3,8 +3,47 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/database.js';
 import { downloadUserData } from '../controllers/Userexportcontroller.js';
+import { sendEmail } from '../utils/mailer.js';
 
 const router = express.Router();
+
+const getLoginUrl = () =>
+  process.env.ERP_LOGIN_URL ||
+  process.env.ERP_FRONTEND_URL ||
+  process.env.CLIENT_URL ||
+  'http://localhost:5173';
+
+const sendCreatedUserCredentialsEmail = async ({ user, password, companyName }) => {
+  const loginUrl = getLoginUrl();
+  const result = await sendEmail({
+    to: user.email,
+    subject: 'Welcome to Vconstech ERP - Your account is ready',
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:560px;margin:auto">
+        <h2 style="margin-bottom:12px">Welcome to Vconstech ERP</h2>
+        <p>Hi <strong>${user.name || 'Customer'}</strong>,</p>
+        <p>Your ERP account has been created successfully.</p>
+        <div style="background:#fff8e1;border:1px solid #ffbe01;border-radius:12px;padding:16px;margin:20px 0">
+          <p style="margin:0 0 8px"><strong>Login URL:</strong> <a href="${loginUrl}">${loginUrl}</a></p>
+          <p style="margin:0 0 8px"><strong>Email:</strong> ${user.email}</p>
+          <p style="margin:0 0 8px"><strong>Password:</strong> ${password}</p>
+          <p style="margin:0 0 8px"><strong>Company:</strong> ${companyName || user.company?.name || 'N/A'}</p>
+          <p style="margin:0"><strong>Package:</strong> ${user.package || 'N/A'}</p>
+        </div>
+        <p>Please change your password after your first login.</p>
+        <p>Best Regards,<br/><strong>Vconstech ERP</strong></p>
+      </div>
+    `
+  });
+
+  return {
+    sent: result.success,
+    to: user.email,
+    subject: 'Welcome to Vconstech ERP - Your account is ready',
+    loginUrl,
+    ...(result.success ? {} : { error: result.error, code: result.code })
+  };
+};
 
 // Create User Route
 router.post('/create-user', async (req, res) => {
@@ -111,7 +150,21 @@ const validPackages = ['Free', 'Basic', 'Premium', 'Advanced'];
       companyId: user.companyId
     }, process.env.JWT_SECRET, { expiresIn: '7d' });
     
-    res.status(201).json({ success: true, message: 'User created successfully', token, user });
+    const credentialsEmail = await sendCreatedUserCredentialsEmail({
+      user,
+      password,
+      companyName
+    });
+
+    res.status(201).json({
+      success: true,
+      message: credentialsEmail.sent
+        ? 'User created successfully and credentials email sent'
+        : 'User created successfully, but credentials email failed',
+      token,
+      user,
+      credentialsEmail
+    });
     
   } catch (error) {
     console.error('❌ Create user error:', error);

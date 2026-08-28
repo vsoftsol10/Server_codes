@@ -68,7 +68,7 @@ const isCustomerAccountInactive = (user) => {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const EMPLOYEE_LOGIN_URL = 'https://erp.thevsoft.com/employee-login';
+const EMPLOYEE_LOGIN_URL = 'https://erp.vconstech.in/employee-login';
 
 const getEmployeeLoginUrl = () => EMPLOYEE_LOGIN_URL;
 
@@ -110,6 +110,49 @@ const sendEngineerWelcomeEmail = async ({ engineer, email, password }) => {
 
   if (!result.success) {
     console.error('[Engineer Email] Failed to send welcome email:', result.error);
+  }
+
+  return result;
+};
+
+const sendEngineerPasswordUpdatedEmail = async ({ engineer, email }) => {
+  if (!email || !EMAIL_PATTERN.test(email)) {
+    console.log('[Engineer Email] Skipped password update email because engineer email is missing or invalid');
+    return null;
+  }
+
+  const employeeLoginUrl = getEmployeeLoginUrl();
+
+  const result = await sendEmail({
+    to: email,
+    subject: 'Vconstech ERP - Your engineer password was updated',
+    html: `
+      <div style="margin:0;padding:24px;background:#f3f6fb">
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827;max-width:620px;margin:auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden">
+          <div style="background:#0f4fa8;padding:24px 28px;color:#ffffff">
+            <h2 style="margin:0;font-size:24px;line-height:1.3">Engineer Password Updated</h2>
+          </div>
+          <div style="padding:28px">
+            <p style="margin:0 0 10px;font-size:16px">Hi <strong>${engineer.name}</strong>,</p>
+            <p style="margin:0 0 22px;color:#374151">Your engineer account password has been updated by your administrator.</p>
+            <div style="background:#f8fafc;border:1px solid #dbeafe;border-radius:12px;padding:18px;margin:0 0 22px">
+              <h3 style="margin:0 0 14px;font-size:17px;color:#0f4fa8">Employee Portal Credentials</h3>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Engineer Name:</strong><br/>${engineer.name}</p>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Username:</strong><br/>${engineer.username || 'Not provided'}</p>
+              <p style="margin:0 0 8px;color:#4b5563"><strong style="color:#111827">Updated Password:</strong><br/>${engineer.plainPassword}</p>
+              <p style="margin:0 0 16px;color:#4b5563"><strong style="color:#111827">Employee Login URL:</strong><br/><a href="${employeeLoginUrl}" style="color:#0f6fdc;text-decoration:none">${employeeLoginUrl}</a></p>
+              <a href="${employeeLoginUrl}" style="background:#0f6fdc;color:#ffffff;padding:12px 18px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:700">Login to Employee Portal</a>
+            </div>
+            <p style="margin:0 0 18px;color:#374151">Please use this updated password for your employee portal access and keep it secure.</p>
+            <p style="margin:0;color:#374151">Best Regards,<br/><strong>Vconstech ERP</strong></p>
+          </div>
+        </div>
+      </div>
+    `
+  });
+
+  if (!result.success) {
+    console.error('[Engineer Email] Failed to send password update email:', result.error);
   }
 
   return result;
@@ -722,6 +765,13 @@ router.put('/:id', authenticateToken, upload.single('profileImage'), async (req,
   profileImage: true, username: true, plainPassword: true, createdAt: true, updatedAt: true
 }
     });
+
+    if (password) {
+      await sendEngineerPasswordUpdatedEmail({
+        engineer,
+        email: engineer.email
+      });
+    }
 
     res.json({
       success: true,

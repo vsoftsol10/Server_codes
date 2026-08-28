@@ -248,12 +248,12 @@ router.post(
             <p style="margin:6px 0;font-size:14px"><strong>URL:</strong> <a href="http://localhost:5001">http://localhost:5001</a></p>
             <p style="margin:6px 0;font-size:14px"><strong>Email:</strong> ${email}</p>
             <p style="margin:6px 0;font-size:14px"><strong>Password:</strong>
-              <code style="background:#f4f4f4;padding:3px 8px;border-radius:4px;font-size:13px">${plainPassword}</code>
+              <code style="background:#ffef99;padding:3px 8px;border-radius:4px;font-size:13px">${plainPassword}</code>
             </p>
           </div>
 
           <p style="color:#888;font-size:13px">Please change your password after your first login.</p>
-          <p style="color:#888;font-size:13px">Plan: <strong>${userPackage}</strong>${customMembers ? ` | Members: ${customMembers}` : ''}</p>
+           <p style="color:#888;font-size:13px">Plan: <strong>${userPackage}</strong>${customMembers ? ` | Members: ${customMembers}` : ''}</p>
         </div>
       `,
     });
